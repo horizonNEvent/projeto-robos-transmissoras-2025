@@ -1,0 +1,25 @@
+{
+    "mapeamento_empresas": {
+        "*": "CEEE T"
+    },
+    "AETE": [
+        {
+            "codigo": "4284",
+            "nome": "Anemus_I",
+            "cnpj": "29481536000158",
+            "senha": "Fatr102030@#"
+        },
+        {
+            "codigo": "4292",
+            "nome": "Anemus_II",
+            "cnpj": "29492546000199",
+            "senha": "Fatr102030@#"
+        },
+        {
+            "codigo": "4319",
+            "nome": "Anemus_III",
+            "cnpj": "38350307000195",
+            "senha": "Fatr102030@#"
+        }
+    ]
+}

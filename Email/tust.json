@@ -1,0 +1,254 @@
+[
+    {
+        "CNPJ": "33485728000100",
+        "ONS": "4313",
+        "Código Neoenergia": "1108376",
+        "EMPRESA": "BRJA",
+        "Usuárias": "EÓLICA BREJINHOS ALFA S.A"
+    },
+    {
+        "CNPJ": "33485874000135",
+        "ONS": "4314",
+        "Código Neoenergia": "1108377",
+        "EMPRESA": "BRJB",
+        "Usuárias": "EÓLICA BREJINHOS B S.A."
+    },
+    {
+        "CNPJ": "19233858000205",
+        "ONS": "3430",
+        "Código Neoenergia": "1101532",
+        "EMPRESA": "CECA",
+        "Usuárias": "EOL CAETITÉ A"
+    },
+    {
+        "CNPJ": "19235607000260",
+        "ONS": "3431",
+        "Código Neoenergia": "1101533",
+        "EMPRESA": "CECB",
+        "Usuárias": "EOL CAETITÉ B"
+    },
+    {
+        "CNPJ": "19560109000292",
+        "ONS": "3432",
+        "Código Neoenergia": "1101534",
+        "EMPRESA": "CECC",
+        "Usuárias": "EOL CAETITÉ C"
+    },
+    {
+        "CNPJ": "33457932000117",
+        "ONS": "4415",
+        "Código Neoenergia": "1108935",
+        "EMPRESA": "CECD",
+        "Usuárias": "EOL CAETITÉ D"
+    },
+    {
+        "CNPJ": "33471379000177",
+        "ONS": "4315",
+        "Código Neoenergia": "1108378",
+        "EMPRESA": "CECE",
+        "Usuárias": "EÓLICA CAETITÉ ECO S.A"
+    },
+    {
+        "CNPJ": "33468809000100",
+        "ONS": "4316",
+        "Código Neoenergia": "1108379",
+        "EMPRESA": "CECF",
+        "Usuárias": "EÓLICA CAETITÉ F S.A."
+    },
+    {
+        "CNPJ": "19560032000250",
+        "ONS": "3502",
+        "Código Neoenergia": "1101690",
+        "EMPRESA": "ITA1",
+        "Usuárias": "EOL ITAREMA I"
+    },
+    {
+        "CNPJ": "19560074000291",
+        "ONS": "3497",
+        "Código Neoenergia": "1101632",
+        "EMPRESA": "ITA2",
+        "Usuárias": "EOL ITAREMA II"
+    },
+    {
+        "CNPJ": "19560839000293",
+        "ONS": "3503",
+        "Código Neoenergia": "1101691",
+        "EMPRESA": "ITA3",
+        "Usuárias": "EOL ITAREMA III"
+    },
+    {
+        "CNPJ": "20553751000223",
+        "ONS": "3530",
+        "Código Neoenergia": "1101738",
+        "EMPRESA": "ITA4",
+        "Usuárias": "EOL ITAREMA IV"
+    },
+    {
+        "CNPJ": "19560868000255",
+        "ONS": "3498",
+        "Código Neoenergia": "1101633",
+        "EMPRESA": "ITA5",
+        "Usuárias": "EOL ITAREMA V"
+    },
+    {
+        "CNPJ": "20533879000225",
+        "ONS": "3531",
+        "Código Neoenergia": "1101739",
+        "EMPRESA": "ITA6",
+        "Usuárias": "EOL ITAREMA VI"
+    },
+    {
+        "CNPJ": "20533473000242",
+        "ONS": "3532",
+        "Código Neoenergia": "1101740",
+        "EMPRESA": "ITA7",
+        "Usuárias": "EOL ITAREMA VII"
+    },
+    {
+        "CNPJ": "20533310000260",
+        "ONS": "3537",
+        "Código Neoenergia": "1101754",
+        "EMPRESA": "ITA8",
+        "Usuárias": "EOL ITAREMA VIII"
+    },
+    {
+        "CNPJ": "20533377000202",
+        "ONS": "3538",
+        "Código Neoenergia": "1101755",
+        "EMPRESA": "ITA9",
+        "Usuárias": "EOL ITAREMA IX"
+    },
+    {
+        "CNPJ": "30063842000234",
+        "ONS": "3947",
+        "Código Neoenergia": "1105036",
+        "EMPRESA": "SDBA",
+        "Usuárias": "EOL SERRA DA BABILÔNIA A"
+    },
+    {
+        "CNPJ": "29527877000206",
+        "ONS": "3948",
+        "Código Neoenergia": "1105037",
+        "EMPRESA": "SDBB",
+        "Usuárias": "EOL SERRA DA BABILÔNIA B"
+    },
+    {
+        "CNPJ": "29591504000296",
+        "ONS": "3969",
+        "Código Neoenergia": "1105267",
+        "EMPRESA": "SDBC",
+        "Usuárias": "EOL SERRA DA BABILÔNIA C"
+    },
+    {
+        "CNPJ": "30062725000256",
+        "ONS": "3970",
+        "Código Neoenergia": "1105268",
+        "EMPRESA": "SDBD",
+        "Usuárias": "EOL SERRA DA BABILÔNIA D"
+    },
+    {
+        "CNPJ": "30062736000236",
+        "ONS": "3976",
+        "Código Neoenergia": "1105116",
+        "EMPRESA": "SDBE",
+        "Usuárias": "EOL SERRA DA BABILÔNIA E"
+    },
+    {
+        "CNPJ": "30234798000288",
+        "ONS": "3972",
+        "Código Neoenergia": "1105385",
+        "EMPRESA": "SDBF",
+        "Usuárias": "EOL SERRA DA BABILÔNIA F"
+    },
+    {
+        "CNPJ": "30520122000170",
+        "ONS": "-",
+        "Código Neoenergia": "-",
+        "EMPRESA": "SJP1",
+        "Usuárias": "CELEO SAO JOAO DO PIAUI FV I S.A."
+    },
+    {
+        "CNPJ": "30432072000179",
+        "ONS": "-",
+        "Código Neoenergia": "-",
+        "EMPRESA": "SJP2",
+        "Usuárias": "CELEO SAO JOAO DO PIAUI FV II S.A."
+    },
+    {
+        "CNPJ": "30486042000145",
+        "ONS": "-",
+        "Código Neoenergia": "-",
+        "EMPRESA": "SJP3",
+        "Usuárias": "CELEO SAO JOAO DO PIAUI FV III S.A."
+    },
+    {
+        "CNPJ": "30425445000184",
+        "ONS": "-",
+        "Código Neoenergia": "-",
+        "EMPRESA": "SJP4",
+        "Usuárias": "CELEO SAO JOAO DO PIAUI FV IV S.A."
+    },
+    {
+        "CNPJ": "30456405000108",
+        "ONS": "-",
+        "Código Neoenergia": "-",
+        "EMPRESA": "SJP5",
+        "Usuárias": "CELEO SAO JOAO DO PIAUI FV V S.A."
+    },
+    {
+        "CNPJ": "30421756000175",
+        "ONS": "-",
+        "Código Neoenergia": "-",
+        "EMPRESA": "SJP6",
+        "Usuárias": "CELEO SAO JOAO DO PIAUI FV VI S.A."
+    },
+    {
+        "CNPJ": "14285232000148",
+        "ONS": "-",
+        "Código Neoenergia": "-",
+        "EMPRESA": "COR1",
+        "Usuárias": "COREMAS I GERAÇÃO DE ENERGIA SPE S.A."
+    },
+    {
+        "CNPJ": "14285242000183",
+        "ONS": "-",
+        "Código Neoenergia": "-",
+        "EMPRESA": "COR2",
+        "Usuárias": "COREMAS II GERACAO DE ENERGIA II SPE S.A."
+    },
+    {
+        "CNPJ": "24342513000149",
+        "ONS": "-",
+        "Código Neoenergia": "-",
+        "EMPRESA": "COR3",
+        "Usuárias": "COREMAS III GERAÇÃO DE ENERGIA SPE S.A."
+    },
+    {
+        "CNPJ": "10500221000182",
+        "ONS": "-",
+        "Código Neoenergia": "-",
+        "EMPRESA": "LIBRA",
+        "Usuárias": "LIBRA LIGAS DO BRASIL S/A"
+    },
+    {
+        "CNPJ": "29481536000158",
+        "ONS": "-",
+        "Código Neoenergia": "-",
+        "EMPRESA": "Anemus_I",
+        "Usuárias": "Anemus_I"
+    },
+    {
+        "CNPJ": "29492546000199",
+        "ONS": "-",
+        "Código Neoenergia": "-",
+        "EMPRESA": "Anemus_II",
+        "Usuárias": "Anemus_II"
+    },
+    {
+        "CNPJ": "38350307000195",
+        "ONS": "-",
+        "Código Neoenergia": "-",
+        "EMPRESA": "Anemus_III",
+        "Usuárias": "Anemus_III"
+    }
+]
