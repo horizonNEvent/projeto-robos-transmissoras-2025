@@ -2,12 +2,14 @@ import requests
 import json
 from bs4 import BeautifulSoup
 import os
+import pdfkit
 from datetime import datetime
 
 # Configurações do Robô
 TRANSMISSORA_ID = "1304"
 TRANSMISSORA_NOME = "FS"
 BASE_PATH = rf'C:\Users\Bruno\Downloads\TUST\{TRANSMISSORA_NOME}'
+WKHTML_PATH = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
 
 def carregar_empresas():
     try:
@@ -15,7 +17,6 @@ def carregar_empresas():
         with open(arquivo_json, 'r', encoding='utf-8') as f:
             return json.load(f)
     except Exception as e:
-        print(f"Erro ao carregar empresas: {e}")
         return {}
 
 def process_agent(agent_code, nome_ons, empresa_nome):
@@ -37,7 +38,6 @@ def process_agent(agent_code, nome_ons, empresa_nome):
             save_path = os.path.join(BASE_PATH, empresa_nome, agent_code)
             os.makedirs(save_path, exist_ok=True)
             
-            # XML
             xml_link = row.find('a', {'data-original-title': 'XML'})
             if xml_link:
                 xml_name = xml_link['href'].split('/')[-1]
@@ -45,7 +45,6 @@ def process_agent(agent_code, nome_ons, empresa_nome):
                 with open(os.path.join(save_path, xml_name), 'wb') as f: f.write(res.content)
                 print(f"  [OK] XML: {xml_name}")
 
-            # DANFE
             danfe_link = row.find('a', {'data-original-title': 'DANFE'})
             if danfe_link:
                 danfe_name = danfe_link['href'].split('/')[-1] + ".pdf"
@@ -53,20 +52,24 @@ def process_agent(agent_code, nome_ons, empresa_nome):
                 with open(os.path.join(save_path, danfe_name), 'wb') as f: f.write(res.content)
                 print(f"  [OK] DANFE: {danfe_name}")
 
-            # Boletos
             for i in range(3, 6):
                 b_link = cols[i].find('a')
                 if b_link and 'billet' in b_link['href']:
-                    b_name = f"Boleto_{agent_code}_{i}_{datetime.now().strftime('%H%M%S')}.html"
-                    res = requests.get(b_link['href'])
-                    with open(os.path.join(save_path, b_name), 'wb') as f: f.write(res.content)
-                    print(f"  [OK] BOLETO (HTML): {b_name}")
+                    b_url = b_link['href']
+                    ts = datetime.now().strftime('%H%M%S')
+                    pdf_name = f"Boleto_{agent_code}_{i}_{ts}.pdf"
+                    html_name = f"Boleto_{agent_code}_{i}_{ts}.html"
+                    res_b = requests.get(b_url)
+                    try:
+                        config = pdfkit.configuration(wkhtmltopdf=WKHTML_PATH)
+                        pdfkit.from_string(res_b.text, os.path.join(save_path, pdf_name), configuration=config, options={'quiet': ''})
+                        print(f"  [OK] BOLETO (PDF): {pdf_name}")
+                    exceptException as pdf_err:
+                        with open(os.path.join(save_path, html_name), 'wb') as f: f.write(res_b.content)
+                        print(f"  [WARN] Falha PDF ({pdf_err}), salvo como HTML: {html_name}")
     except Exception as e: print(f"Erro: {e}")
 
-def main():
+if __name__ == "__main__":
     for empresa_nome, mapping in carregar_empresas().items():
         for cod_ons, nome_ons in mapping.items():
             process_agent(str(cod_ons), nome_ons, empresa_nome)
-
-if __name__ == "__main__":
-    main()
