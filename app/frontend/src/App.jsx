@@ -22,6 +22,7 @@ function App() {
     { id: 'firminopolis', name: 'WebFirminopolis' },
     { id: 'evoltz', name: 'WebEvoltz' },
     { id: 'guaira', name: 'WebGuaira' },
+    { id: 'itamaraca', name: 'WebItamaraca' },
     // Futuros robôs podem ser adicionados aqui
   ]
   // Definição dos Robôs

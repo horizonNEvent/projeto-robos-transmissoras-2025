@@ -53,6 +53,11 @@ ROBOTS_CONFIG = {
         "script": os.path.join(ROOT_DIR, "Robots", "guaira.py"),
         "download_dir": r"C:\Users\Bruno\Downloads\TUST\GUAIRA",
         "name": "WebGuaira"
+    },
+    "itamaraca": {
+        "script": os.path.join(ROOT_DIR, "Robots", "itamaraca.py"),
+        "download_dir": r"C:\Users\Bruno\Downloads\TUST\ITAMARACA",
+        "name": "WebItamaraca"
     }
 }
 
@@ -96,7 +101,7 @@ def run_robot(request: RobotRequest, background_tasks: BackgroundTasks):
     robot_name = request.robot_name.lower()
     
     if robot_name not in ROBOTS_CONFIG:
-        raise HTTPException(status_code=400, detail="Robô inválido. Opções: siget, cnt, pantanal, assu, tropicalia, firminopolis, evoltz, guaira")
+        raise HTTPException(status_code=400, detail="Robô inválido. Opções: siget, cnt, pantanal, assu, tropicalia, firminopolis, evoltz, guaira, itamaraca")
     
     config = ROBOTS_CONFIG[robot_name]
 
