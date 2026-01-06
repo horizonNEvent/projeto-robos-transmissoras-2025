@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
+import argparse
 
 # Configurações de Diretórios
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -118,6 +119,11 @@ def processar_faturas(empresa_nome, ons_code, ons_name):
         return False
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--empresa", help="Nome da empresa para filtrar")
+    parser.add_argument("--agente", help="Código ONS do agente para filtrar")
+    args = parser.parse_args()
+
     print("Iniciando Robô Tropicalia")
     empresas_dict = carregar_empresas()
     
@@ -126,7 +132,13 @@ def main():
         return
 
     for empresa_nome, ons_dict in empresas_dict.items():
+        if args.empresa and args.empresa.upper() != empresa_nome.upper():
+            continue
+            
         for ons_code, ons_name in ons_dict.items():
+            if args.agente and str(args.agente) != str(ons_code):
+                continue
+                
             processar_faturas(empresa_nome, ons_code, ons_name)
 
 if __name__ == "__main__":

@@ -12,6 +12,9 @@ function App() {
   const [selectedRobot, setSelectedRobot] = useState('siget')
   const [showRobotSelector, setShowRobotSelector] = useState(false)
   const [robotSearch, setRobotSearch] = useState('')
+  const [empresasMapping, setEmpresasMapping] = useState({})
+  const [selectedEmpresaFilter, setSelectedEmpresaFilter] = useState('')
+  const [selectedAgenteFilter, setSelectedAgenteFilter] = useState('')
   // Definição dos Robôs
   const ROBOTS = [
     { id: 'siget', name: 'WebSiget' },
@@ -45,6 +48,7 @@ function App() {
 
   useEffect(() => {
     fetchEmpresas()
+    fetchMapping()
     const savedCreds = localStorage.getItem('siget_creds')
     if (savedCreds) {
       setRepoCreds(JSON.parse(savedCreds))
@@ -74,10 +78,20 @@ function App() {
     }
   }
 
+  const fetchMapping = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/empresas/mapping`)
+      setEmpresasMapping(res.data)
+    } catch (err) {
+      console.error("Erro ao buscar mapeamento", err)
+    }
+  }
+
   const syncEmpresas = async () => {
     try {
       await axios.post(`${API_URL}/empresas/sync`)
       fetchEmpresas()
+      fetchMapping() // Atualiza também o mapeamento
     } catch (err) {
       console.error("Erro ao sincronizar", err)
     }
@@ -89,7 +103,11 @@ function App() {
     setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Iniciando robô ${selectedRobot.toUpperCase()}...`])
 
     try {
-      const payload = { robot_name: selectedRobot }
+      const payload = {
+        robot_name: selectedRobot,
+        empresa: selectedEmpresaFilter || null,
+        agente: selectedAgenteFilter || null
+      }
 
       if (selectedRobot === 'siget') {
         // Agora o backend lê o arquivo empresas.siget.json direto
@@ -277,6 +295,41 @@ function App() {
               {status === 'idle' && 'AGUARDANDO'}
               {status === 'running' && 'EXECUTANDO...'}
               {status === 'finished' && 'FINALIZADO'}
+            </div>
+
+            {/* Filtros de Execução */}
+            <div style={{ marginTop: '1.5rem', background: '#222', padding: '1rem', borderRadius: '8px', border: '1px solid #333' }}>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', fontSize: '0.8em', color: '#888', marginBottom: '0.4rem' }}>Filtrar Empresa (Opcional)</label>
+                <select
+                  value={selectedEmpresaFilter}
+                  onChange={(e) => {
+                    setSelectedEmpresaFilter(e.target.value);
+                    setSelectedAgenteFilter(''); // Reseta agente ao mudar empresa
+                  }}
+                  style={{ width: '100%', padding: '0.5rem', background: '#111', border: '1px solid #444', color: 'white' }}
+                >
+                  <option value="">-- TODAS --</option>
+                  {Object.keys(empresasMapping).map(emp => (
+                    <option key={emp} value={emp}>{emp}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8em', color: '#888', marginBottom: '0.4rem' }}>Filtrar Agente / ONS (Opcional)</label>
+                <select
+                  value={selectedAgenteFilter}
+                  onChange={(e) => setSelectedAgenteFilter(e.target.value)}
+                  style={{ width: '100%', padding: '0.5rem', background: '#111', border: '1px solid #444', color: 'white' }}
+                  disabled={!selectedEmpresaFilter}
+                >
+                  <option value="">-- TODOS --</option>
+                  {selectedEmpresaFilter && Object.entries(empresasMapping[selectedEmpresaFilter] || {}).map(([cod, nome]) => (
+                    <option key={cod} value={cod}>{cod} - {nome}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div style={{ marginTop: '2rem' }}>

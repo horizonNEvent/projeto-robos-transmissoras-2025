@@ -7,6 +7,7 @@ from datetime import datetime
 import time
 import pdfkit
 import logging
+import argparse
 
 # Configuração de logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -169,6 +170,11 @@ class EvoltzRobot:
             logging.error(f"    [ERR] Erro ao baixar {nome_arquivo}: {e}")
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--empresa", help="Nome da empresa para filtrar")
+    parser.add_argument("--agente", help="Código ONS do agente para filtrar")
+    args = parser.parse_args()
+
     empresas = carregar_empresas()
     if not empresas: return
 
@@ -176,8 +182,14 @@ def main():
     periodo_pasta = datetime.now().strftime("%Y%m")
 
     for grupo, mapping in empresas.items():
+        if args.empresa and args.empresa.upper() != grupo.upper():
+            continue
+
         logging.info(f"=== Processando Grupo: {grupo} ===")
         for cod_ons, nome_ons in mapping.items():
+            if args.agente and str(args.agente) != str(cod_ons):
+                continue
+
             robot = EvoltzRobot(grupo, cod_ons, nome_ons)
             if robot.login():
                 faturas, comp = robot.get_faturas()

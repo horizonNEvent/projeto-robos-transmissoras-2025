@@ -5,6 +5,7 @@ import os
 from datetime import datetime
 import time
 from bs4 import BeautifulSoup
+import argparse
 
 class GuairaDownloader:
     def __init__(self, empresa_mae=None, cod_ons=None, nome_ons=None):
@@ -116,49 +117,57 @@ def carregar_config():
         return json.load(f)
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--empresa", help="Nome da empresa para filtrar")
+    parser.add_argument("--agente", help="Código ONS do agente para filtrar")
+    args = parser.parse_args()
+
     empresas = carregar_config()
     
     for empresa_mae, cod_ons_dict in empresas.items():
+        if args.empresa and args.empresa.upper() != empresa_mae.upper():
+            continue
+
         print(f"\n=== GRUPO: {empresa_mae} ===")
         for cod_ons, nome_ons in cod_ons_dict.items():
-            # Filtro para não tentar rodar em tudo, mas se quiser tudo é só abrir
-            # Por enquanto rodando conforme a lógica do script inicial
-            if "Anemus" in nome_ons or "Guaíra" in nome_ons or True: 
-                downloader = GuairaDownloader(empresa_mae, cod_ons, nome_ons)
-                if downloader.login():
-                    notas = downloader.get_notas()
-                    boletos = downloader.get_boletos()
+            if args.agente and str(args.agente) != str(cod_ons):
+                continue
+
+            downloader = GuairaDownloader(empresa_mae, cod_ons, nome_ons)
+            if downloader.login():
+                notas = downloader.get_notas()
+                boletos = downloader.get_boletos()
+                
+                if not notas:
+                    print(f"Nenhuma nota encontrada para {nome_ons}")
+                    continue
+                
+                # FILTRO DE RECÊNCIA: Pegar apenas o mês/ano mais recente
+                notas.sort(key=lambda x: x['data_emissao'], reverse=True)
+                mais_recente = notas[0]['data_emissao']
+                notas_filtradas = [
+                    n for n in notas 
+                    if n['data_emissao'].month == mais_recente.month and n['data_emissao'].year == mais_recente.year
+                ]
                     
-                    if not notas:
-                        print(f"Nenhuma nota encontrada para {nome_ons}")
-                        continue
+                print(f"Processando {len(notas_filtradas)} fatura(s) do mês mais recente ({mais_recente.strftime('%m/%Y')}) para {nome_ons}...")
+                
+                for nf in notas_filtradas:
+                    comp = nf['competencia'].replace("/", "_")
+                    num = nf['numero']
                     
-                    # FILTRO DE RECÊNCIA: Pegar apenas o mês/ano mais recente
-                    notas.sort(key=lambda x: x['data_emissao'], reverse=True)
-                    mais_recente = notas[0]['data_emissao']
-                    notas_filtradas = [
-                        n for n in notas 
-                        if n['data_emissao'].month == mais_recente.month and n['data_emissao'].year == mais_recente.year
-                    ]
-                        
-                    print(f"Processando {len(notas_filtradas)} fatura(s) do mês mais recente ({mais_recente.strftime('%m/%Y')}) para {nome_ons}...")
+                    # Download DANFE e XML
+                    downloader.baixar_arquivo(nf['url_danfe'], f"DANFE_{num}_{comp}.pdf")
+                    downloader.baixar_arquivo(nf['url_xml'], f"XML_{num}_{comp}.xml")
                     
-                    for nf in notas_filtradas:
-                        comp = nf['competencia'].replace("/", "_")
-                        num = nf['numero']
+                    # Tenta encontrar o boleto correspondente
+                    boleto_match = next((b for b in boletos if b['competencia'] == nf['competencia']), None)
+                    if boleto_match:
+                        downloader.baixar_arquivo(boleto_match['url_download'], f"Boleto_{num}_{comp}.pdf")
+                    else:
+                        print(f"Boleto não encontrado para a competência {nf['competencia']}")
                         
-                        # Download DANFE e XML
-                        downloader.baixar_arquivo(nf['url_danfe'], f"DANFE_{num}_{comp}.pdf")
-                        downloader.baixar_arquivo(nf['url_xml'], f"XML_{num}_{comp}.xml")
-                        
-                        # Tenta encontrar o boleto correspondente
-                        boleto_match = next((b for b in boletos if b['competencia'] == nf['competencia']), None)
-                        if boleto_match:
-                            downloader.baixar_arquivo(boleto_match['url_download'], f"Boleto_{num}_{comp}.pdf")
-                        else:
-                            print(f"Boleto não encontrado para a competência {nf['competencia']}")
-                            
-                time.sleep(1)
+            time.sleep(1)
 
 if __name__ == "__main__":
     main()

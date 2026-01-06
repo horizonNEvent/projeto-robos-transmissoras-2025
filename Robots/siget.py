@@ -15,6 +15,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 from urllib.parse import urljoin
 from concurrent.futures import ThreadPoolExecutor
+import argparse
 
 # Configurações de Diretórios
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -192,6 +193,11 @@ class SigetRobot:
         if self.driver: self.driver.quit()
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--empresa", help="Nome da empresa para filtrar")
+    parser.add_argument("--agente", help="Código ONS do agente para filtrar")
+    args = parser.parse_args()
+
     config_data = carregar_config()
     if not config_data: return
     
@@ -200,16 +206,36 @@ def main():
     try:
         for emp_key, info in config_data.items():
             emp_name = emp_key if emp_key.strip() else "AETE"
+            
+            # Filtro de empresa
+            # Se tiver agente, ignoramos o filtro de grupo para procurar em todos
+            if args.empresa and not args.agente:
+                if args.empresa.upper() != emp_name.upper():
+                    # Caso especial: AE agrupa SJP, LIBRA, COREMAS
+                    ae_groups = ["SJP", "LIBRA", "COREMAS"]
+                    if args.empresa.upper() == "AE" and emp_name.upper() in ae_groups:
+                        pass # Permitir
+                    else:
+                        continue
+
             email = info.get('email')
             if not email: continue
             
             robot.login(email)
             agentes = info.get('agentes', [])
+            
+            # Normalizar agentes para uma lista de dicts ou um dict
             if isinstance(agentes, list):
                 for d in agentes:
-                    for code, name in d.items(): robot.processar_agente(emp_name, code, name)
+                    for code, name in d.items(): 
+                        if args.agente and str(args.agente) != str(code):
+                            continue
+                        robot.processar_agente(emp_name, code, name)
             elif isinstance(agentes, dict):
-                for code, name in agentes.items(): robot.processar_agente(emp_name, code, name)
+                for code, name in agentes.items(): 
+                    if args.agente and str(args.agente) != str(code):
+                        continue
+                    robot.processar_agente(emp_name, code, name)
     finally:
         robot.fechar()
         print("\n[FINISH] Processo Finalizado com Alta Performance!")

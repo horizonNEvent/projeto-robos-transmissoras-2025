@@ -105,3 +105,13 @@ def sync_empresas(db: Session = Depends(get_db)):
         except Exception as e:
             return {"status": "error", "detail": str(e)}
     return {"status": "file not found"}
+
+@router.get("/mapping")
+def get_mapping():
+    if os.path.exists(EMPRESAS_JSON_PATH):
+        try:
+            with open(EMPRESAS_JSON_PATH, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+    return {}

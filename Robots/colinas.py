@@ -3,6 +3,7 @@ import json
 from bs4 import BeautifulSoup
 import os
 import pdfkit
+import argparse
 from datetime import datetime
 
 # Configurações do Robô
@@ -70,6 +71,17 @@ def process_agent(agent_code, nome_ons, empresa_nome):
     except Exception as e: print(f"Erro: {e}")
 
 if __name__ == "__main__":
-    for empresa_nome, mapping in carregar_empresas().items():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--empresa", help="Nome da empresa para filtrar")
+    parser.add_argument("--agente", help="Código ONS do agente para filtrar")
+    args = parser.parse_args()
+
+    empresas = carregar_empresas()
+    
+    for empresa_nome, mapping in empresas.items():
+        if args.empresa and args.empresa.upper() != empresa_nome.upper():
+            continue
         for cod_ons, nome_ons in mapping.items():
+            if args.agente and str(args.agente) != str(cod_ons):
+                continue
             process_agent(str(cod_ons), nome_ons, empresa_nome)

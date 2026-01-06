@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 import json
 import logging
+import argparse
 
 # Configuração do logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -75,6 +76,11 @@ def baixar_xml_cnt(codigo_ons, empresa_nome, nome_ons):
         return False
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--empresa", help="Nome da empresa para filtrar")
+    parser.add_argument("--agente", help="Código ONS do agente para filtrar")
+    args = parser.parse_args()
+
     empresas = carregar_empresas()
     if not empresas:
         logger.error("Empresas não carregadas.")
@@ -83,8 +89,13 @@ def main():
     logger.info("Iniciando download dos XMLs CNT...")
 
     for empresa_nome, codigos_dict in empresas.items():
+        if args.empresa and args.empresa.upper() != empresa_nome.upper():
+            continue
+
         logger.info(f"\n=== Empresa: {empresa_nome} ===")
         for codigo_ons, nome_ons in codigos_dict.items():
+            if args.agente and str(args.agente) != str(codigo_ons):
+                continue
             baixar_xml_cnt(codigo_ons, empresa_nome, nome_ons)
 
     logger.info("\nProcessamento concluído!")

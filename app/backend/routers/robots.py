@@ -5,6 +5,7 @@ import subprocess
 import os
 import shutil
 from sqlalchemy.orm import Session
+from typing import Optional
 from .. import database
 
 from ..database import get_db
@@ -93,6 +94,8 @@ class RobotRequest(BaseModel):
     robot_name: str
     base: str | None = None
     email: str | None = None
+    empresa: Optional[str] = None
+    agente: Optional[str] = None
 
 @router.get("/robot-status/{robot_name}")
 def get_robot_status(robot_name: str):
@@ -143,8 +146,14 @@ def run_robot(request: RobotRequest, background_tasks: BackgroundTasks):
                 shutil.rmtree(config['download_dir'])
             os.makedirs(config['download_dir'], exist_ok=True)
             
+            cmd = ["python", config['script']]
+            if request.empresa:
+                cmd.extend(["--empresa", request.empresa])
+            if request.agente:
+                cmd.extend(["--agente", request.agente])
+
             process = subprocess.Popen(
-                ["python", config['script']],
+                cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 text=True,

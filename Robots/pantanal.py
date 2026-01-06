@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 import time
 import urllib3
+import argparse
 
 # Desativa avisos de SSL inseguro (o site da Pantanal está com certificado expirado)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -66,9 +67,20 @@ def baixar_titulo(empresa_nome, cod_ons, nome_ons):
     return False
 
 def processar_todas_empresas():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--empresa", help="Nome da empresa para filtrar")
+    parser.add_argument("--agente", help="Código ONS do agente para filtrar")
+    args = parser.parse_args()
+
     for empresa_nome, cod_ons_dict in EMPRESAS.items():
+        if args.empresa and args.empresa.upper() != empresa_nome.upper():
+            continue
+            
         print(f"\nProcessando empresa: {empresa_nome}")
         for cod_ons, nome_ons in cod_ons_dict.items():
+            if args.agente and str(args.agente) != str(cod_ons):
+                continue
+                
             try:
                 baixar_titulo(empresa_nome, str(cod_ons), nome_ons)
             except Exception as e:
