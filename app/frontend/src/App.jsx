@@ -10,17 +10,21 @@ function App() {
   const [downloadUrl, setDownloadUrl] = useState(null)
   const [empresas, setEmpresas] = useState([])
   const [selectedRobot, setSelectedRobot] = useState('siget')
+  const [showRobotSelector, setShowRobotSelector] = useState(false)
   const [robotSearch, setRobotSearch] = useState('')
-
   // Definição dos Robôs
   const ROBOTS = [
-    { id: 'siget', name: 'WebSiget', icon: '🤖' },
-    { id: 'cnt', name: 'WebCnt', icon: '⚡' },
-    { id: 'pantanal', name: 'WebPantanal', icon: '🐊' },
-    { id: 'assu', name: 'WebAssu', icon: '🌪️' },
-    { id: 'tropicalia', name: 'WebTropicalia', icon: '🌴' },
+    { id: 'siget', name: 'WebSiget' },
+    { id: 'cnt', name: 'WebCnt' },
+    { id: 'pantanal', name: 'WebPantanal' },
+    { id: 'assu', name: 'WebAssu' },
+    { id: 'tropicalia', name: 'WebTropicalia' },
+    { id: 'firminopolis', name: 'WebFirminopolis' },
+    { id: 'evoltz', name: 'WebEvoltz' },
     // Futuros robôs podem ser adicionados aqui
   ]
+  // Definição dos Robôs
+
   const filteredRobots = ROBOTS.filter(r => r.name.toLowerCase().includes(robotSearch.toLowerCase()))
 
   // Estado para Edição/Criação
@@ -81,9 +85,8 @@ function App() {
       const payload = { robot_name: selectedRobot }
 
       if (selectedRobot === 'siget') {
-        payload.base = sigetBase
-        payload.email = sigetEmail
-        setLogs(prev => [...prev, `Configuração Siget: Base=${sigetBase}, Email=${sigetEmail}`])
+        // Agora o backend lê o arquivo empresas.siget.json direto
+        setLogs(prev => [...prev, `Usando configuração: params do servidor (empresas.siget.json)`])
       }
 
       await axios.post(`${API_URL}/run-robot`, payload)
@@ -180,57 +183,29 @@ function App() {
 
 
 
-            <div style={{ marginBottom: '1rem' }}>
-              <input
-                type="text"
-                placeholder="🔍 Buscar Robô..."
-                value={robotSearch}
-                onChange={e => setRobotSearch(e.target.value)}
+            {/* Seletor de Robô (Botão que abre Modal) */}
+            <div style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
+              <button
+                onClick={() => setShowRobotSelector(true)}
                 style={{
-                  width: '100%',
-                  padding: '0.6rem',
-                  marginBottom: '0.8rem',
+                  padding: '0.8rem 1.5rem',
+                  fontSize: '1em',
                   background: '#333',
-                  border: '1px solid #444',
-                  borderRadius: '6px',
-                  color: 'white'
+                  border: '1px solid var(--accent)',
+                  borderRadius: '8px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  cursor: 'pointer'
                 }}
-              />
+              >
 
-              <div style={{
-                display: 'flex',
-                gap: '0.8rem',
-                overflowX: 'auto',
-                paddingBottom: '0.5rem',
-                scrollbarWidth: 'thin',
-                scrollbarColor: 'var(--accent) #222'
-              }}>
-                {filteredRobots.map(robot => (
-                  <button
-                    key={robot.id}
-                    onClick={() => setSelectedRobot(robot.id)}
-                    style={{
-                      minWidth: '100px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '0.3rem',
-                      padding: '0.8rem',
-                      backgroundColor: selectedRobot === robot.id ? 'var(--accent)' : '#2a2a2a',
-                      border: selectedRobot === robot.id ? '1px solid var(--accent)' : '1px solid #444',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      opacity: selectedRobot === robot.id ? 1 : 0.7,
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    <span style={{ fontSize: '1.5em' }}>{robot.icon}</span>
-                    <span style={{ fontSize: '0.85em', fontWeight: 'bold' }}>{robot.name}</span>
-                  </button>
-                ))}
-                {filteredRobots.length === 0 && <p style={{ color: '#888', fontSize: '0.8em', width: '100%', textAlign: 'center' }}>Nenhum robô encontrado.</p>}
-              </div>
+                {ROBOTS.find(r => r.id === selectedRobot)?.name}
+                <span style={{ fontSize: '0.8em', opacity: 0.7 }}>▼</span>
+              </button>
             </div>
+
+
 
             <div className={`status-badge status-${status}`}>
               {status === 'idle' && 'AGUARDANDO'}
@@ -259,7 +234,7 @@ function App() {
             )}
           </div>
 
-          <div className="card" style={{ textAlign: 'left', maxHeight: '300px', overflowY: 'auto' }}>
+          <div className="card" style={{ textAlign: 'left', maxHeight: '200px', overflowY: 'auto', position: 'relative', zIndex: 0 }}>
             <h3>Logs de Atividade</h3>
             <ul style={{ listStyle: 'none', padding: 0, fontSize: '0.9em', color: '#aaa' }}>
               {logs.map((log, i) => <li key={i}>{log}</li>)}
@@ -269,53 +244,7 @@ function App() {
 
         <div className="data-panel">
           {selectedRobot === 'siget' ? (
-            <div className="card">
-              <h3>⚙️ Configuração WebSiget</h3>
-              <p style={{ fontSize: '0.9em', color: '#aaa', marginBottom: '1rem' }}>
-                Especifique a Base e o E-mail de login para executar o robô.
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '0.3rem' }}>Base Selecionada</label>
-                  <select
-                    value={sigetBase}
-                    onChange={(e) => setSigetBase(e.target.value)}
-                    style={{ padding: '0.5em', width: '100%', borderRadius: '4px', border: '1px solid #444', background: '#222', color: 'white' }}
-                  >
-                    {/* Opções dinâmicas baseadas no banco */}
-                    {[...new Set(empresas.map(e => e.base))].sort().map(base => (
-                      <option key={base} value={base}>{base}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '0.3rem' }}>E-mail Credencial</label>
-                  <input
-                    type="email"
-                    value={sigetEmail}
-                    onChange={(e) => setSigetEmail(e.target.value)}
-                    style={{ padding: '0.5em', width: '100%', borderRadius: '4px', border: '1px solid #444', background: '#222', color: 'white' }}
-                  />
-                  <button
-                    onClick={handleSaveSigetCreds}
-                    style={{ marginTop: '0.5rem', fontSize: '0.8em', padding: '0.4em 0.8em', background: '#444', border: 'none', cursor: 'pointer', borderRadius: '4px' }}
-                  >
-                    💾 Salvar para {sigetBase}
-                  </button>
-                </div>
-
-                <div style={{ marginTop: '1rem', padding: '1rem', background: '#2a2a2a', borderRadius: '4px' }}>
-                  <h4>Empresas na Base: {sigetBase}</h4>
-                  <ul style={{ fontSize: '0.85em', color: '#ccc', paddingLeft: '1.2rem', marginTop: '0.5rem' }}>
-                    {empresas.filter(e => e.base === sigetBase).length > 0 ? (
-                      empresas.filter(e => e.base === sigetBase).map(e => <li key={e.id}>{e.nome_empresa} ({e.codigo_ons})</li>)
-                    ) : (
-                      <li>Nenhuma empresa cadastrada nesta base.</li>
-                    )}
-                  </ul>
-                </div>
-              </div>
-            </div>
+            <SigetConfigPanel />
           ) : (
             <>
               <div className="card" style={{ marginBottom: '1rem' }}>
@@ -408,9 +337,320 @@ function App() {
             </>
           )}
         </div>
+      </div >
 
-      </div>
+
+
+      {/* Modal de Seleção de Robô - Movido para fora para garantir z-index global */}
+      {
+        showRobotSelector && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0,0,0,0.8)',
+            zIndex: 9999, // Z-index altíssimo
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}>
+            <div style={{
+              background: '#1a1a1a',
+              padding: '2rem',
+              borderRadius: '12px',
+              width: '90%',
+              maxWidth: '400px',
+              border: '1px solid #444',
+              boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                <h3 style={{ margin: 0 }}>Selecionar Robô</h3>
+                <button onClick={() => setShowRobotSelector(false)} style={{ background: 'none', border: 'none', fontSize: '1.5em', cursor: 'pointer' }}>×</button>
+              </div>
+
+              <input
+                type="text"
+                placeholder="🔍 Buscar Robô..."
+                value={robotSearch}
+                onChange={e => setRobotSearch(e.target.value)}
+                autoFocus
+                style={{
+                  width: '100%',
+                  padding: '0.8rem',
+                  marginBottom: '1rem',
+                  background: '#333',
+                  border: '1px solid #444',
+                  borderRadius: '6px',
+                  color: 'white'
+                }}
+              />
+
+              <div style={{ maxHeight: '60vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {filteredRobots.map(robot => (
+                  <button
+                    key={robot.id}
+                    onClick={() => { setSelectedRobot(robot.id); setShowRobotSelector(false); }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '1rem',
+                      padding: '1rem',
+                      backgroundColor: selectedRobot === robot.id ? 'var(--accent)' : '#2a2a2a',
+                      border: selectedRobot === robot.id ? '1px solid var(--accent)' : '1px solid #444',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      textAlign: 'left'
+                    }}
+                  >
+                    <span style={{ fontWeight: 'bold' }}>{robot.name}</span>
+                  </button>
+                ))}
+                {filteredRobots.length === 0 && <p style={{ color: '#888', textAlign: 'center' }}>Nenhum robô encontrado.</p>}
+              </div>
+            </div>
+          </div>
+        )
+      }
     </>
+  )
+}
+
+function SigetConfigPanel() {
+  const [config, setConfig] = useState({})
+  const [loading, setLoading] = useState(false)
+  const [expandedBase, setExpandedBase] = useState(null)
+  const [newBaseName, setNewBaseName] = useState('')
+
+  // Campos temporários para adicionar agente
+  const [newAgentCode, setNewAgentCode] = useState('')
+  const [newAgentName, setNewAgentName] = useState('')
+
+  useEffect(() => {
+    fetchConfig()
+  }, [])
+
+  const fetchConfig = async () => {
+    setLoading(true)
+    try {
+      const res = await axios.get(`${API_URL}/siget-config`)
+      // Normaliza agentes para objeto se estiver como array
+      const data = res.data || {}
+      for (const key in data) {
+        if (data[key].agentes && Array.isArray(data[key].agentes)) {
+          const dict = {}
+          data[key].agentes.forEach(item => {
+            // Assume que o item é { key: value }
+            const k = Object.keys(item)[0]
+            dict[k] = item[k]
+          })
+          data[key].agentes = dict
+        }
+      }
+      setConfig(data)
+    } catch (err) {
+      console.error("Erro ao buscar config Siget", err)
+      setConfig({})
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSave = async () => {
+    try {
+      await axios.post(`${API_URL}/siget-config`, config)
+      alert("Configuração salva com sucesso!")
+    } catch (err) {
+      alert("Erro ao salvar: " + err.message)
+    }
+  }
+
+  // --- Actions ---
+
+  const addBase = () => {
+    const name = newBaseName.trim()
+    if (!name) return
+    if (config[name]) {
+      alert("Essa base já existe!")
+      return
+    }
+    setConfig(prev => ({
+      ...prev,
+      [name]: { email: '', agentes: {} }
+    }))
+    setNewBaseName('')
+    setExpandedBase(name)
+  }
+
+  const removeBase = (base) => {
+    if (!confirm(`Tem certeza que deseja excluir a base ${base}?`)) return
+    const newConfig = { ...config }
+    delete newConfig[base]
+    setConfig(newConfig)
+    if (expandedBase === base) setExpandedBase(null)
+  }
+
+  const updateEmail = (base, email) => {
+    setConfig(prev => ({
+      ...prev,
+      [base]: { ...prev[base], email: email }
+    }))
+  }
+
+  const addAgent = (base) => {
+    if (!newAgentCode.trim() || !newAgentName.trim()) return
+    setConfig(prev => ({
+      ...prev,
+      [base]: {
+        ...prev[base],
+        agentes: {
+          ...prev[base].agentes,
+          [newAgentCode.trim()]: newAgentName.trim()
+        }
+      }
+    }))
+    setNewAgentCode('')
+    setNewAgentName('')
+  }
+
+  const removeAgent = (base, code) => {
+    const newConfig = { ...config }
+    // Shallow copy do objeto da base e agentes para imutabilidade
+    newConfig[base] = { ...newConfig[base] }
+    newConfig[base].agentes = { ...newConfig[base].agentes }
+
+    delete newConfig[base].agentes[code]
+    setConfig(newConfig)
+  }
+
+  if (loading) return <div className="card"><p>Carregando configuração...</p></div>
+
+  return (
+    <div className="card">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <h3>⚙️ Gerenciador de Bases (Siget)</h3>
+        <div>
+          <button onClick={handleSave} style={{ background: '#27ae60', padding: '0.5rem 1rem', marginRight: '0.5rem' }}>💾 Salvar Tudo</button>
+          <button onClick={fetchConfig} style={{ background: '#555', padding: '0.5rem 1rem' }}>🔄 Recarregar</button>
+        </div>
+      </div>
+
+      <p style={{ fontSize: '0.9em', color: '#aaa', marginBottom: '1rem' }}>
+        Gerencie aqui as Bases, Emails e Agentes (Transmissoras) que o robô deve processar.
+      </p>
+
+      {/* Lista de Bases */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        {Object.keys(config).map(base => (
+          <div key={base} style={{ border: '1px solid #444', borderRadius: '8px', overflow: 'hidden' }}>
+            <div
+              onClick={() => setExpandedBase(expandedBase === base ? null : base)}
+              style={{
+                background: '#333',
+                padding: '1rem',
+                cursor: 'pointer',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}
+            >
+              <span style={{ fontWeight: 'bold', fontSize: '1.1em' }}>{base}</span>
+              <span style={{ fontSize: '0.8em', color: '#aaa' }}>
+                {config[base]?.email || 'Sem email'} | {Object.keys(config[base]?.agentes || {}).length} agentes
+                <span style={{ marginLeft: '1rem' }}>{expandedBase === base ? '▼' : '▶'}</span>
+              </span>
+            </div>
+
+            {expandedBase === base && (
+              <div style={{ padding: '1rem', background: '#222' }}>
+                {/* Config da Base */}
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8em', marginBottom: '0.3rem', color: '#aaa' }}>Email de Acesso (Login):</label>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input
+                      type="text"
+                      value={config[base].email || ''}
+                      onChange={e => updateEmail(base, e.target.value)}
+                      placeholder="ex: tust@empresa.com.br"
+                      style={{ flex: 1, padding: '0.5rem', background: '#111', border: '1px solid #555', color: 'white', borderRadius: '4px' }}
+                    />
+                    <button onClick={(e) => { e.stopPropagation(); removeBase(base); }} style={{ background: '#c0392b', padding: '0 1rem' }}>EXCLUIR BASE</button>
+                  </div>
+                </div>
+
+                {/* Lista de Agentes */}
+                <div style={{ marginTop: '1.5rem' }}>
+                  <h4 style={{ borderBottom: '1px solid #444', paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>Agentes / Transmissoras</h4>
+
+                  <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '1rem' }}>
+                    <thead>
+                      <tr style={{ textAlign: 'left', color: '#aaa', fontSize: '0.9em' }}>
+                        <th style={{ padding: '0.5rem' }}>Cód. ONS</th>
+                        <th style={{ padding: '0.5rem' }}>Nome Agente</th>
+                        <th style={{ padding: '0.5rem', width: '40px' }}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(config[base].agentes || {}).map(([code, name]) => (
+                        <tr key={code} style={{ borderBottom: '1px solid #333' }}>
+                          <td style={{ padding: '0.5rem', fontFamily: 'monospace' }}>{code}</td>
+                          <td style={{ padding: '0.5rem' }}>{name}</td>
+                          <td style={{ padding: '0.5rem' }}>
+                            <button
+                              onClick={() => removeAgent(base, code)}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#e74c3c', fontSize: '1.2em' }}
+                              title="Remover Agente"
+                            >
+                              ✖
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {Object.keys(config[base].agentes || {}).length === 0 && (
+                        <tr><td colSpan="3" style={{ padding: '1rem', textAlign: 'center', color: '#666' }}>Nenhum agente cadastrado.</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+
+                  {/* Adicionar Agente */}
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', background: '#333', padding: '0.5rem', borderRadius: '4px' }}>
+                    <input
+                      placeholder="Cód. (ex: 4284)"
+                      value={newAgentCode}
+                      onChange={e => setNewAgentCode(e.target.value)}
+                      style={{ width: '120px', padding: '0.4rem', background: '#111', border: '1px solid #555', color: 'white', borderRadius: '4px' }}
+                    />
+                    <input
+                      placeholder="Nome do Agente"
+                      value={newAgentName}
+                      onChange={e => setNewAgentName(e.target.value)}
+                      style={{ flex: 1, padding: '0.4rem', background: '#111', border: '1px solid #555', color: 'white', borderRadius: '4px' }}
+                    />
+                    <button onClick={() => addAgent(base)} style={{ background: '#2980b9' }}>+ Adicionar</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Adicionar Nova Base */}
+      <div style={{ marginTop: '2rem', borderTop: '1px solid #444', paddingTop: '1rem' }}>
+        <h4>Adicionar Nova Base</h4>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <input
+            placeholder="Nome da Base (ex: SJP, PANTANAL...)"
+            value={newBaseName}
+            onChange={e => setNewBaseName(e.target.value)}
+            style={{ flex: 1, padding: '0.6rem', background: '#333', border: '1px solid #555', color: 'white', borderRadius: '4px' }}
+          />
+          <button onClick={addBase} style={{ background: '#2980b9', padding: '0 1.5rem' }}>Criar Base</button>
+        </div>
+      </div>
+
+    </div>
   )
 }
 

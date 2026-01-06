@@ -38,31 +38,69 @@ EMPRESAS_JSON_PATH = os.path.join(ROOT_DIR, "Data", "empresas.json")
 
 ROBOTS_CONFIG = {
     "siget": {
-        "script": os.path.join(ROOT_DIR, "siget.py"),
+        "script": os.path.join(ROOT_DIR, "Robots", "siget.py"),
         "download_dir": r"C:\Users\Bruno\Downloads\TUST\SIGETPLUS",
         "name": "WebSiget"
     },
     "cnt": {
-        "script": os.path.join(ROOT_DIR, "cnt.py"),
+        "script": os.path.join(ROOT_DIR, "Robots", "cnt.py"),
         "download_dir": r"C:\Users\Bruno\Downloads\TUST\CNT",
         "name": "WebCnt"
     },
     "pantanal": {
-        "script": os.path.join(ROOT_DIR, "pantanal.py"),
+        "script": os.path.join(ROOT_DIR, "Robots", "pantanal.py"),
         "download_dir": r"C:\Users\Bruno\Downloads\TUST\PANTANAL",
         "name": "WebPantanal"
     },
     "assu": {
-        "script": os.path.join(ROOT_DIR, "assu.py"),
+        "script": os.path.join(ROOT_DIR, "Robots", "assu.py"),
         "download_dir": r"C:\Users\Bruno\Downloads\TUST\ASSU",
         "name": "WebAssu"
     },
     "tropicalia": {
-        "script": os.path.join(ROOT_DIR, "tropicalia.py"),
+        "script": os.path.join(ROOT_DIR, "Robots", "tropicalia.py"),
         "download_dir": r"C:\Users\Bruno\Downloads\TUST\TROPICALIA",
         "name": "WebTropicalia"
+    },
+    "firminopolis": {
+        "script": os.path.join(ROOT_DIR, "Robots", "firminopolis.py"),
+        "download_dir": r"C:\Users\Bruno\Downloads\TUST\FIRMINOPOLIS",
+        "name": "WebFirminopolis"
+    },
+    "evoltz": {
+        "script": os.path.join(ROOT_DIR, "Robots", "evoltz.py"),
+        "download_dir": r"C:\Users\Bruno\Downloads\TUST\EVOLTZ",
+        "name": "WebEvoltz"
     }
 }
+
+
+
+@app.get("/download-results")
+def download_results(robot: str = "siget"):
+    robot_name = robot.lower()
+    if robot_name not in ROBOTS_CONFIG:
+        raise HTTPException(status_code=400, detail="Robô inválido")
+        
+    config = ROBOTS_CONFIG[robot_name]
+    download_dir = config["download_dir"]
+    
+    if not os.path.exists(download_dir):
+        raise HTTPException(status_code=404, detail=f"Pasta de downloads não encontrada: {download_dir}")
+    
+    # Salva o ZIP na pasta Results
+    zip_filename = f"resultados_{robot_name}.zip"
+    results_dir = os.path.join(ROOT_DIR, "Results")
+    os.makedirs(results_dir, exist_ok=True)
+    
+    zip_path = os.path.join(results_dir, zip_filename)
+    
+    if os.path.exists(zip_path):
+        os.remove(zip_path)
+        
+    shutil.make_archive(zip_path.replace('.zip', ''), 'zip', download_dir)
+    
+    return FileResponse(zip_path, media_type='application/zip', filename=zip_filename)
 
 class RobotRequest(BaseModel):
     robot_name: str
@@ -167,41 +205,39 @@ ROBOT_STATUS = {}
 def get_robot_status(robot_name: str):
     return {"status": ROBOT_STATUS.get(robot_name.lower(), "idle")}
 
+@app.get("/siget-config")
+def get_siget_config():
+    siget_json_path = os.path.join(ROOT_DIR, "Data", "empresas.siget.json")
+    if not os.path.exists(siget_json_path):
+        return {}
+    with open(siget_json_path, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+@app.post("/siget-config")
+def save_siget_config(config: dict):
+    siget_json_path = os.path.join(ROOT_DIR, "Data", "empresas.siget.json")
+    try:
+        with open(siget_json_path, 'w', encoding='utf-8') as f:
+            json.dump(config, f, indent=4, ensure_ascii=False)
+        return {"status": "saved"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/run-robot")
 def run_robot(request: RobotRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     robot_name = request.robot_name.lower()
     
     if robot_name not in ROBOTS_CONFIG:
-        raise HTTPException(status_code=400, detail="Robô inválido. Opções: siget, cnt, pantanal, assu, tropicalia")
+        raise HTTPException(status_code=400, detail="Robô inválido. Opções: siget, cnt, pantanal, assu, tropicalia, firminopolis, evoltz")
     
     # ... (lógica existing Siget config - mantida igual)
     config = ROBOTS_CONFIG[robot_name]
     
-    # Lógica específica para configuração do Siget
+    # Siget agora usa a configuração persistente em Data/empresas.siget.json
     if robot_name == 'siget':
-        if not request.base or not request.email:
-            raise HTTPException(status_code=400, detail="Base e Email são obrigatórios para o robô Siget.")
-            
-        # Busca empresas dessa base no banco
-        empresas_base = db.query(models.Empresa).filter(models.Empresa.base == request.base).all()
-        
-        if not empresas_base:
-            raise HTTPException(status_code=404, detail=f"Nenhuma empresa encontrada para a base '{request.base}'.")
-            
-        # Monta o JSON específico do Siget
-        siget_data = {
-            request.base: {
-                "email": request.email,
-                "agentes": {e.codigo_ons: e.nome_empresa for e in empresas_base}
-            }
-        }
-        
-        siget_json_path = os.path.join(ROOT_DIR, "Data", "empresas.siget.json")
-        try:
-            with open(siget_json_path, 'w', encoding='utf-8') as f:
-                json.dump(siget_data, f, indent=4, ensure_ascii=False)
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Erro ao salvar configuração do Siget: {e}")
+         siget_json_path = os.path.join(ROOT_DIR, "Data", "empresas.siget.json")
+         if not os.path.exists(siget_json_path):
+             raise HTTPException(status_code=400, detail="Configuração do Siget não encontrada. Configure no painel.")
 
     def exec_task():
         ROBOT_STATUS[robot_name] = "running"
@@ -213,11 +249,28 @@ def run_robot(request: RobotRequest, background_tasks: BackgroundTasks, db: Sess
                 shutil.rmtree(config['download_dir'])
             os.makedirs(config['download_dir'], exist_ok=True)
             
-            result = subprocess.run(["python", config['script']], capture_output=True, text=True, cwd=ROOT_DIR)
-            print(f"{config['name']} finalizado.")
-            print("STDOUT:", result.stdout)
-            print("STDERR:", result.stderr)
-            ROBOT_STATUS[robot_name] = "finished"
+            # Execução com streaming de logs para o terminal
+            process = subprocess.Popen(
+                ["python", config['script']],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                cwd=ROOT_DIR,
+                env={**os.environ, "PYTHONUNBUFFERED": "1"}
+            )
+            
+            # Lê a saída em tempo real
+            for line in process.stdout:
+                print(f"[{config['name']}] {line.strip()}")
+            
+            process.wait()
+            
+            if process.returncode == 0:
+                print(f"{config['name']} finalizado com sucesso.")
+                ROBOT_STATUS[robot_name] = "finished"
+            else:
+                print(f"{config['name']} finalizado com erro (code {process.returncode}).")
+                ROBOT_STATUS[robot_name] = "error"
         except Exception as e:
             print(f"Erro ao executar {config['name']}: {e}")
             ROBOT_STATUS[robot_name] = "error"
@@ -225,24 +278,4 @@ def run_robot(request: RobotRequest, background_tasks: BackgroundTasks, db: Sess
     background_tasks.add_task(exec_task)
     return {"message": f"{config['name']} iniciado", "status": "running"}
 
-@app.get("/download-results")
-def download_results(robot: str = "siget"):
-    robot_name = robot.lower()
-    if robot_name not in ROBOTS_CONFIG:
-        raise HTTPException(status_code=400, detail="Robô inválido")
-        
-    config = ROBOTS_CONFIG[robot_name]
-    download_dir = config["download_dir"]
-    
-    if not os.path.exists(download_dir):
-        raise HTTPException(status_code=404, detail=f"Pasta de downloads não encontrada: {download_dir}")
-    
-    zip_filename = f"resultados_{robot_name}.zip"
-    zip_path = os.path.join(os.getcwd(), zip_filename)
-    
-    if os.path.exists(zip_path):
-        os.remove(zip_path)
-        
-    shutil.make_archive(zip_path.replace('.zip', ''), 'zip', download_dir)
-    
-    return FileResponse(zip_path, media_type='application/zip', filename=zip_filename)
+

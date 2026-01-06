@@ -1,10 +1,60 @@
 {
-    "AETE": {
-        "email": "tust@2wecobank.com.br",
+    "SJP": {
+        "email": "faturas.sjp@americaenergia.com.br",
         "agentes": {
-            "4284": "Anemus_I",
-            "4292": "Anemus_II",
-            "4319": "Anemus_III"
-        }
+            "3859": "SJP1",
+            "3860": "SJP2",
+            "3861": "SJP3",
+            "3862": "SJP4",
+            "3863": "SJP5",
+            "3864": "SJP6"
+        },
+        "descricao": "Empresa com agentes SJP1 a SJP6"
+    },
+    "LIBRA": {
+        "email": "faturas.libra@americaenergia.com.br",
+        "agentes": {
+            "8011": "LIBRA"
+        },
+        "descricao": "Empresa com agente LIBRA"
+    },
+    "COREMAS": {
+        "email": "fatura.coremas@americaenergia.com.br",
+        "agentes": {
+            "3740": "COR1",
+            "3741": "COR2",
+            "3750": "COR3"
+        },
+        "descricao": "Empresa com agentes COR1, COR2 e COR3"
+    },
+    "RE": {
+        "email": "tust@pontalenergy.com",
+        "agentes": {
+            "3430": "CECA",
+            "3431": "CECB",
+            "3432": "CECC",
+            "4415": "CECD",
+            "4315": "CECE",
+            "4316": "CECF",
+            "3502": "ITA1",
+            "3497": "ITA2",
+            "3503": "ITA3",
+            "3530": "ITA4",
+            "3498": "ITA5",
+            "3531": "ITA6",
+            "3532": "ITA7",
+            "3537": "ITA8",
+            "3538": "ITA9",
+            "4313": "BRJA",
+            "4314": "BRJB"
+        },
+        "descricao": "Empresa principal com múltiplos agentes CEC e ITA"
+    },
+    "DE": {
+        "email": "services.easytust@diamanteenergia.com.br",
+        "agentes": {
+            "3748": "DE"
+        },
+        "descricao": "Empresa com agente DE único"
     }
 }
