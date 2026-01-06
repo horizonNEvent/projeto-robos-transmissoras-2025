@@ -1,12 +1,10 @@
 {
-    "" : {
+    "AETE": {
         "email": "tust@2wecobank.com.br",
-        "agentes": [
-            {
-                "4284": "Anemus_I",
-                "4292": "Anemus_II",
-                "4319": "Anemus_III"
-            }
-        ]
+        "agentes": {
+            "4284": "Anemus_I",
+            "4292": "Anemus_II",
+            "4319": "Anemus_III"
+        }
     }
 }

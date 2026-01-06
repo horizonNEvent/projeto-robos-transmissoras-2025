@@ -61,7 +61,7 @@ class SigetRobot:
         return self.driver
 
     def login(self, email):
-        print(f"\n🔑 Logando: {email}")
+        print(f"\n[LOGIN] Logando: {email}")
         self.driver.get("https://sys.sigetplus.com.br/portal/login")
         wait = WebDriverWait(self.driver, 20)
         email_input = wait.until(EC.presence_of_element_located((By.ID, "email")))
@@ -81,10 +81,10 @@ class SigetRobot:
             if res.status_code == 200:
                 with open(dest_path, 'wb') as f:
                     f.write(res.content)
-                print(f"    ✓ {tipo} ok: {os.path.basename(dest_path)}")
+                print(f"    [OK] {tipo}: {os.path.basename(dest_path)}")
                 return True
         except Exception as e:
-            print(f"    ❌ Erro {tipo}: {e}")
+            print(f"    [ERROR] Erro {tipo}: {e}")
         return False
 
     def baixar_boleto_otimizado(self, url, dest_path):
@@ -95,10 +95,10 @@ class SigetRobot:
             if res.status_code == 200:
                 config = pdfkit.configuration(wkhtmltopdf=WKHTMLTOPDF_PATH)
                 pdfkit.from_string(res.text, dest_path, configuration=config)
-                print(f"    ✓ BOLETO ok: {os.path.basename(dest_path)}")
+                print(f"    [OK] BOLETO: {os.path.basename(dest_path)}")
                 return True
         except Exception as e:
-            print(f"    ⚠️ Falha Boleto Express, tentando Selenium...")
+            print(f"    [WARN] Falha Boleto Express, tentando Selenium...")
             return False
 
     def processar_fatura_paralelo(self, dados_fatura):
@@ -161,7 +161,7 @@ class SigetRobot:
         return faturas_para_baixar
 
     def processar_agente(self, empresa_nome, ons_code, ons_name):
-        print(f"\n🔍 Iniciando Agent: {ons_name} (ID: {ons_code})")
+        print(f"\n[INFO] Iniciando Agent: {ons_name} (ID: {ons_code})")
         ons_path = os.path.join(BASE_DOWNLOAD_PATH, empresa_nome, str(ons_code))
         os.makedirs(ons_path, exist_ok=True)
         
@@ -175,7 +175,7 @@ class SigetRobot:
             faturas = self.extrair_dados_tabela(ons_name, ons_path)
             
             # Baixa tudo da página em paralelo
-            print(f"  ⚡ Baixando {len(faturas)} faturas da página atual em paralelo...")
+            print(f"  [INFO] Baixando {len(faturas)} faturas da página atual em paralelo...")
             for f in faturas:
                 self.processar_fatura_paralelo(f)
 
@@ -212,7 +212,7 @@ def main():
                 for code, name in agentes.items(): robot.processar_agente(emp_name, code, name)
     finally:
         robot.fechar()
-        print("\n🚀 Processo Finalizado com Alta Performance!")
+        print("\n[FINISH] Processo Finalizado com Alta Performance!")
 
 if __name__ == "__main__":
     main()

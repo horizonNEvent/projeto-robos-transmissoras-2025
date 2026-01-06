@@ -42,6 +42,10 @@ def baixar_titulo(empresa_nome, cod_ons, nome_ons):
         response = requests.get(url, params=params, headers=headers, verify=False)
         
         if response.status_code == 200:
+            if len(response.content) < 100:
+                 print(f"[ERROR] Arquivo muito pequeno/vazio para {nome_ons} (Tamanho: {len(response.content)} bytes). Possível erro no servidor.")
+                 return False
+
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             # Padronizando nome do arquivo
             filename = f"NFe_{nome_ons}_{timestamp}.xml"
@@ -50,14 +54,14 @@ def baixar_titulo(empresa_nome, cod_ons, nome_ons):
             with open(filepath, 'wb') as f:
                 f.write(response.content)
             
-            print(f"✓ XML baixado com sucesso: {filepath}")
+            print(f"[OK] XML baixado com sucesso: {filepath}")
             return True
         else:
-            print(f"✗ Erro ao baixar arquivo para {nome_ons}. Status code: {response.status_code}")
+            print(f"[ERROR] Erro ao baixar arquivo para {nome_ons}. Status code: {response.status_code}")
             print(f"Resposta do servidor: {response.text}")
             
     except Exception as e:
-        print(f"✗ Erro ao processar {nome_ons}: {e}")
+        print(f"[ERROR] Erro ao processar {nome_ons}: {e}")
     
     return False
 

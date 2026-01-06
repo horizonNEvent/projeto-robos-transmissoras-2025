@@ -1,0 +1,23 @@
+# Backend Dockerfile
+FROM python:3.11-slim
+
+# Instalar dependências de sistema (chrome, wkhtmltopdf se necessário)
+# Nota: Para Selenium/Chrome em docker é complexo. 
+# Para MVP vamos assumir que o usuário vai rodar o robô headless com as libs instaladas
+# Mas, idealmente, usaria uma imagem com Chrome pré-instalado.
+# Como o usuário pediu para "containerizar" depois, vou deixar o Dockerfile preparado
+# mas alertando sobre o Chrome.
+
+RUN apt-get update && apt-get install -w wget gnupg2 -y
+
+# Instalar Chrome e WebDriver seria necessário aqui para o robô funcionar full em Docker
+# Por simplicidade/MVP, focaremos nas dependências Python.
+
+WORKDIR /app
+
+COPY app/backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+CMD ["uvicorn", "app.backend.main:app", "--host", "0.0.0.0", "--port", "8000"]

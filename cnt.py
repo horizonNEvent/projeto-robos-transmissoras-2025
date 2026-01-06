@@ -49,6 +49,10 @@ def baixar_xml_cnt(codigo_ons, empresa_nome, nome_ons):
         response_form = session.post(url_form, headers=headers_form, data=form_data)
         
         if response_form.status_code == 200 and response_form.content:
+            if len(response_form.content) < 100:
+                logger.error(f"[{empresa_nome}] Arquivo muito pequeno/vazio para ONS {codigo_ons} (Tamanho: {len(response_form.content)} bytes).")
+                return False
+
             # Caminho base igual ao da ASSU
             base_path = os.path.join(BASE_DIR_DOWNLOAD, empresa_nome, str(codigo_ons))
             os.makedirs(base_path, exist_ok=True)
