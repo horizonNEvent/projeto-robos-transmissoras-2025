@@ -13,8 +13,8 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 # Configuração de diretórios
-TRANSMISSORA_ID = "1307"
-TRANSMISSORA_NOME = "ITAMARACA"
+TRANSMISSORA_ID = "1268"
+TRANSMISSORA_NOME = "COLINAS"
 BASE_DIR_DOWNLOAD = rf"C:\Users\Bruno\Downloads\TUST\{TRANSMISSORA_NOME}"
 
 def carregar_empresas():

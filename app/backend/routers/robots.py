@@ -58,6 +58,31 @@ ROBOTS_CONFIG = {
         "script": os.path.join(ROOT_DIR, "Robots", "itamaraca.py"),
         "download_dir": r"C:\Users\Bruno\Downloads\TUST\ITAMARACA",
         "name": "WebItamaraca"
+    },
+    "colinas": {
+        "script": os.path.join(ROOT_DIR, "Robots", "colinas.py"),
+        "download_dir": r"C:\Users\Bruno\Downloads\TUST\COLINAS",
+        "name": "WebColinas"
+    },
+    "simoes": {
+        "script": os.path.join(ROOT_DIR, "Robots", "simoes.py"),
+        "download_dir": r"C:\Users\Bruno\Downloads\TUST\SIMOES",
+        "name": "WebSimoes"
+    },
+    "fs": {
+        "script": os.path.join(ROOT_DIR, "Robots", "fs.py"),
+        "download_dir": r"C:\Users\Bruno\Downloads\TUST\FS",
+        "name": "WebFS"
+    },
+    "vineyards": {
+        "script": os.path.join(ROOT_DIR, "Robots", "vineyards.py"),
+        "download_dir": r"C:\Users\Bruno\Downloads\TUST\VINEYARDS",
+        "name": "WebVineyards"
+    },
+    "agua_vermelha": {
+        "script": os.path.join(ROOT_DIR, "Robots", "agua_vermelha.py"),
+        "download_dir": r"C:\Users\Bruno\Downloads\TUST\AGUAVERMELHA",
+        "name": "WebAguaVermelha"
     }
 }
 
@@ -101,7 +126,7 @@ def run_robot(request: RobotRequest, background_tasks: BackgroundTasks):
     robot_name = request.robot_name.lower()
     
     if robot_name not in ROBOTS_CONFIG:
-        raise HTTPException(status_code=400, detail="Robô inválido. Opções: siget, cnt, pantanal, assu, tropicalia, firminopolis, evoltz, guaira, itamaraca")
+        raise HTTPException(status_code=400, detail="Robô inválido. Opções: siget, cnt, pantanal, assu, guaira, itamaraca, colinas, simoes, fs, vineyards, agua_vermelha")
     
     config = ROBOTS_CONFIG[robot_name]
 

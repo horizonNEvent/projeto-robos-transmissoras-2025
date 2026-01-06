@@ -23,6 +23,11 @@ function App() {
     { id: 'evoltz', name: 'WebEvoltz' },
     { id: 'guaira', name: 'WebGuaira' },
     { id: 'itamaraca', name: 'WebItamaraca' },
+    { id: 'colinas', name: 'WebColinas' },
+    { id: 'simoes', name: 'WebSimoes' },
+    { id: 'fs', name: 'WebFS' },
+    { id: 'vineyards', name: 'WebVineyards' },
+    { id: 'agua_vermelha', name: 'WebAguaVermelha' },
     // Futuros robôs podem ser adicionados aqui
   ]
   // Definição dos Robôs
