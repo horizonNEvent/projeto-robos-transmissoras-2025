@@ -12,8 +12,7 @@ from ..database import get_db
 router = APIRouter(tags=["robots"])
 
 # Caminhos
-ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 ROBOTS_CONFIG = {
     "siget": {
         "script": os.path.join(ROOT_DIR, "Robots", "siget.py"),

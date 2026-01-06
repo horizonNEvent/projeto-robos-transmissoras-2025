@@ -9,7 +9,7 @@ from ..database import get_db
 router = APIRouter(prefix="/empresas", tags=["empresas"])
 
 # Caminhos
-ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 EMPRESAS_JSON_PATH = os.path.join(ROOT_DIR, "Data", "empresas.json")
 
 class EmpresaBase(BaseModel):

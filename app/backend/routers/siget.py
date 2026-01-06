@@ -5,7 +5,7 @@ import json
 router = APIRouter(prefix="/siget-config", tags=["siget"])
 
 # Caminhos
-ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 @router.get("")
 def get_siget_config():
