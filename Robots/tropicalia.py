@@ -132,11 +132,15 @@ def main():
         return
 
     for empresa_nome, ons_dict in empresas_dict.items():
-        if args.empresa and args.empresa.upper() != empresa_nome.upper():
+        if args.empresa and args.empresa.strip().upper() != empresa_nome.strip().upper():
             continue
             
+        filtro_agentes = []
+        if args.agente:
+            filtro_agentes = [a.strip() for a in str(args.agente).split(',')]
+
         for ons_code, ons_name in ons_dict.items():
-            if args.agente and str(args.agente) != str(ons_code):
+            if filtro_agentes and str(ons_code).strip() not in filtro_agentes:
                 continue
                 
             processar_faturas(empresa_nome, ons_code, ons_name)

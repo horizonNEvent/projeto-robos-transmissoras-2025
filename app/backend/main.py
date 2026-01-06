@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from . import models, database
-from .routers import robots, empresas, transmissoras, siget
+from .routers import robots, empresas, transmissoras, siget, ie, config, migrate
 
 # Criação das tabelas
 models.Base.metadata.create_all(bind=database.engine)
@@ -22,6 +22,9 @@ app.include_router(robots.router)
 app.include_router(empresas.router)
 app.include_router(transmissoras.router)
 app.include_router(siget.router)
+app.include_router(ie.router)
+app.include_router(config.router)
+app.include_router(migrate.router)
 
 @app.get("/")
 def health_check():

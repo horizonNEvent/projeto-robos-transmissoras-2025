@@ -89,12 +89,20 @@ def main():
     logger.info("Iniciando download dos XMLs CNT...")
 
     for empresa_nome, codigos_dict in empresas.items():
-        if args.empresa and args.empresa.upper() != empresa_nome.upper():
+        # Filtro de Empresa (Case Insensitive e remove espaços)
+        if args.empresa and args.empresa.strip().upper() != empresa_nome.strip().upper():
             continue
 
         logger.info(f"\n=== Empresa: {empresa_nome} ===")
+        
+        # Prepara lista de agentes se houver filtro
+        filtro_agentes = []
+        if args.agente:
+            filtro_agentes = [a.strip() for a in str(args.agente).split(',')]
+
         for codigo_ons, nome_ons in codigos_dict.items():
-            if args.agente and str(args.agente) != str(codigo_ons):
+            # Filtro de Agente (Suporta lista separada por vírgula)
+            if filtro_agentes and str(codigo_ons).strip() not in filtro_agentes:
                 continue
             baixar_xml_cnt(codigo_ons, empresa_nome, nome_ons)
 

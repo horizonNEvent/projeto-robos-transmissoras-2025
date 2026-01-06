@@ -16,11 +16,13 @@ from webdriver_manager.chrome import ChromeDriverManager
 from urllib.parse import urljoin
 from concurrent.futures import ThreadPoolExecutor
 import argparse
+import sqlite3
 
 # Configurações de Diretórios
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(os.path.dirname(SCRIPT_DIR), 'Data')
-EMPRESAS_JSON_PATH = os.path.join(DATA_DIR, 'empresas.siget.json')
+ROOT_DIR = os.path.dirname(SCRIPT_DIR)
+DB_PATH = os.path.join(ROOT_DIR, 'sql_app.db')
 BASE_DOWNLOAD_PATH = r"C:\Users\Bruno\Downloads\TUST\SIGETPLUS"
 WKHTMLTOPDF_PATH = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
 
@@ -30,14 +32,25 @@ def sanitize_name(name):
     return " ".join(clean.split()).strip()
 
 def carregar_config():
+    configs = []
     try:
-        if not os.path.exists(EMPRESAS_JSON_PATH):
-            return {}
-        with open(EMPRESAS_JSON_PATH, 'r', encoding='utf-8') as f:
-            return json.load(f)
+        if not os.path.exists(DB_PATH):
+            return configs
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT label, username, agents_json, base FROM robot_configs WHERE robot_type = 'SIGET' AND active = 1")
+        rows = cursor.fetchall()
+        for row in rows:
+            configs.append({
+                "label": row[0],
+                "email": row[1],
+                "agentes": json.loads(row[2] or '{}'),
+                "base": row[3]
+            })
+        conn.close()
     except Exception as e:
-        print(f"Erro ao carregar JSON: {e}")
-        return {}
+        print(f"Erro ao carregar config do banco: {e}")
+    return configs
 
 class SigetRobot:
     def __init__(self):
@@ -198,42 +211,40 @@ def main():
     parser.add_argument("--agente", help="Código ONS do agente para filtrar")
     args = parser.parse_args()
 
-    config_data = carregar_config()
-    if not config_data: return
+    config_list = carregar_config()
+    if not config_list: 
+        print("Nenhuma configuração encontrada no banco.")
+        return
     
     robot = SigetRobot()
     robot.iniciar_driver()
     try:
-        for emp_key, info in config_data.items():
-            emp_name = emp_key if emp_key.strip() else "AETE"
+        for info in config_list:
+            emp_name = (info['label'] or "").strip().upper()
+            base_group = (info['base'] or "").strip().upper()
+            input_empresa = (args.empresa or "").strip().upper()
             
-            # Filtro de empresa
-            # Se tiver agente, ignoramos o filtro de grupo para procurar em todos
-            if args.empresa and not args.agente:
-                if args.empresa.upper() != emp_name.upper():
+            # Filtro de empresa/base
+            if input_empresa:
+                if input_empresa != emp_name and input_empresa != base_group:
                     # Caso especial: AE agrupa SJP, LIBRA, COREMAS
-                    ae_groups = ["SJP", "LIBRA", "COREMAS"]
-                    if args.empresa.upper() == "AE" and emp_name.upper() in ae_groups:
-                        pass # Permitir
+                    ae_matches = ["SJP", "LIBRA", "COREMAS", "AE"]
+                    if input_empresa == "AE" and base_group in ae_matches:
+                        pass 
                     else:
                         continue
 
             email = info.get('email')
             if not email: continue
             
-            robot.login(email)
-            agentes = info.get('agentes', [])
-            
-            # Normalizar agentes para uma lista de dicts ou um dict
-            if isinstance(agentes, list):
-                for d in agentes:
-                    for code, name in d.items(): 
-                        if args.agente and str(args.agente) != str(code):
-                            continue
-                        robot.processar_agente(emp_name, code, name)
-            elif isinstance(agentes, dict):
+            if robot.login(email):
+                agentes = info.get('agentes', {})
+                filtro_agentes = []
+                if args.agente:
+                    filtro_agentes = [a.strip() for a in str(args.agente).split(',')]
+
                 for code, name in agentes.items(): 
-                    if args.agente and str(args.agente) != str(code):
+                    if filtro_agentes and str(code).strip() not in filtro_agentes:
                         continue
                     robot.processar_agente(emp_name, code, name)
     finally:

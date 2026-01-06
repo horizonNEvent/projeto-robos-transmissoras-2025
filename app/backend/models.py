@@ -24,3 +24,14 @@ class Transmissora(Base):
     # Campo para armazenar todas as outras colunas da planilha de forma dinâmica
     dados_json = Column(String) 
     ultima_atualizacao = Column(String)
+class RobotConfig(Base):
+    __tablename__ = 'robot_configs'
+    
+    id = Column(Integer, primary_key=True, index=True)
+    robot_type = Column(String) # 'SIGET', 'WEBIE', etc.
+    base = Column(String) # 'AETE', 'RE', 'AE', 'DE'
+    label = Column(String) # Friendly name (e.g. 'Anemus 1')
+    username = Column(String)
+    password = Column(String)
+    agents_json = Column(String) # List of ONS codes assigned to this credential
+    active = Column(Boolean, default=True)

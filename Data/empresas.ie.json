@@ -1,0 +1,38 @@
+{
+    "RE": {
+        "usuario": "tust@rioenergy.com.b",
+        "senha": "tustre3430",
+        "agentes": {
+            "3430": "CECA",
+            "3431": "CECB",
+            "3432": "CECC",
+            "3497": "ITA2",
+            "3502": "ITA1",
+            "3503": "ITA3",
+            "3530": "ITA4",
+            "4313": "BRJA",
+            "4415": "CECD"
+        }
+    },
+    "ANEMUS 2": {
+        "usuario": "tust.anemus2@2wenergia.com.br",
+        "senha": "29492546",
+        "agentes": {
+            "4292": "Anemus_II"
+        }
+    },
+    "ANEMUS 3": {
+        "usuario": "tust.anemus3@2wenergia.com.br",
+        "senha": "38350307",
+        "agentes": {
+            "4292": "Anemus_II"
+        }
+    },
+    "ANEMUS 1": {
+        "usuario": "tust.anemus1@2wenergia.com.br",
+        "senha": "29481536",
+        "agentes": {
+            "4284": "Anemus_I"
+        }
+    }
+}

@@ -189,12 +189,17 @@ def processar_todas_empresas():
     args = parser.parse_args()
 
     for empresa_nome, cod_ons_dict in EMPRESAS.items():
-        if args.empresa and args.empresa.upper() != empresa_nome.upper():
+        if args.empresa and args.empresa.strip().upper() != empresa_nome.strip().upper():
             continue
             
         print(f"\nProcessando empresa: {empresa_nome}")
+        
+        filtro_agentes = []
+        if args.agente:
+            filtro_agentes = [a.strip() for a in str(args.agente).split(',')]
+
         for cod_ons, nome_ons in cod_ons_dict.items():
-            if args.agente and str(args.agente) != str(cod_ons):
+            if filtro_agentes and str(cod_ons).strip() not in filtro_agentes:
                 continue
                 
             try:
