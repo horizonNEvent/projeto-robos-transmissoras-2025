@@ -6,3 +6,7 @@ selenium
 pdfkit
 beautifulsoup4
 webdriver-manager
+pandas
+openpyxl
+xlrd
+python-multipart

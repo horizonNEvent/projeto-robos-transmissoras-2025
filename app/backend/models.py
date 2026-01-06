@@ -11,3 +11,16 @@ class Empresa(Base):
     nome_empresa = Column(String)
     base = Column(String, default="AETE")
     ativo = Column(Boolean, default=True)
+
+class Transmissora(Base):
+    __tablename__ = 'transmissora'
+    
+    id = Column(Integer, primary_key=True, index=True)
+    cnpj = Column(String, unique=True, index=True) # Chave Única Principal
+    codigo_ons = Column(String, index=True)
+    sigla = Column(String)
+    nome = Column(String)
+    grupo = Column(String)
+    # Campo para armazenar todas as outras colunas da planilha de forma dinâmica
+    dados_json = Column(String) 
+    ultima_atualizacao = Column(String)
