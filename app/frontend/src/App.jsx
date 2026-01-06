@@ -10,6 +10,18 @@ function App() {
   const [downloadUrl, setDownloadUrl] = useState(null)
   const [empresas, setEmpresas] = useState([])
   const [selectedRobot, setSelectedRobot] = useState('siget')
+  const [robotSearch, setRobotSearch] = useState('')
+
+  // Definição dos Robôs
+  const ROBOTS = [
+    { id: 'siget', name: 'WebSiget', icon: '🤖' },
+    { id: 'cnt', name: 'WebCnt', icon: '⚡' },
+    { id: 'pantanal', name: 'WebPantanal', icon: '🐊' },
+    { id: 'assu', name: 'WebAssu', icon: '🌪️' },
+    { id: 'tropicalia', name: 'WebTropicalia', icon: '🌴' },
+    // Futuros robôs podem ser adicionados aqui
+  ]
+  const filteredRobots = ROBOTS.filter(r => r.name.toLowerCase().includes(robotSearch.toLowerCase()))
 
   // Estado para Edição/Criação
   const [formData, setFormData] = useState({ codigo_ons: '', nome_empresa: '', base: 'AETE' })
@@ -75,12 +87,8 @@ function App() {
       }
 
       await axios.post(`${API_URL}/run-robot`, payload)
-
-      setTimeout(() => {
-        setStatus('finished')
-        setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Comando enviado. Verifique o servidor.`])
-        checkResult()
-      }, 15000)
+      // Inicia polling
+      pollStatus(selectedRobot)
 
     } catch (err) {
       setStatus('idle')
@@ -91,9 +99,27 @@ function App() {
     }
   }
 
-  const checkResult = async () => {
-    setDownloadUrl(`${API_URL}/download-results?robot=${selectedRobot}`)
-    setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Link de download pronto (se o robô terminou).`])
+  const pollStatus = async (robotName) => {
+    try {
+      const res = await axios.get(`${API_URL}/robot-status/${robotName}`)
+      const currentStatus = res.data.status // 'idle', 'running', 'finished', 'error'
+
+      if (currentStatus === 'finished') {
+        setStatus('finished')
+        setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Robô finalizou com sucesso!`])
+        setDownloadUrl(`${API_URL}/download-results?robot=${robotName}`)
+      } else if (currentStatus === 'error') {
+        setStatus('idle')
+        setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Robô encontrou um erro. Verifique o servidor.`])
+      } else {
+        // Continua rodando, checa de novo em 2s
+        setTimeout(() => pollStatus(robotName), 2000)
+      }
+    } catch (e) {
+      console.error("Erro no polling", e)
+      // Tenta de novo em 2s mesmo com erro de rede
+      setTimeout(() => pollStatus(robotName), 2000)
+    }
   }
 
   // CRUD Handlers
@@ -150,37 +176,60 @@ function App() {
           <div className="card">
             <h2>Controle de Execução</h2>
 
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginBottom: '1.5rem' }}>
-              <button
-                onClick={() => setSelectedRobot('siget')}
+
+
+
+
+            <div style={{ marginBottom: '1rem' }}>
+              <input
+                type="text"
+                placeholder="🔍 Buscar Robô..."
+                value={robotSearch}
+                onChange={e => setRobotSearch(e.target.value)}
                 style={{
-                  backgroundColor: selectedRobot === 'siget' ? 'var(--accent)' : 'transparent',
-                  border: '1px solid var(--accent)',
-                  opacity: selectedRobot === 'siget' ? 1 : 0.6
+                  width: '100%',
+                  padding: '0.6rem',
+                  marginBottom: '0.8rem',
+                  background: '#333',
+                  border: '1px solid #444',
+                  borderRadius: '6px',
+                  color: 'white'
                 }}
-              >
-                WebSiget
-              </button>
-              <button
-                onClick={() => setSelectedRobot('cnt')}
-                style={{
-                  backgroundColor: selectedRobot === 'cnt' ? 'var(--accent)' : 'transparent',
-                  border: '1px solid var(--accent)',
-                  opacity: selectedRobot === 'cnt' ? 1 : 0.6
-                }}
-              >
-                WebCnt
-              </button>
-              <button
-                onClick={() => setSelectedRobot('pantanal')}
-                style={{
-                  backgroundColor: selectedRobot === 'pantanal' ? 'var(--accent)' : 'transparent',
-                  border: '1px solid var(--accent)',
-                  opacity: selectedRobot === 'pantanal' ? 1 : 0.6
-                }}
-              >
-                WebPantanal
-              </button>
+              />
+
+              <div style={{
+                display: 'flex',
+                gap: '0.8rem',
+                overflowX: 'auto',
+                paddingBottom: '0.5rem',
+                scrollbarWidth: 'thin',
+                scrollbarColor: 'var(--accent) #222'
+              }}>
+                {filteredRobots.map(robot => (
+                  <button
+                    key={robot.id}
+                    onClick={() => setSelectedRobot(robot.id)}
+                    style={{
+                      minWidth: '100px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '0.3rem',
+                      padding: '0.8rem',
+                      backgroundColor: selectedRobot === robot.id ? 'var(--accent)' : '#2a2a2a',
+                      border: selectedRobot === robot.id ? '1px solid var(--accent)' : '1px solid #444',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      opacity: selectedRobot === robot.id ? 1 : 0.7,
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <span style={{ fontSize: '1.5em' }}>{robot.icon}</span>
+                    <span style={{ fontSize: '0.85em', fontWeight: 'bold' }}>{robot.name}</span>
+                  </button>
+                ))}
+                {filteredRobots.length === 0 && <p style={{ color: '#888', fontSize: '0.8em', width: '100%', textAlign: 'center' }}>Nenhum robô encontrado.</p>}
+              </div>
             </div>
 
             <div className={`status-badge status-${status}`}>
@@ -233,9 +282,10 @@ function App() {
                     onChange={(e) => setSigetBase(e.target.value)}
                     style={{ padding: '0.5em', width: '100%', borderRadius: '4px', border: '1px solid #444', background: '#222', color: 'white' }}
                   >
-                    <option value="AETE">AETE</option>
-                    <option value="DIAMANTE">DIAMANTE</option>
-                    {/* Poderia ser dinâmico com bases do banco, mas hardcoded pro MVP serve */}
+                    {/* Opções dinâmicas baseadas no banco */}
+                    {[...new Set(empresas.map(e => e.base))].sort().map(base => (
+                      <option key={base} value={base}>{base}</option>
+                    ))}
                   </select>
                 </div>
                 <div>

@@ -43,12 +43,12 @@ def download_file(url, filepath):
         if response.status_code == 200:
             with open(filepath, 'wb') as f:
                 f.write(response.content)
-            print(f"    ✓ Salvo: {os.path.basename(filepath)}")
+            print(f"    [OK] Salvo: {os.path.basename(filepath)}")
             return True
         else:
-            print(f"    ❌ Erro ao baixar (Status {response.status_code}): {os.path.basename(filepath)}")
+            print(f"    [ERROR] Erro ao baixar (Status {response.status_code}): {os.path.basename(filepath)}")
     except Exception as e:
-        print(f"    ❌ Erro no download: {e}")
+        print(f"    [ERROR] Erro no download: {e}")
     return False
 
 def obter_competencia_alvo():
@@ -78,7 +78,7 @@ def processar_faturas(empresa_nome, ons_code, ons_name):
     try:
         response = requests.get(API_URL, params=params, headers=HEADERS, timeout=30)
         if response.status_code != 200:
-            print(f"    ❌ Erro na API (Status {response.status_code})")
+            print(f"    [ERROR] Erro na API (Status {response.status_code})")
             return False
             
         data = response.json()
@@ -114,7 +114,7 @@ def processar_faturas(empresa_nome, ons_code, ons_name):
             print(f"    Aviso: Competência {competencia_alvo} não disponível para ONS {ons_code}")
             
     except Exception as e:
-        print(f"    ❌ Erro ao processar faturas: {e}")
+        print(f"    [ERROR] Erro ao processar faturas: {e}")
         return False
 
 def main():

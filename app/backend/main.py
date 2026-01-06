@@ -51,6 +51,16 @@ ROBOTS_CONFIG = {
         "script": os.path.join(ROOT_DIR, "pantanal.py"),
         "download_dir": r"C:\Users\Bruno\Downloads\TUST\PANTANAL",
         "name": "WebPantanal"
+    },
+    "assu": {
+        "script": os.path.join(ROOT_DIR, "assu.py"),
+        "download_dir": r"C:\Users\Bruno\Downloads\TUST\ASSU",
+        "name": "WebAssu"
+    },
+    "tropicalia": {
+        "script": os.path.join(ROOT_DIR, "tropicalia.py"),
+        "download_dir": r"C:\Users\Bruno\Downloads\TUST\TROPICALIA",
+        "name": "WebTropicalia"
     }
 }
 
@@ -150,13 +160,21 @@ def sync_empresas(db: Session = Depends(get_db)):
             return {"status": "error", "detail": str(e)}
     return {"status": "file not found"}
 
+# Estado global dos robôs (em memória)
+ROBOT_STATUS = {}
+
+@app.get("/robot-status/{robot_name}")
+def get_robot_status(robot_name: str):
+    return {"status": ROBOT_STATUS.get(robot_name.lower(), "idle")}
+
 @app.post("/run-robot")
 def run_robot(request: RobotRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     robot_name = request.robot_name.lower()
     
     if robot_name not in ROBOTS_CONFIG:
-        raise HTTPException(status_code=400, detail="Robô inválido. Opções: siget, cnt")
+        raise HTTPException(status_code=400, detail="Robô inválido. Opções: siget, cnt, pantanal, assu, tropicalia")
     
+    # ... (lógica existing Siget config - mantida igual)
     config = ROBOTS_CONFIG[robot_name]
     
     # Lógica específica para configuração do Siget
@@ -171,7 +189,6 @@ def run_robot(request: RobotRequest, background_tasks: BackgroundTasks, db: Sess
             raise HTTPException(status_code=404, detail=f"Nenhuma empresa encontrada para a base '{request.base}'.")
             
         # Monta o JSON específico do Siget
-        # Estrutura: { "BASE": { "email": "...", "agentes": { "CODE": "NAME", ... } } }
         siget_data = {
             request.base: {
                 "email": request.email,
@@ -187,10 +204,11 @@ def run_robot(request: RobotRequest, background_tasks: BackgroundTasks, db: Sess
             raise HTTPException(status_code=500, detail=f"Erro ao salvar configuração do Siget: {e}")
 
     def exec_task():
+        ROBOT_STATUS[robot_name] = "running"
         try:
             print(f"Iniciando {config['name']}...")
             
-            # Limpa diretório de download antes de iniciar para evitar duplicatas
+            # Limpa diretório de download
             if os.path.exists(config['download_dir']):
                 shutil.rmtree(config['download_dir'])
             os.makedirs(config['download_dir'], exist_ok=True)
@@ -199,11 +217,13 @@ def run_robot(request: RobotRequest, background_tasks: BackgroundTasks, db: Sess
             print(f"{config['name']} finalizado.")
             print("STDOUT:", result.stdout)
             print("STDERR:", result.stderr)
+            ROBOT_STATUS[robot_name] = "finished"
         except Exception as e:
             print(f"Erro ao executar {config['name']}: {e}")
+            ROBOT_STATUS[robot_name] = "error"
 
     background_tasks.add_task(exec_task)
-    return {"message": f"{config['name']} iniciado em background", "status": "running", "robot": robot_name}
+    return {"message": f"{config['name']} iniciado", "status": "running"}
 
 @app.get("/download-results")
 def download_results(robot: str = "siget"):
@@ -218,9 +238,8 @@ def download_results(robot: str = "siget"):
         raise HTTPException(status_code=404, detail=f"Pasta de downloads não encontrada: {download_dir}")
     
     zip_filename = f"resultados_{robot_name}.zip"
-    zip_path = os.path.join(os.getcwd(), zip_filename) # Salva temp no dir atual
+    zip_path = os.path.join(os.getcwd(), zip_filename)
     
-    # Remove zip anterior se existir para evitar zipar o zip
     if os.path.exists(zip_path):
         os.remove(zip_path)
         
