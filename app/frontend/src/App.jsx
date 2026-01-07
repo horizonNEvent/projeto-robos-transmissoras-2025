@@ -11,6 +11,7 @@ import TransmissoraModal from './components/TransmissoraModal'
 import EmpresaManager from './components/EmpresaManager'
 import SigetPublicManager from './components/SigetPublicManager'
 import LogsPanel from './components/LogsPanel'
+import ScheduleModal from './components/ScheduleModal'
 
 const API_URL = "/api"
 
@@ -41,6 +42,11 @@ function App() {
   // Form states for EmpresaManager
   const [formData, setFormData] = useState({ codigo_ons: '', nome_empresa: '', base: 'AETE' })
   const [editingId, setEditingId] = useState(null)
+
+  // Scheduling states
+  const [showScheduleModal, setShowScheduleModal] = useState(false)
+  const [scheduledConfigId, setScheduledConfigId] = useState(null)
+  const [scheduledConfigLabel, setScheduledConfigLabel] = useState('')
 
   useEffect(() => {
     fetchEmpresas()
@@ -338,7 +344,24 @@ function App() {
                               <span className="badge" style={{ background: '#f59e0b', fontSize: '0.6rem', padding: '2px 6px' }}>PROCESSANDO</span>
                             </div>
                           )}
-                          <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>{process.label}</div>
+                          <div style={{ fontWeight: 'bold', marginBottom: '4px', display: 'flex', justifyContent: 'space-between' }}>
+                            {process.label}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setScheduledConfigId(process.id);
+                                setScheduledConfigLabel(process.label);
+                                setShowScheduleModal(true);
+                              }}
+                              style={{
+                                background: 'transparent', border: 'none', padding: 0, fontSize: '1rem', cursor: 'pointer',
+                                opacity: 0.6
+                              }}
+                              title="Configurar Agendamento"
+                            >
+                              🕒
+                            </button>
+                          </div>
                           <div style={{ fontSize: '0.7rem', color: '#64748b' }}>{process.base} • {Object.keys(JSON.parse(process.agents_json || '{}')).length} agentes</div>
                         </div>
                       )
@@ -524,6 +547,14 @@ function App() {
           </div>
         </div>
       )}
+
+      {/* SCHEDULE MODAL */}
+      <ScheduleModal
+        show={showScheduleModal}
+        onClose={() => setShowScheduleModal(false)}
+        configId={scheduledConfigId}
+        label={scheduledConfigLabel}
+      />
     </div >
   )
 }

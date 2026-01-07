@@ -17,12 +17,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Startup: Seed Siget Public Targets
+# Startup: Seed Siget Public Targets & Init Scheduler
 @app.on_event("startup")
-def startup_seed_siget_targets():
+def startup_events():
     from .database import SessionLocal
+    from .scheduler import init_scheduler
     import json
     import os
+    
+    # Init Background Scheduler
+    init_scheduler()
     
     db = SessionLocal()
     try:
