@@ -69,41 +69,59 @@ def process_downloaded_files(execution_id, robot_id):
 
 def scheduled_robot_task(schedule_id, robot_config_id):
     """
-    Tarefa disparada pelo agendador.
+    Tarefa inteligente disparada pelo agendador.
     """
-    print(f"⏰ [AGENDA] Iniciando execução agendada {schedule_id} para o robô {robot_config_id}")
     db = SessionLocal()
-    
-    # 1. Cria o registro de execução
-    execution = RobotExecution(
-        robot_config_id=robot_config_id,
-        start_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        status="RUNNING",
-        trigger_type="SCHEDULED"
-    )
-    db.add(execution)
-    db.commit()
-    db.refresh(execution)
-    
     try:
-        # 2. Busca a configuração do robô
+        # 1. Busca a configuração
         config = db.query(RobotConfig).filter_by(id=robot_config_id).first()
         if not config:
-            raise Exception("Configuração não encontrada")
+            print(f"❌ [AGENDA] Configuração {robot_config_id} não encontrada.")
+            return
 
-        # 3. CHAMA A LÓGICA DO ROBÔ
+        print(f"⏰ [AGENDA] Robô: {config.label} | Alvo: {config.target_competence}")
+
+        # 2. Idempotência: Se já temos esse documento válido, não roda o robô.
+        if config.target_competence:
+            exists = db.query(DocumentRegistry).filter(
+                DocumentRegistry.robot_config_id == robot_config_id,
+                DocumentRegistry.competence_extracted == config.target_competence
+            ).first()
+            if exists:
+                print(f"✅ [AGENDA] Documento já validado para {config.target_competence}. Pulando...")
+                return
+
+        # 3. Registro de Execução
+        execution = RobotExecution(
+            robot_config_id=robot_config_id,
+            start_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            status="RUNNING",
+            trigger_type="SCHEDULED"
+        )
+        db.add(execution)
+        db.commit()
+        db.refresh(execution)
+
+        # 4. Chama o robô (Lógica Manual IGUAL)
         from .routers.robots import run_robot_logic
         run_robot_logic(config.robot_type, config.id, config.target_competence) 
         
-        # 4. Processa os arquivos baixados
+        # 5. Organização de arquivos (Só pelo Scheduler)
         process_downloaded_files(execution.id, config.robot_type)
         
         execution.status = "SUCCESS"
         execution.end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Atualiza metadata de sucesso
+        if config.target_competence:
+            config.last_success_competence = config.target_competence
+
     except Exception as e:
-        execution.status = "FAILED"
-        execution.error_message = str(e)
-        execution.end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        print(f"❌ [AGENDA] Erro: {e}")
+        if 'execution' in locals():
+            execution.status = "FAILED"
+            execution.error_message = str(e)
+            execution.end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     finally:
         db.commit()
         db.close()
