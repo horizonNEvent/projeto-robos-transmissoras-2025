@@ -21,6 +21,9 @@ app.add_middleware(
 @app.on_event("startup")
 def startup_events():
     from .scheduler import init_scheduler
+    from . import models, database
+    # Garante que as tabelas existam
+    models.Base.metadata.create_all(bind=database.engine)
     # Init Background Scheduler
     init_scheduler()
 
