@@ -10,9 +10,3 @@ pandas
 openpyxl
 xlrd
 python-multipart
-# Auth & Email
-fastapi-mail
-python-jose[cryptography]
-bcrypt
-pydantic>=2.0
-python-dotenv

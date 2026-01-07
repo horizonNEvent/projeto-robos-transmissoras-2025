@@ -20,6 +20,7 @@
 body {
   margin: 0;
   padding: 0;
+  display: flex;
   min-height: 100vh;
   width: 100vw;
   background: radial-gradient(circle at 10% 20%, #1e293b 0%, #0f172a 100%);
@@ -27,7 +28,7 @@ body {
 
 #root {
   width: 100%;
-  min-height: 100vh;
+  display: flex;
 }
 
 .app-container {

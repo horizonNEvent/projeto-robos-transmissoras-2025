@@ -6,26 +6,19 @@ import './index.css'
 import { ROBOTS } from './constants/robots'
 
 // Components
-// Components
 import RobotConfigManager from './components/RobotConfigManager'
 import TransmissoraModal from './components/TransmissoraModal'
 import EmpresaManager from './components/EmpresaManager'
 import SigetPublicManager from './components/SigetPublicManager'
 import LogsPanel from './components/LogsPanel'
-import LoginPage from './components/LoginPage'
-import UserManager from './components/UserManager'
 
 const API_URL = "http://localhost:8000"
 
 function App() {
-  const [loggedIn, setLoggedIn] = useState(false)
-
   const [activeTab, setActiveTab] = useState('dashboard') // dashboard, robot_id, transmissoras, config
   const [status, setStatus] = useState('idle')
   const [logs, setLogs] = useState([])
   const [downloadUrl, setDownloadUrl] = useState(null)
-
-  // ... (outros states mantidos)
   const [empresas, setEmpresas] = useState([])
   const [selectedRobotId, setSelectedRobotId] = useState('siget')
   const [robotSearch, setRobotSearch] = useState('')
@@ -50,30 +43,11 @@ function App() {
   const [editingId, setEditingId] = useState(null)
 
   useEffect(() => {
-    // Check login
-    const token = localStorage.getItem('token')
-    if (token) {
-      setLoggedIn(true)
-      fetchInitialData()
-    }
-  }, [])
-
-  const fetchInitialData = () => {
     fetchEmpresas()
     fetchMapping()
     fetchRobotConfigs()
     fetchTransmissoras()
-  }
-
-  // Se não logado, renderiza Login
-  if (!loggedIn) {
-    return <LoginPage onLoginSuccess={() => {
-      setLoggedIn(true)
-      fetchInitialData()
-    }} />
-  }
-
-  // --- Função principal (Logada) ---
+  }, [])
 
   const addLog = (msg) => {
     setLogs(prev => [`[${new Date().toLocaleTimeString()}] ${msg}`, ...prev].slice(0, 100))
@@ -107,17 +81,7 @@ function App() {
     } catch (err) { console.error(err) }
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    setLoggedIn(false)
-  }
-
-  // ... (funções de robô)
-  /* O restante das funções continuam iguais, apenas adicionaremos o botão de logout na sidebar */
-
   const handleRunRobot = async () => {
-    // ... Logica existente ...
     if (status === 'running') return;
     if (selectedProcessIds.length === 0) {
       alert("Por favor, selecione ao menos um Processo de Execução (Perfil) antes de iniciar.");
@@ -248,22 +212,6 @@ function App() {
           >
             ⚙️ Credenciais Central
           </div>
-
-          <div
-            className={`nav-item ${activeTab === 'users' ? 'active' : ''}`}
-            onClick={() => setActiveTab('users')}
-          >
-            👥 Usuários
-          </div>
-        </div>
-
-        <div style={{ padding: '1rem', borderTop: '1px solid #334155', marginTop: 'auto' }}>
-          <button
-            onClick={handleLogout}
-            style={{ width: '100%', background: 'transparent', border: '1px solid #ef4444', color: '#ef4444', padding: '0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
-          >
-            🚪 Sair do Sistema
-          </button>
         </div>
       </aside>
 
@@ -541,17 +489,6 @@ function App() {
                   />
                 </div>
               </div>
-            </div>
-          )
-        }
-
-        {
-          activeTab === 'users' && (
-            <div className="users-view">
-              <header className="content-header">
-                <h2>Gestão de Acessos</h2>
-              </header>
-              <UserManager onLog={addLog} />
             </div>
           )
         }
