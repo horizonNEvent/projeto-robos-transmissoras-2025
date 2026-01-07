@@ -8,19 +8,21 @@ from bs4 import BeautifulSoup
 import argparse
 
 class GuairaDownloader:
-    def __init__(self, empresa_mae=None, cod_ons=None, nome_ons=None):
+    def __init__(self, empresa_mae=None, cod_ons=None, nome_ons=None, output_dir=None):
         self.session = requests.Session()
         self.base_url = "https://faturamentoguaira.cesbe.com.br"
         self.cod_ons = cod_ons
         self.nome_ons = nome_ons
         self.empresa_mae = empresa_mae
         self.i_cod_emp = "15" # Conforme INSIGHT C#
+        from utils_paths import get_base_download_path, ensure_dir
+        self.base_dir_default = get_base_download_path("GUAIRA")
         
         # Organização de pastas padrão
         if empresa_mae and cod_ons:
-            self.download_path = os.path.join(r"C:\Users\Bruno\Downloads\TUST\GUAIRA", empresa_mae, cod_ons)
+            self.download_path = os.path.join(output_dir or self.base_dir_default, empresa_mae, cod_ons)
         else:
-            self.download_path = r"C:\Users\Bruno\Downloads\TUST\GUAIRA\GERAL"
+            self.download_path = os.path.join(output_dir or self.base_dir_default, "GERAL")
             
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
@@ -99,7 +101,7 @@ class GuairaDownloader:
             if not url: return False
             response = self.session.get(url, headers=self.headers)
             if response.status_code == 200:
-                os.makedirs(self.download_path, exist_ok=True)
+                ensure_dir(self.download_path)
                 path = os.path.join(self.download_path, nome_arquivo)
                 with open(path, 'wb') as f:
                     f.write(response.content)
@@ -120,6 +122,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--empresa", help="Nome da empresa para filtrar")
     parser.add_argument("--agente", help="Código ONS do agente para filtrar")
+    parser.add_argument("--output_dir", help="Pasta de destino dos downloads")
     args = parser.parse_args()
 
     empresas = carregar_config()
@@ -133,7 +136,7 @@ def main():
             if args.agente and str(args.agente) != str(cod_ons):
                 continue
 
-            downloader = GuairaDownloader(empresa_mae, cod_ons, nome_ons)
+            downloader = GuairaDownloader(empresa_mae, cod_ons, nome_ons, output_dir=args.output_dir)
             if downloader.login():
                 notas = downloader.get_notas()
                 boletos = downloader.get_boletos()

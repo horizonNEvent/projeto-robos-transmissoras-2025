@@ -10,13 +10,14 @@ import argparse
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 BASE_URL = "https://www.pantanaltransmissao.com.br"
-BASE_DIR_DOWNLOAD = r"C:\Users\Bruno\Downloads\TUST\PANTANAL"
+from utils_paths import get_base_download_path, ensure_dir
+BASE_DIR_DEFAULT = get_base_download_path("PANTANAL")
 
 # Carregar o arquivo empresas.json
 with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'Data/empresas.json'), 'r', encoding='utf-8') as f:
     EMPRESAS = json.load(f)
 
-def baixar_titulo(empresa_nome, cod_ons, nome_ons):
+def baixar_titulo(empresa_nome, cod_ons, nome_ons, output_dir=None):
     print(f"\nProcessando {empresa_nome} - ONS {cod_ons} - {nome_ons}")
 
     base_url = BASE_URL
@@ -28,8 +29,8 @@ def baixar_titulo(empresa_nome, cod_ons, nome_ons):
     }
 
     # Criar estrutura de pastas igual o da assu: BASE / empresa_nome / cod_ons
-    base_path = os.path.join(BASE_DIR_DOWNLOAD, empresa_nome, cod_ons)
-    os.makedirs(base_path, exist_ok=True)
+    base_path = os.path.join(output_dir or BASE_DIR_DEFAULT, empresa_nome, cod_ons)
+    ensure_dir(base_path)
     
     print(f"Baixando arquivo para {nome_ons} (Código ONS: {cod_ons})...")
     
@@ -70,6 +71,7 @@ def processar_todas_empresas():
     parser = argparse.ArgumentParser()
     parser.add_argument("--empresa", help="Nome da empresa para filtrar")
     parser.add_argument("--agente", help="Código ONS do agente para filtrar")
+    parser.add_argument("--output_dir", help="Pasta de destino dos downloads")
     args = parser.parse_args()
 
     for empresa_nome, cod_ons_dict in EMPRESAS.items():
@@ -87,7 +89,7 @@ def processar_todas_empresas():
                 continue
                 
             try:
-                baixar_titulo(empresa_nome, str(cod_ons), nome_ons)
+                baixar_titulo(empresa_nome, str(cod_ons), nome_ons, output_dir=args.output_dir)
             except Exception as e:
                 print(f"Erro ao processar {empresa_nome} - ONS {cod_ons} - {nome_ons}: {str(e)}")
             print("-" * 50)

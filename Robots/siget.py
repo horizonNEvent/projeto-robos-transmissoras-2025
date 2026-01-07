@@ -23,7 +23,12 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(os.path.dirname(SCRIPT_DIR), 'Data')
 ROOT_DIR = os.path.dirname(SCRIPT_DIR)
 DB_PATH = os.path.join(ROOT_DIR, 'sql_app.db')
-BASE_DOWNLOAD_PATH = r"C:\Users\Bruno\Downloads\TUST\SIGETPLUS"
+
+def get_base_download_path():
+    base = os.environ.get("TUST_DOWNLOADS_BASE", os.path.join(ROOT_DIR, "downloads"))
+    return os.path.join(base, "TUST", "SIGETPLUS")
+
+BASE_DOWNLOAD_PATH = get_base_download_path()
 WKHTMLTOPDF_PATH = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
 
 def sanitize_name(name):
@@ -53,7 +58,8 @@ def carregar_config():
     return configs
 
 class SigetRobot:
-    def __init__(self):
+    def __init__(self, output_dir=None):
+        self.output_dir = output_dir or BASE_DOWNLOAD_PATH
         self.options = Options()
         self.options.add_argument("--headless=new")
         self.options.add_argument("--disable-gpu")
@@ -176,7 +182,7 @@ class SigetRobot:
 
     def processar_agente(self, empresa_nome, ons_code, ons_name):
         print(f"\n[INFO] Iniciando Agent: {ons_name} (ID: {ons_code})")
-        ons_path = os.path.join(BASE_DOWNLOAD_PATH, empresa_nome, str(ons_code))
+        ons_path = os.path.join(self.output_dir, empresa_nome, str(ons_code))
         os.makedirs(ons_path, exist_ok=True)
         
         self.driver.get(f"https://sys.sigetplus.com.br/portal?agent={ons_code}")
@@ -209,6 +215,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--empresa", help="Nome da empresa para filtrar")
     parser.add_argument("--agente", help="Código ONS do agente para filtrar")
+    parser.add_argument("--output_dir", help="Pasta de destino dos downloads")
     args = parser.parse_args()
 
     config_list = carregar_config()
@@ -216,7 +223,7 @@ def main():
         print("Nenhuma configuração encontrada no banco.")
         return
     
-    robot = SigetRobot()
+    robot = SigetRobot(output_dir=args.output_dir)
     robot.iniciar_driver()
     try:
         for info in config_list:

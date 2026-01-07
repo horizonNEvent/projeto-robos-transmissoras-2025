@@ -14,7 +14,8 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(os.path.dirname(SCRIPT_DIR), 'Data')
 ROOT_DIR = os.path.dirname(SCRIPT_DIR)
 DB_PATH = os.path.join(ROOT_DIR, 'sql_app.db')
-BASE_DOWNLOAD_PATH = r"C:\Users\Bruno\Downloads\TUST\WebSigetPublic"
+from utils_paths import get_base_download_path, ensure_dir
+BASE_DIR_DEFAULT = get_base_download_path("WEBSIGETPUBLIC")
 
 def sanitize_name(name):
     if not name: return "DESCONHECIDO"
@@ -49,7 +50,7 @@ def carregar_targets():
     return targets
 
 class SigetPublicRobot:
-    def __init__(self, ons_code, ons_name, agent_code):
+    def __init__(self, ons_code, ons_name, agent_code, output_dir=None):
         self.ons_code = ons_code
         self.ons_name = ons_name
         self.agent_code = agent_code
@@ -61,9 +62,8 @@ class SigetPublicRobot:
         
         safe_ons_name = sanitize_name(self.ons_name)
         folder_name = f"EMC_{self.ons_code}_{safe_ons_name}"
-        self.output_path = os.path.join(BASE_DOWNLOAD_PATH, folder_name)
-        if not os.path.exists(self.output_path):
-            os.makedirs(self.output_path, exist_ok=True)
+        self.output_path = os.path.join(output_dir or BASE_DIR_DEFAULT, folder_name)
+        ensure_dir(self.output_path)
 
     def processar(self, args_competencia=None):
         print(f"\n>>> [SIGET] Transmissora: {self.ons_code} ({self.ons_name}) | Agente: {self.agent_code}")
@@ -198,6 +198,7 @@ if __name__ == "__main__":
     parser.add_argument("--agente", type=str, help="Filtro de Agente (Código ONS)")
     parser.add_argument("--user", type=str, help="User (Ignorado)")
     parser.add_argument("--competencia", type=str, help="Competência YYYYMM (Opcional)")
+    parser.add_argument("--output_dir", help="Pasta de destino dos downloads")
     
     args = parser.parse_args()
     targets = carregar_targets()
@@ -215,6 +216,6 @@ if __name__ == "__main__":
     print(f"Iniciando WebSigetPublic para {len(targets)} transmissoras (Agente: {agent_code}, Comp: {args.competencia or 'AUTO'})...")
     
     for trans_code, trans_name in targets.items():
-        # Passamos o agent_code para a classe
-        bot = SigetPublicRobot(trans_code, trans_name, agent_code)
+        # Passamos le agent_code para a classe
+        bot = SigetPublicRobot(trans_code, trans_name, agent_code, output_dir=args.output_dir)
         bot.processar(args.competencia)

@@ -32,13 +32,15 @@ def carregar_empresas():
         return {}
 
 class EvoltzRobot:
-    def __init__(self, empresa_mae, cod_ons, nome_ons):
+    def __init__(self, empresa_mae, cod_ons, nome_ons, output_dir=None):
         self.session = requests.Session()
         self.base_url = "https://www2.nbte.com.br"
         self.empresa_mae = empresa_mae
         self.cod_ons = cod_ons
         self.nome_ons = nome_ons
-        self.download_root = r"C:\Users\Bruno\Downloads\TUST\EVOLTZ"
+        from utils_paths import get_base_download_path, ensure_dir
+        self.base_dir_default = get_base_download_path("EVOLTZ")
+        self.download_root = output_dir or self.base_dir_default
         
         self.headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -173,6 +175,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--empresa", help="Nome da empresa para filtrar")
     parser.add_argument("--agente", help="Código ONS do agente para filtrar")
+    parser.add_argument("--output_dir", help="Pasta de destino dos downloads")
     args = parser.parse_args()
 
     empresas = carregar_empresas()
@@ -190,7 +193,7 @@ def main():
             if args.agente and str(args.agente) != str(cod_ons):
                 continue
 
-            robot = EvoltzRobot(grupo, cod_ons, nome_ons)
+            robot = EvoltzRobot(grupo, cod_ons, nome_ons, output_dir=args.output_dir)
             if robot.login():
                 faturas, comp = robot.get_faturas()
                 if not faturas:
@@ -207,7 +210,8 @@ def main():
                     # Limpa nome da transmissora para pasta
                     t_pasta = re.sub(r'[^\w\s-]', '', t_nome).strip().replace(' ', '_')
                     path_dest = os.path.join(robot.download_root, grupo, cod_ons, t_pasta, periodo_pasta)
-                    os.makedirs(path_dest, exist_ok=True)
+                    from utils_paths import ensure_dir
+                    ensure_dir(path_dest)
                     
                     logging.info(f"    > {t_nome} (Fatura {num})")
                     

@@ -9,7 +9,8 @@ from datetime import datetime
 # Configurações do Robô
 TRANSMISSORA_ID = "1307"
 TRANSMISSORA_NOME = "ITAMARACA"
-BASE_PATH = rf'C:\Users\Bruno\Downloads\TUST\{TRANSMISSORA_NOME}'
+from utils_paths import get_base_download_path, ensure_dir
+BASE_DIR_DEFAULT = get_base_download_path(TRANSMISSORA_NOME)
 WKHTML_PATH = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
 
 def carregar_empresas():
@@ -21,7 +22,7 @@ def carregar_empresas():
         print(f"Erro ao carregar empresas: {e}")
         return {}
 
-def process_agent(agent_code, nome_ons, empresa_nome):
+def process_agent(agent_code, nome_ons, empresa_nome, output_dir=None):
     print(f"\n>>> Processando {empresa_nome} - {nome_ons} (ONS: {agent_code})")
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'}
     url = f'https://sys.sigetplus.com.br/cobranca/transmitter/{TRANSMISSORA_ID}/invoices?agent={agent_code}'
@@ -37,8 +38,8 @@ def process_agent(agent_code, nome_ons, empresa_nome):
         for row in rows:
             cols = row.find_all('td')
             if len(cols) < 7: continue
-            save_path = os.path.join(BASE_PATH, empresa_nome, agent_code)
-            os.makedirs(save_path, exist_ok=True)
+            save_path = os.path.join(output_dir or BASE_DIR_DEFAULT, empresa_nome, agent_code)
+            ensure_dir(save_path)
             
             # XML
             xml_link = row.find('a', {'data-original-title': 'XML'})
@@ -78,6 +79,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--empresa", help="Nome da empresa para filtrar")
     parser.add_argument("--agente", help="Código ONS do agente para filtrar")
+    parser.add_argument("--output_dir", help="Pasta de destino dos downloads")
     args = parser.parse_args()
 
     empresas = carregar_empresas()
@@ -88,8 +90,6 @@ if __name__ == "__main__":
             continue
             
         for cod_ons, nome_ons in mapping.items():
-            # Filtro de agente
             if args.agente and str(args.agente) != str(cod_ons):
                 continue
-                
-            process_agent(str(cod_ons), nome_ons, empresa_nome)
+            process_agent(str(cod_ons), nome_ons, empresa_nome, output_dir=args.output_dir)

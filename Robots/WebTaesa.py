@@ -8,7 +8,12 @@ from bs4 import BeautifulSoup
 
 # Configurações de Diretórios
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-BASE_DOWNLOAD_PATH = r"C:\Users\Bruno\Downloads\TUST\WebTaesa"
+def get_base_download_path():
+    root = os.path.dirname(SCRIPT_DIR)
+    base = os.environ.get("TUST_DOWNLOADS_BASE", os.path.join(root, "downloads"))
+    return os.path.join(base, "TUST", "WEBTAESA")
+
+BASE_DOWNLOAD_PATH = get_base_download_path()
 
 # Tenta configurar o pdfkit se disponível
 try:
@@ -19,7 +24,7 @@ except:
     PDFKIT_CONFIG = None
 
 class WebTaesaRobot:
-    def __init__(self, agent_code, agent_name, empresa="AETE"):
+    def __init__(self, agent_code, agent_name, empresa="AETE", output_dir=None):
         self.agent_code = agent_code
         self.agent_name = agent_name
         self.empresa = empresa
@@ -34,7 +39,7 @@ class WebTaesaRobot:
         }
         
         # Estrutura de Pastas: Downloads/TUST/WebTaesa/{EMPRESA}/{AGENT}/{TRANSMISSORA}/
-        self.base_output_path = os.path.join(BASE_DOWNLOAD_PATH, self.empresa, str(self.agent_code))
+        self.base_output_path = os.path.join(output_dir or BASE_DOWNLOAD_PATH, self.empresa, str(self.agent_code))
         os.makedirs(self.base_output_path, exist_ok=True)
 
     def sanitize_filename(self, name):
@@ -216,7 +221,8 @@ if __name__ == "__main__":
     parser.add_argument("--empresa", default="AETE")
     parser.add_argument("--agente", default="3748") # Exemplo
     parser.add_argument("--competencia", default="")
+    parser.add_argument("--output_dir", help="Pasta de destino dos downloads")
     
     args = parser.parse_args()
-    bot = WebTaesaRobot(args.agente, "TESTE", args.empresa)
+    bot = WebTaesaRobot(args.agente, "TESTE", args.empresa, output_dir=args.output_dir)
     bot.processar(args.competencia)

@@ -11,7 +11,8 @@ from urllib.parse import urljoin
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(SCRIPT_DIR, '..', 'Data') # Ajuste para pasta Data na raiz
 EMPRESAS_JSON_PATH = os.path.join(DATA_DIR, 'empresas.json')
-BASE_DOWNLOAD_PATH = r"C:\Users\Bruno\Downloads\TUST\WebETTM"
+from utils_paths import get_base_download_path, ensure_dir
+BASE_DIR_DEFAULT = get_base_download_path("WEBETTM")
 
 def carregar_empresas():
     try:
@@ -28,7 +29,7 @@ def sanitize_name(name):
     return " ".join(clean.split()).strip()
 
 class ETTMRobot:
-    def __init__(self, empresa_nome, ons_code, ons_name):
+    def __init__(self, empresa_nome, ons_code, ons_name, output_dir=None):
         self.empresa_nome = empresa_nome
         self.ons_code = ons_code
         self.ons_name = ons_name
@@ -39,10 +40,9 @@ class ETTMRobot:
         # Estrutura padrão: TUST / WebETTM / EMC_XXXX_Nome
         safe_ons_name = sanitize_name(self.ons_name)
         folder_name = f"EMC_{self.ons_code}_{safe_ons_name}"
-        self.output_path = os.path.join(BASE_DOWNLOAD_PATH, folder_name)
+        self.output_path = os.path.join(output_dir or BASE_DIR_DEFAULT, folder_name)
         
-        if not os.path.exists(self.output_path):
-            os.makedirs(self.output_path, exist_ok=True)
+        ensure_dir(self.output_path)
 
     def baixar_arquivo(self, url, filename, tipo):
         try:
@@ -142,6 +142,7 @@ if __name__ == "__main__":
     parser.add_argument("--agente", type=str, help="Filtro de Agente")
     parser.add_argument("--user", type=str)
     parser.add_argument("--password", type=str)
+    parser.add_argument("--output_dir", help="Pasta de destino dos downloads")
     
     args = parser.parse_args()
     full_config = carregar_empresas()
@@ -166,5 +167,5 @@ if __name__ == "__main__":
     
     print(f"Iniciando WebETTM para {len(targets)} alvos...")
     for code, name in targets.items():
-        bot = ETTMRobot("ETTM", code, name)
+        bot = ETTMRobot("ETTM", code, name, output_dir=args.output_dir)
         bot.processar()

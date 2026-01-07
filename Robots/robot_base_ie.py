@@ -78,9 +78,13 @@ def carregar_credenciais():
     return creds
 
 class RobotBaseIE:
-    def __init__(self, nome_ie, url_ie, mapeamento_codigos=None):
+    def __init__(self, nome_ie, url_ie, mapeamento_codigos=None, output_dir=None):
         self.nome_ie = nome_ie
-        self.base_dir = os.path.join(r"C:\Users\Bruno\Downloads\TUST", nome_ie)
+        if output_dir:
+            self.base_dir = output_dir
+        else:
+            base = os.environ.get("TUST_DOWNLOADS_BASE", os.path.join(WORKSPACE_ROOT, "downloads"))
+            self.base_dir = os.path.join(base, "TUST", nome_ie)
         self.url_ie = url_ie
         self.mapeamento_codigos = mapeamento_codigos or {}
         self.logger = logging.getLogger(nome_ie)
@@ -258,7 +262,12 @@ class RobotBaseIE:
         parser.add_argument("--agente", help="Código ONS do agente para filtrar")
         parser.add_argument("--user", help="Usuário para login direto")
         parser.add_argument("--password", help="Senha para login direto")
+        parser.add_argument("--output_dir", help="Pasta de destino dos downloads")
         args = parser.parse_args()
+
+        if args.output_dir:
+            self.base_dir = args.output_dir
+            os.makedirs(self.base_dir, exist_ok=True)
 
         empresas_config = carregar_empresas() or {}
         todo_credenciais = carregar_credenciais()

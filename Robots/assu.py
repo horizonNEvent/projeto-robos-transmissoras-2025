@@ -7,6 +7,8 @@ import re
 import argparse
 
 BASE_URL = "https://faturamentoassu.cesbe.com.br"
+from utils_paths import get_base_download_path, ensure_dir
+BASE_DIR_DEFAULT = get_base_download_path("ASSU")
 
 # Carregar o arquivo empresas.json
 with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'Data/empresas.json'), 'r', encoding='utf-8') as f:
@@ -91,7 +93,7 @@ def obter_dados_boleto_recente(session, base_url, cod_ons, headers):
                     return dados_boleto
     return None
 
-def baixar_titulo(empresa_nome, cod_ons, nome_ons):
+def baixar_titulo(empresa_nome, cod_ons, nome_ons, output_dir=None):
     print(f"\nProcessando {empresa_nome} - ONS {cod_ons} - {nome_ons}")
 
     base_url = BASE_URL
@@ -125,8 +127,8 @@ def baixar_titulo(empresa_nome, cod_ons, nome_ons):
     
     if response.status_code == 200:
         # Criar estrutura de pastas dentro de ASSU
-        base_path = os.path.join(r"C:\Users\Bruno\Downloads\TUST\ASSU", empresa_nome, cod_ons)
-        os.makedirs(base_path, exist_ok=True)
+        base_path = os.path.join(output_dir or BASE_DIR_DEFAULT, empresa_nome, cod_ons)
+        ensure_dir(base_path)
 
         # Obtém dados da nota fiscal mais recente
         dados_nota = obter_dados_nota_recente(session, base_url, cod_ons, headers)
@@ -186,6 +188,7 @@ def processar_todas_empresas():
     parser = argparse.ArgumentParser()
     parser.add_argument("--empresa", help="Nome da empresa para filtrar")
     parser.add_argument("--agente", help="Código ONS do agente para filtrar")
+    parser.add_argument("--output_dir", help="Pasta de destino dos downloads")
     args = parser.parse_args()
 
     for empresa_nome, cod_ons_dict in EMPRESAS.items():
@@ -203,7 +206,7 @@ def processar_todas_empresas():
                 continue
                 
             try:
-                baixar_titulo(empresa_nome, cod_ons, nome_ons)
+                baixar_titulo(empresa_nome, cod_ons, nome_ons, output_dir=args.output_dir)
             except Exception as e:
                 print(f"Erro ao processar {empresa_nome} - ONS {cod_ons} - {nome_ons}: {str(e)}")
             print("-" * 50)

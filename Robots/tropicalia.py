@@ -10,7 +10,8 @@ import argparse
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(os.path.dirname(SCRIPT_DIR), 'Data')
 EMPRESAS_JSON_PATH = os.path.join(DATA_DIR, 'empresas.json')
-BASE_DOWNLOAD_PATH = r"C:\Users\Bruno\Downloads\TUST\TROPICALIA"
+from utils_paths import get_base_download_path, ensure_dir
+BASE_DIR_DEFAULT = get_base_download_path("TROPICALIA")
 
 # URL da API
 API_URL = "https://ms-site.cap-tropicalia.cust.app.br/site/usuaria"
@@ -67,13 +68,13 @@ def obter_competencia_alvo():
     
     return f"{meses_pt[mes_anterior.month]}-{mes_anterior.year}"
 
-def processar_faturas(empresa_nome, ons_code, ons_name):
+def processar_faturas(empresa_nome, ons_code, ons_name, output_dir=None):
     """Busca e baixa as faturas para uma empresa/ONS específica"""
     print(f"\n>>> Processando {empresa_nome} | ONS {ons_code} ({ons_name})")
     
     # Caminho padrão ASSU: TUST / TROPICALIA / Empresa / ONS
-    output_dir = os.path.join(BASE_DOWNLOAD_PATH, empresa_nome, ons_code)
-    os.makedirs(output_dir, exist_ok=True)
+    final_output_dir = os.path.join(output_dir or BASE_DIR_DEFAULT, empresa_nome, ons_code)
+    ensure_dir(final_output_dir)
 
     params = {"numeroOns": ons_code}
     try:
@@ -101,15 +102,15 @@ def processar_faturas(empresa_nome, ons_code, ons_name):
                 
                 # Download DANFE
                 if item.get('linkDanfe'):
-                    download_file(item['linkDanfe'], os.path.join(output_dir, f"DANFE_{base_name}.pdf"))
+                    download_file(item['linkDanfe'], os.path.join(final_output_dir, f"DANFE_{base_name}.pdf"))
                 
                 # Download XML
                 if item.get('linkXml'):
-                    download_file(item['linkXml'], os.path.join(output_dir, f"XML_{base_name}.xml"))
+                    download_file(item['linkXml'], os.path.join(final_output_dir, f"XML_{base_name}.xml"))
                 
                 # Download Boleto
                 if item.get('linkBoleto'):
-                    download_file(item['linkBoleto'], os.path.join(output_dir, f"BOLETO_{base_name}.pdf"))
+                    download_file(item['linkBoleto'], os.path.join(final_output_dir, f"BOLETO_{base_name}.pdf"))
                 
         if not found:
             print(f"    Aviso: Competência {competencia_alvo} não disponível para ONS {ons_code}")
@@ -122,6 +123,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--empresa", help="Nome da empresa para filtrar")
     parser.add_argument("--agente", help="Código ONS do agente para filtrar")
+    parser.add_argument("--output_dir", help="Pasta de destino dos downloads")
     args = parser.parse_args()
 
     print("Iniciando Robô Tropicalia")
@@ -143,7 +145,7 @@ def main():
             if filtro_agentes and str(ons_code).strip() not in filtro_agentes:
                 continue
                 
-            processar_faturas(empresa_nome, ons_code, ons_name)
+            processar_faturas(empresa_nome, ons_code, ons_name, output_dir=args.output_dir)
 
 if __name__ == "__main__":
     main()

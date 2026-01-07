@@ -8,7 +8,8 @@ import requests
 from urllib.parse import quote
 
 # Configurações
-BASE_DOWNLOAD_PATH = r"C:\Users\Bruno\Downloads\TUST\WebEngie"
+from utils_paths import get_base_download_path, ensure_dir
+BASE_DIR_DEFAULT = get_base_download_path("WEBENGIE")
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "Data")
 EMPRESAS_JSON_PATH = os.path.join(DATA_DIR, "empresas.json")
 
@@ -25,12 +26,12 @@ def sanitize_name(name):
     return re.sub(r'[\\/*?:"<>|]', "", name).strip().replace(" ", "_")
 
 class EngieRobot:
-    def __init__(self, ons_code, ons_name):
+    def __init__(self, ons_code, ons_name, output_dir=None):
         self.ons_code = ons_code
         self.ons_name = ons_name
-        self.output_path = os.path.join(BASE_DOWNLOAD_PATH, self.ons_name)
-        if not os.path.exists(self.output_path):
-            os.makedirs(self.output_path, exist_ok=True)
+        self.ons_name = ons_name
+        self.output_path = os.path.join(output_dir or BASE_DIR_DEFAULT, self.ons_name)
+        ensure_dir(self.output_path)
         
         self.session = requests.Session()
         self.session.headers.update({
@@ -264,6 +265,7 @@ if __name__ == "__main__":
     parser.add_argument("--agente", type=str, help="Filtro de Agente (Código ONS)")
     parser.add_argument("--user", type=str, help="User (Ignorado por enquanto)")
     parser.add_argument("--password", type=str, help="Pass (Ignorado por enquanto)")
+    parser.add_argument("--output_dir", help="Pasta de destino dos downloads")
     
     args = parser.parse_args()
 
@@ -305,5 +307,5 @@ if __name__ == "__main__":
     print(f"Iniciando WebEngie para {len(targets)} alvos...")
     
     for ons_code, ons_name in targets.items():
-        bot = EngieRobot(ons_code, ons_name)
+        bot = EngieRobot(ons_code, ons_name, output_dir=args.output_dir)
         bot.processar()

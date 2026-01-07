@@ -19,190 +19,198 @@ router = APIRouter(tags=["robots"])
 
 # Caminhos
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+
+def get_download_path(robot_key: str):
+    """Retorna o caminho de download baseado no ROOT_DIR para garantir compatibilidade Docker/Linux/Windows"""
+    # Se houver uma variável de ambiente TUST_DOWNLOADS_BASE, usamos ela como base.
+    # Caso contrário, usamos a pasta 'downloads' na raiz do projeto.
+    base = os.environ.get("TUST_DOWNLOADS_BASE", os.path.join(ROOT_DIR, "downloads"))
+    return os.path.join(base, "TUST", robot_key.upper())
+
 ROBOTS_CONFIG = {
     "siget": {
         "script": os.path.join(ROOT_DIR, "Robots", "siget.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\SIGETPLUS",
+        "download_dir": get_download_path("sigetplus"),
         "name": "WebSiget"
     },
     "cnt": {
         "script": os.path.join(ROOT_DIR, "Robots", "cnt.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\CNT",
+        "download_dir": get_download_path("cnt"),
         "name": "WebCnt"
     },
     "pantanal": {
         "script": os.path.join(ROOT_DIR, "Robots", "pantanal.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\PANTANAL",
+        "download_dir": get_download_path("pantanal"),
         "name": "WebPantanal"
     },
     "assu": {
         "script": os.path.join(ROOT_DIR, "Robots", "assu.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\ASSU",
+        "download_dir": get_download_path("assu"),
         "name": "WebAssu"
     },
     "tropicalia": {
         "script": os.path.join(ROOT_DIR, "Robots", "tropicalia.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\TROPICALIA",
+        "download_dir": get_download_path("tropicalia"),
         "name": "WebTropicalia"
     },
     "firminopolis": {
         "script": os.path.join(ROOT_DIR, "Robots", "firminopolis.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\FIRMINOPOLIS",
+        "download_dir": get_download_path("firminopolis"),
         "name": "WebFirminopolis"
     },
     "evoltz": {
         "script": os.path.join(ROOT_DIR, "Robots", "evoltz.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\EVOLTZ",
+        "download_dir": get_download_path("evoltz"),
         "name": "WebEvoltz"
     },
     "guaira": {
         "script": os.path.join(ROOT_DIR, "Robots", "guaira.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\GUAIRA",
+        "download_dir": get_download_path("guaira"),
         "name": "WebGuaira"
     },
     "itamaraca": {
         "script": os.path.join(ROOT_DIR, "Robots", "itamaraca.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\ITAMARACA",
+        "download_dir": get_download_path("itamaraca"),
         "name": "WebItamaraca"
     },
     "colinas": {
         "script": os.path.join(ROOT_DIR, "Robots", "colinas.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\COLINAS",
+        "download_dir": get_download_path("colinas"),
         "name": "WebColinas"
     },
     "simoes": {
         "script": os.path.join(ROOT_DIR, "Robots", "simoes.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\SIMOES",
+        "download_dir": get_download_path("simoes"),
         "name": "WebSimoes"
     },
     "fs": {
         "script": os.path.join(ROOT_DIR, "Robots", "fs.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\FS",
+        "download_dir": get_download_path("fs"),
         "name": "WebFS"
     },
     "vineyards": {
         "script": os.path.join(ROOT_DIR, "Robots", "vineyards.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\VINEYARDS",
+        "download_dir": get_download_path("vineyards"),
         "name": "WebVineyards"
     },
     "agua_vermelha": {
         "script": os.path.join(ROOT_DIR, "Robots", "agua_vermelha.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\AGUAVERMELHA",
+        "download_dir": get_download_path("aguavermelha"),
         "name": "WebAguaVermelha"
     },
     "webieriachogrande": {
         "script": os.path.join(ROOT_DIR, "Robots", "WebIERIACHOGRANDE.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\WebIERIACHOGRANDE",
+        "download_dir": get_download_path("WebIERIACHOGRANDE"),
         "name": "WebIERIACHOGRANDE"
     },
     "webiecteep": {
         "script": os.path.join(ROOT_DIR, "Robots", "WebIECTEEP.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\WebIECTEEP",
+        "download_dir": get_download_path("WebIECTEEP"),
         "name": "WebIECTEEP"
     },
     "webieaguapei": {
         "script": os.path.join(ROOT_DIR, "Robots", "WebIEAGUAPEI.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\WebIEAGUAPEI",
+        "download_dir": get_download_path("WebIEAGUAPEI"),
         "name": "WebIEAGUAPEI"
     },
     "webiebiguacu": {
         "script": os.path.join(ROOT_DIR, "Robots", "WebIEBIGUACU.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\WebIEBIGUACU",
+        "download_dir": get_download_path("WebIEBIGUACU"),
         "name": "WebIEBIGUACU"
     },
     "webiegaranhuns": {
         "script": os.path.join(ROOT_DIR, "Robots", "WebIEGARANHUNS.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\WebIEGARANHUNS",
+        "download_dir": get_download_path("WebIEGARANHUNS"),
         "name": "WebIEGARANHUNS"
     },
     "webieitapura": {
         "script": os.path.join(ROOT_DIR, "Robots", "WebIEITAPURA.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\WebIEITAPURA",
+        "download_dir": get_download_path("WebIEITAPURA"),
         "name": "WebIEITAPURA"
     },
     "webieitaquere": {
         "script": os.path.join(ROOT_DIR, "Robots", "WebIEITAQUERE.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\WebIEITAQUERE",
+        "download_dir": get_download_path("WebIEITAQUERE"),
         "name": "WebIEITAQUERE"
     },
     "webieitaunas": {
         "script": os.path.join(ROOT_DIR, "Robots", "WebIEITAUNAS.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\WebIEITAUNAS",
+        "download_dir": get_download_path("WebIEITAUNAS"),
         "name": "WebIEITAUNAS"
     },
     "webieivai": {
         "script": os.path.join(ROOT_DIR, "Robots", "WebIEIVAI.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\WebIEIVAI",
+        "download_dir": get_download_path("WebIEIVAI"),
         "name": "WebIEIVAI"
     },
     "webiejaguar6": {
         "script": os.path.join(ROOT_DIR, "Robots", "WebIEJAGUAR6.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\WebIEJAGUAR6",
+        "download_dir": get_download_path("WebIEJAGUAR6"),
         "name": "WebIEJAGUAR6"
     },
     "webiejaguar8": {
         "script": os.path.join(ROOT_DIR, "Robots", "WebIEJAGUAR8.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\WebIEJAGUAR8",
+        "download_dir": get_download_path("WebIEJAGUAR8"),
         "name": "WebIEJAGUAR8"
     },
     "webiejaguar9": {
         "script": os.path.join(ROOT_DIR, "Robots", "WebIEJAGUAR9.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\WebIEJAGUAR9",
+        "download_dir": get_download_path("WebIEJAGUAR9"),
         "name": "WebIEJAGUAR9"
     },
     "webiemadeira": {
         "script": os.path.join(ROOT_DIR, "Robots", "WebIEMADEIRA.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\WebIEMADEIRA",
+        "download_dir": get_download_path("WebIEMADEIRA"),
         "name": "WebIEMADEIRA"
     },
     "webiemg": {
         "script": os.path.join(ROOT_DIR, "Robots", "WebIEMG.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\WebIEMG",
+        "download_dir": get_download_path("WebIEMG"),
         "name": "WebIEMG"
     },
     "webienne": {
         "script": os.path.join(ROOT_DIR, "Robots", "WebIENNE.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\WebIENNE",
+        "download_dir": get_download_path("WebIENNE"),
         "name": "WebIENNE"
     },
     "webiepinheiros": {
         "script": os.path.join(ROOT_DIR, "Robots", "WebIEPINHEIROS.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\WebIEPINHEIROS",
+        "download_dir": get_download_path("WebIEPINHEIROS"),
         "name": "WebIEPINHEIROS"
     },
     "webieserradojapi": {
         "script": os.path.join(ROOT_DIR, "Robots", "WebIESERRADOJAPI.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\WebIESERRADOJAPI",
+        "download_dir": get_download_path("WebIESERRADOJAPI"),
         "name": "WebIESERRADOJAPI"
     },
     "webiesul": {
         "script": os.path.join(ROOT_DIR, "Robots", "WebIESUL.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\WebIESUL",
+        "download_dir": get_download_path("WebIESUL"),
         "name": "WebIESUL"
     },
     "webietibagi": {
         "script": os.path.join(ROOT_DIR, "Robots", "WebIETIBAGI.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\WebIETIBAGI",
+        "download_dir": get_download_path("WebIETIBAGI"),
         "name": "WebIETIBAGI"
     },
     "webengie": {
         "script": os.path.join(ROOT_DIR, "Robots", "WebEngie.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\WebEngie",
+        "download_dir": get_download_path("WebEngie"),
         "name": "WebEngie"
     },
     "webettm": {
         "script": os.path.join(ROOT_DIR, "Robots", "WebETTM.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\WebETTM",
+        "download_dir": get_download_path("WebETTM"),
         "name": "WebETTM"
     },
     "websigetpublic": {
         "script": os.path.join(ROOT_DIR, "Robots", "WebSigetPublic.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\WebSigetPublic",
+        "download_dir": get_download_path("WebSigetPublic"),
         "name": "WebSigetPublic"
     },
     "webtaesa": {
         "script": os.path.join(ROOT_DIR, "Robots", "WebTaesa.py"),
-        "download_dir": r"C:\Users\Bruno\Downloads\TUST\WebTaesa",
+        "download_dir": get_download_path("WebTaesa"),
         "name": "WebTaesa"
     }
 }
@@ -314,6 +322,7 @@ def run_robot(request: RobotRequest, background_tasks: BackgroundTasks):
             if final_user: cmd.extend(["--user", final_user])
             if final_pass: cmd.extend(["--password", final_pass])
             if final_competencia: cmd.extend(["--competencia", final_competencia])
+            cmd.extend(["--output_dir", config['download_dir']])
 
             print(f"Executando comando (PID {process_id}): {' '.join(cmd)}")
 

@@ -10,7 +10,12 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 # Configuração de diretórios
-BASE_DIR_DOWNLOAD = r"C:\Users\Bruno\Downloads\TUST\CNT"
+def get_base_download_path():
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    base = os.environ.get("TUST_DOWNLOADS_BASE", os.path.join(root, "downloads"))
+    return os.path.join(base, "TUST", "CNT")
+
+BASE_DIR_DOWNLOAD = get_base_download_path()
 
 def carregar_empresas():
     """Carrega as informações das empresas do arquivo Data/empresas.json"""
@@ -22,7 +27,8 @@ def carregar_empresas():
         logger.error(f"Erro ao carregar empresas: {str(e)}")
         return {}
 
-def baixar_xml_cnt(codigo_ons, empresa_nome, nome_ons):
+def baixar_xml_cnt(codigo_ons, empresa_nome, nome_ons, output_dir=None):
+    base_dir = output_dir or BASE_DIR_DOWNLOAD
     session = requests.Session()
     
     # 1. Primeiro acesso à página principal
@@ -55,7 +61,7 @@ def baixar_xml_cnt(codigo_ons, empresa_nome, nome_ons):
                 return False
 
             # Caminho base igual ao da ASSU
-            base_path = os.path.join(BASE_DIR_DOWNLOAD, empresa_nome, str(codigo_ons))
+            base_path = os.path.join(base_dir, empresa_nome, str(codigo_ons))
             os.makedirs(base_path, exist_ok=True)
             
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -79,6 +85,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--empresa", help="Nome da empresa para filtrar")
     parser.add_argument("--agente", help="Código ONS do agente para filtrar")
+    parser.add_argument("--output_dir", help="Pasta de destino dos downloads")
     args = parser.parse_args()
 
     empresas = carregar_empresas()
@@ -104,7 +111,7 @@ def main():
             # Filtro de Agente (Suporta lista separada por vírgula)
             if filtro_agentes and str(codigo_ons).strip() not in filtro_agentes:
                 continue
-            baixar_xml_cnt(codigo_ons, empresa_nome, nome_ons)
+            baixar_xml_cnt(codigo_ons, empresa_nome, nome_ons, output_dir=args.output_dir)
 
     logger.info("\nProcessamento concluído!")
 
