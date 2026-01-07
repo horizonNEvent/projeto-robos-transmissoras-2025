@@ -32,4 +32,6 @@ export const ROBOTS = [
     { id: 'webieserradojapi', name: 'WebIESERRADOJAPI', type: 'ie' },
     { id: 'webiesul', name: 'WebIESUL', type: 'ie' },
     { id: 'webietibagi', name: 'WebIETIBAGI', type: 'ie' },
+    { id: 'webengie', name: 'WebEngie' },
+    { id: 'webettm', name: 'WebETTM' },
 ]

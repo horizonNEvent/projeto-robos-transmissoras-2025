@@ -191,8 +191,22 @@ class RobotBaseIE:
             empreendimento = cols[0].text.strip()
             if not empreendimento or 'Total' in empreendimento: continue
             
+            # Tenta pegar código do Nome (col 0)
             match = re.search(r'^(\d+)', empreendimento)
-            cod_empr = match.group(1) if match else 'Desconhecido'
+            cod_empr = match.group(1) if match else None
+
+            # Se não achou no nome, usa Coluna 1 + Nome para garantir unicidade
+            # Isso evita agrupar contratos diferentes que compartilham o mesmo código de agente
+            if not cod_empr:
+                nome_sanitizado = re.sub(r'[^\w\s-]', '', empreendimento).strip().replace(' ', '_')
+                if len(cols) > 1:
+                    cand = cols[1].text.strip()
+                    if cand.isdigit():
+                        cod_empr = f"{cand}_{nome_sanitizado}"
+                
+                if not cod_empr:
+                    cod_empr = f"Desconhecido_{nome_sanitizado}"
+            
             num_fatura = cols[2].text.strip()
             
             pasta_destino = os.path.join(self.base_dir, empresa_grupo, pasta_base, f"EMC_{cod_empr}")

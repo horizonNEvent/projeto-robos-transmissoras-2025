@@ -12,6 +12,8 @@ class WebIETIBAGIRobot(RobotBaseIE):
             mapeamento_codigos=MAPEAMENTO_CODIGOS
         )
 
+
+
 if __name__ == "__main__":
     robot = WebIETIBAGIRobot()
     robot.run()

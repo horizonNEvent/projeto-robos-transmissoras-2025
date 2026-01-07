@@ -12,6 +12,7 @@ class WebIESULRobot(RobotBaseIE):
             mapeamento_codigos=MAPEAMENTO_CODIGOS
         )
 
+
 if __name__ == "__main__":
     robot = WebIESULRobot()
     robot.run()

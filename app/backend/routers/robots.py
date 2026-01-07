@@ -184,6 +184,16 @@ ROBOTS_CONFIG = {
         "script": os.path.join(ROOT_DIR, "Robots", "WebIETIBAGI.py"),
         "download_dir": r"C:\Users\Bruno\Downloads\TUST\WebIETIBAGI",
         "name": "WebIETIBAGI"
+    },
+    "webengie": {
+        "script": os.path.join(ROOT_DIR, "Robots", "WebEngie.py"),
+        "download_dir": r"C:\Users\Bruno\Downloads\TUST\WebEngie",
+        "name": "WebEngie"
+    },
+    "webettm": {
+        "script": os.path.join(ROOT_DIR, "Robots", "WebETTM.py"),
+        "download_dir": r"C:\Users\Bruno\Downloads\TUST\WebETTM",
+        "name": "WebETTM"
     }
 }
 
