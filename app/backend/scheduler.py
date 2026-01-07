@@ -10,7 +10,7 @@ from .xml_utils import extract_xml_data
 # Instância Global do Scheduler
 scheduler = BackgroundScheduler()
 
-def process_downloaded_files(execution_id, robot_id):
+def process_downloaded_files(execution_id, robot_type, robot_config_id=None):
     """
     Varre a pasta de downloads, organiza por competência/CNPJ e registra no banco.
     """
@@ -46,6 +46,7 @@ def process_downloaded_files(execution_id, robot_id):
                     # Registra o documento no banco
                     doc = DocumentRegistry(
                         execution_id=execution_id,
+                        robot_config_id=robot_config_id,
                         filename=filename,
                         file_path=final_path,
                         file_hash=data["hash"],
@@ -73,25 +74,29 @@ def scheduled_robot_task(schedule_id, robot_config_id):
     """
     db = SessionLocal()
     try:
-        # 1. Busca a configuração
+        # 1. Busca a configuração e o agendamento específico
         config = db.query(RobotConfig).filter_by(id=robot_config_id).first()
-        if not config:
-            print(f"❌ [AGENDA] Configuração {robot_config_id} não encontrada.")
+        schedule = db.query(RobotSchedule).filter_by(id=schedule_id).first()
+        
+        if not config or not schedule:
+            print(f"❌ [AGENDA] Configuração ou Agendamento não encontrado.")
             return
 
-        print(f"⏰ [AGENDA] Robô: {config.label} | Alvo: {config.target_competence}")
+        # 2. Define a competência alvo (Prioriza a do Agendamento)
+        comp_alvo = schedule.target_competence or config.target_competence
+        print(f"⏰ [AGENDA] Robô: {config.label} | Alvo: {comp_alvo}")
 
-        # 2. Idempotência: Se já temos esse documento válido, não roda o robô.
-        if config.target_competence:
+        # 3. Idempotência: Se já temos esse documento válido, não roda o robô.
+        if comp_alvo:
             exists = db.query(DocumentRegistry).filter(
                 DocumentRegistry.robot_config_id == robot_config_id,
-                DocumentRegistry.competence_extracted == config.target_competence
+                DocumentRegistry.competence_extracted == comp_alvo
             ).first()
             if exists:
-                print(f"✅ [AGENDA] Documento já validado para {config.target_competence}. Pulando...")
+                print(f"✅ [AGENDA] Documento já validado para {comp_alvo}. Pulando...")
                 return
 
-        # 3. Registro de Execução
+        # 4. Registro de Execução
         execution = RobotExecution(
             robot_config_id=robot_config_id,
             start_time=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -102,19 +107,19 @@ def scheduled_robot_task(schedule_id, robot_config_id):
         db.commit()
         db.refresh(execution)
 
-        # 4. Chama o robô (Lógica Manual IGUAL)
+        # 5. Chama o robô com a competência certa
         from .routers.robots import run_robot_logic
-        run_robot_logic(config.robot_type, config.id, config.target_competence) 
+        run_robot_logic(config.robot_type, config.id, comp_alvo) 
         
         # 5. Organização de arquivos (Só pelo Scheduler)
-        process_downloaded_files(execution.id, config.robot_type)
+        process_downloaded_files(execution.id, config.robot_type, config.id)
         
         execution.status = "SUCCESS"
         execution.end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
-        # Atualiza metadata de sucesso
-        if config.target_competence:
-            config.last_success_competence = config.target_competence
+        # Atualiza metadata de sucesso na config global
+        if comp_alvo:
+            config.last_success_competence = comp_alvo
 
     except Exception as e:
         print(f"❌ [AGENDA] Erro: {e}")

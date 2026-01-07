@@ -34,6 +34,16 @@ def repair():
             print(f"✅ Column {col_name} already exists.")
             
     conn.commit()
+
+    # Reparo na tabela 'document_registry'
+    print("Checking table 'document_registry'...")
+    cursor.execute("PRAGMA table_info(document_registry)")
+    existing_doc_cols = [col[1] for col in cursor.fetchall()]
+    if "robot_config_id" not in existing_doc_cols:
+        print("➕ Adding column robot_config_id to document_registry...")
+        cursor.execute("ALTER TABLE document_registry ADD COLUMN robot_config_id INTEGER")
+    
+    conn.commit()
     conn.close()
     print("🚀 Database repair finished!")
 

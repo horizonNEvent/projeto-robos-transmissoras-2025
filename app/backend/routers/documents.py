@@ -12,7 +12,8 @@ router = APIRouter(tags=["documents"])
 
 class DocumentSchema(BaseModel):
     id: int
-    execution_id: int
+    execution_id: int | None
+    robot_config_id: int | None
     filename: str
     file_path: str
     cnpj_extracted: str | None

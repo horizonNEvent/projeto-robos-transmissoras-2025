@@ -68,6 +68,7 @@ class DocumentRegistry(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     execution_id = Column(Integer, index=True)
+    robot_config_id = Column(Integer, index=True) # Associa o documento à configuração do robô
     filename = Column(String)
     file_path = Column(String)
     file_hash = Column(String, index=True)  # To avoid physical duplicates
