@@ -28,44 +28,57 @@ def carregar_empresas():
         return {}
 
 def baixar_xml_cnt(codigo_ons, empresa_nome, nome_ons, output_dir=None):
+    import time
+    import random
+    from requests.adapters import HTTPAdapter
+    from urllib3.util.retry import Retry
+
+    # Pequeno delay aleatório para evitar detecção (Simula humano)
+    time.sleep(random.uniform(1.5, 4.0))
+
     base_dir = output_dir or BASE_DIR_DOWNLOAD
     session = requests.Session()
     
-    # 1. Primeiro acesso à página principal
+    # Configuração de Retry (Tenta 3 vezes em caso de queda de conexão)
+    retries = Retry(total=3, backoff_factor=1, status_forcelist=[500, 502, 503, 504], raise_on_status=False)
+    session.mount('https://', HTTPAdapter(max_retries=retries))
+    
     url_principal = "https://cntgo.com.br/faturas.html"
     headers_principal = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-        "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7"
+        "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+        "Cache-Control": "max-age=0",
+        "Connection": "keep-alive"
     }
     
     try:
         logger.info(f"[{empresa_nome}] Acessando página principal para ONS {codigo_ons}...")
-        session.get(url_principal, headers=headers_principal)
+        session.get(url_principal, headers=headers_principal, timeout=20)
         
-        # 2. Simular o envio do formulário (clique no botão BAIXAR)
+        # 2. Simular o envio do formulário
         url_form = "https://cntgo.com.br/form.php"
         headers_form = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36",
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Content-Type": "application/x-www-form-urlencoded",
             "Origin": "https://cntgo.com.br",
-            "Referer": "https://cntgo.com.br/faturas.html"
+            "Referer": "https://cntgo.com.br/faturas.html",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8"
         }
         form_data = {"code": str(codigo_ons)}
         
-        response_form = session.post(url_form, headers=headers_form, data=form_data)
+        response_form = session.post(url_form, headers=headers_form, data=form_data, timeout=30)
         
         if response_form.status_code == 200 and response_form.content:
             if len(response_form.content) < 100:
-                logger.error(f"[{empresa_nome}] Arquivo muito pequeno/vazio para ONS {codigo_ons} (Tamanho: {len(response_form.content)} bytes).")
+                logger.error(f"[{empresa_nome}] Arquivo muito pequeno/vazio para ONS {codigo_ons}.")
                 return False
 
-            # Caminho base igual ao da ASSU
             base_path = os.path.join(base_dir, empresa_nome, str(codigo_ons))
             os.makedirs(base_path, exist_ok=True)
             
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            nome_arquivo = f"NFe_{nome_ons}_{timestamp}.xml"
+            nome_arquivo = f"NFe_{nome_ons}_{timestamp}.xml".replace(" ", "_")
             dest_path = os.path.join(base_path, nome_arquivo)
             
             with open(dest_path, "wb") as f:
@@ -74,11 +87,11 @@ def baixar_xml_cnt(codigo_ons, empresa_nome, nome_ons, output_dir=None):
             logger.info(f"[{empresa_nome}] XML baixado: {dest_path}")
             return True
         else:
-            logger.error(f"[{empresa_nome}] Erro ao baixar para ONS {codigo_ons}: {response_form.status_code}")
+            logger.error(f"[{empresa_nome}] Erro ao baixar (Cod: {response_form.status_code})")
             return False
             
     except Exception as e:
-        logger.error(f"[{empresa_nome}] Erro no processo: {str(e)}")
+        logger.error(f"[{empresa_nome}] Erro de conexão/processo: {str(e)}")
         return False
 
 def main():
