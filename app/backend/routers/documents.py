@@ -44,3 +44,28 @@ def download_document(doc_id: int, db: Session = Depends(get_db)):
         filename=doc.filename,
         media_type='application/xml'
     )
+
+@router.delete("/documents/{doc_id}")
+def delete_document(doc_id: int, db: Session = Depends(get_db)):
+    """Remove um documento específico do banco e tenta apagar o arquivo físico."""
+    doc = db.query(models.DocumentRegistry).filter(models.DocumentRegistry.id == doc_id).first()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Documento não encontrado")
+    
+    # Tenta remover o arquivo físico
+    if os.path.exists(doc.file_path):
+        try:
+            os.remove(doc.file_path)
+        except:
+            pass
+            
+    db.delete(doc)
+    db.commit()
+    return {"message": "Documento removido"}
+
+@router.delete("/documents/clear/all")
+def clear_all_documents(db: Session = Depends(get_db)):
+    """Limpa todos os registros de documentos validados (Não apaga arquivos físicos por segurança)."""
+    db.query(models.DocumentRegistry).delete()
+    db.commit()
+    return {"message": "Repositório de documentos limpo"}

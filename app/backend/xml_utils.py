@@ -39,14 +39,35 @@ def extract_xml_data(filepath):
                 cnpj = elem.text.strip()
                 break
 
-        # 2. Competência (Mês/Ano)
+        # 2. Competência (Regra de Negócio: Vencimento - 1 Mês)
         competencia = None
-        for path in [".//dhEmi", ".//dEmi", ".//dhSaida", ".//dSaiEnt"]:
-            elem = root.find(path)
-            if elem is not None and elem.text:
-                competencia = elem.text.strip()[:7]
-                break
         
+        # Tenta achar o vencimento <dVenc> que é o melhor indicador de competência
+        venc_elem = root.find(".//dVenc")
+        if venc_elem is not None and venc_elem.text:
+            try:
+                # dVenc costuma vir como YYYY-MM-DD
+                data_venc = venc_elem.text.strip()[:10]
+                dt = datetime.strptime(data_venc, "%Y-%m-%d")
+                
+                # Regra: Se vence em Janeiro (01), a competência é Dezembro (12) do ano anterior
+                if dt.month == 1:
+                    competencia = f"{dt.year - 1}-12"
+                else:
+                    # Caso contrário, competência é o mês anterior do mesmo ano
+                    competencia = f"{dt.year}-{str(dt.month - 1).zfill(2)}"
+            except:
+                pass
+
+        # Se não achou dVenc ou deu erro, tenta pela data de emissão (Fallback 1)
+        if not competencia:
+            for path in [".//dhEmi", ".//dEmi", ".//dhSaida", ".//dSaiEnt"]:
+                elem = root.find(path)
+                if elem is not None and elem.text:
+                    competencia = elem.text.strip()[:7]
+                    break
+        
+        # Fallback Final: Mês Atual
         if not competencia:
             competencia = datetime.now().strftime("%Y-%m")
 

@@ -1,150 +1,306 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-// SVGs com tamanho fixo para não explodir na tela
-const IconSearch = ({ className = '', size = 20 }) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>;
-const IconDownload = ({ className = '', size = 20 }) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>;
-const IconCheck = ({ className = '', size = 24 }) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
-const IconBuilding = ({ className = '', size = 16 }) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-7h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>;
-const IconCalendar = ({ className = '', size = 16 }) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>;
-const IconCurrency = ({ className = '', size = 16 }) => <svg width={size} height={size} className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>;
-const IconRefresh = ({ animate, className = '', size = 20 }) => <svg width={size} height={size} className={`${animate ? 'animate-spin' : ''} ${className}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>;
-
 const API_URL = "/api";
 
-const DocumentManager = () => {
-    const [documents, setDocuments] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState('');
+// Ícones Customizados SVG (Estilo Corporate)
+const IconEye = ({ size = 18 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>
+const IconDownload = ({ size = 18 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+const IconRefresh = ({ animate, size = 18 }) => <svg width={size} height={size} className={animate ? 'animate-spin' : ''} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" /></svg>
+const IconFileXml = ({ size = 18 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><path d="M8 13h1" /><path d="M8 17h1" /><path d="M12 13h4" /><path d="M12 17h4" /></svg>
+const IconFilePdf = ({ size = 18 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><path d="M9 15h3a2 2 0 0 0 0-4H9v4Z" /><path d="M9 18v-3" /><path d="M14 15h1a1.5 1.5 0 0 1 0 3h-1v-3Z" /><path d="M17 11v3a1.5 1.5 0 0 0 3 0v-3" /></svg>
+const IconTrash = ({ size = 18 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>
 
-    const fetchDocuments = async () => {
+const DocumentManager = () => {
+    const [docs, setDocs] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [filter, setFilter] = useState("");
+    const [selectedDoc, setSelectedDoc] = useState(null);
+
+    const fetchDocs = async () => {
         setLoading(true);
         try {
-            const response = await axios.get(`${API_URL}/documents`);
-            setDocuments(response.data);
-        } catch (error) {
-            console.error("Erro ao carregar documentos:", error);
-            alert("Erro ao carregar lista de documentos.");
+            const res = await axios.get(`${API_URL}/documents`);
+            setDocs(Array.isArray(res.data) ? res.data : []);
+        } catch (err) {
+            console.error("Erro ao carregar documentos:", err);
         } finally {
             setLoading(false);
         }
     };
 
-    useEffect(() => {
-        fetchDocuments();
-    }, []);
+    useEffect(() => { fetchDocs(); }, []);
 
-    const handleDownload = (docId, filename) => {
+    const handleDownload = (docId) => {
         window.open(`${API_URL}/documents/download/${docId}`, '_blank');
     };
 
-    const filteredDocs = documents.filter(doc =>
-        doc.filename.toLowerCase().includes(filter.toLowerCase()) ||
-        (doc.cnpj_extracted && doc.cnpj_extracted.includes(filter)) ||
-        (doc.competence_extracted && doc.competence_extracted.includes(filter))
+    const handleDelete = async (docId) => {
+        if (!window.confirm("Deseja realmente excluir este documento do repositório?")) return;
+        try {
+            await axios.delete(`${API_URL}/documents/${docId}`);
+            fetchDocs();
+        } catch (err) {
+            alert("Erro ao excluir documento");
+        }
+    };
+
+    const handleClearAll = async () => {
+        if (!window.confirm("ATENÇÃO: Isso irá limpar todo o histórico de documentos validados. Os arquivos físicos não serão apagados por segurança. Continuar?")) return;
+        try {
+            await axios.delete(`${API_URL}/documents/clear/all`);
+            fetchDocs();
+        } catch (err) {
+            alert("Erro ao limpar base");
+        }
+    };
+
+    const filteredDocs = docs.filter(d =>
+        (d.filename || "").toLowerCase().includes(filter.toLowerCase()) ||
+        (d.cnpj_extracted || "").includes(filter) ||
+        (d.competence_extracted || "").includes(filter)
     );
 
     return (
-        <div className="p-6 text-white bg-slate-900 min-h-screen">
-            <div className="flex justify-between items-center mb-8">
+        <div style={{ padding: '40px', color: '#E2E8F0', maxWidth: '1400px', margin: '0 auto', fontFamily: 'Inter, sans-serif' }}>
+
+            {/* Header Corporativo */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '40px' }}>
                 <div>
-                    <h1 className="text-3xl font-bold flex items-center gap-3 text-blue-400">
-                        <IconSearch className="text-4xl" />
-                        Documentos Validados
+                    <h1 style={{ margin: 0, fontSize: '2.5rem', fontWeight: '800', letterSpacing: '-0.025em', color: '#F8FAFC' }}>
+                        Auditoria de Documentos
                     </h1>
-                    <p className="text-slate-400 mt-2">Repositório de XMLs processados e auditados pelos robôs.</p>
+                    <p style={{ color: '#94A3B8', fontSize: '1.1rem', marginTop: '8px' }}>
+                        Central de custódia e validação de faturas TUST.
+                    </p>
                 </div>
-                <button
-                    onClick={fetchDocuments}
-                    className="bg-blue-600 hover:bg-blue-700 p-3 rounded-xl transition-all flex items-center gap-2 shadow-lg shadow-blue-900/20"
-                >
-                    <IconRefresh animate={loading} />
-                    Atualizar
-                </button>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                    <button
+                        onClick={handleClearAll}
+                        style={{
+                            background: 'transparent',
+                            color: '#EF4444',
+                            padding: '12px 24px',
+                            borderRadius: '10px',
+                            display: 'flex',
+                            gap: '12px',
+                            alignItems: 'center',
+                            fontWeight: '600',
+                            border: '1px solid #EF4444',
+                            cursor: 'pointer',
+                        }}
+                    >
+                        <IconTrash /> Limpar Base
+                    </button>
+                    <button
+                        onClick={fetchDocs}
+                        style={{
+                            background: '#3B82F6',
+                            color: 'white',
+                            padding: '12px 24px',
+                            borderRadius: '10px',
+                            display: 'flex',
+                            gap: '12px',
+                            alignItems: 'center',
+                            fontWeight: '600',
+                            border: 'none',
+                            cursor: 'pointer',
+                        }}
+                    >
+                        <IconRefresh animate={loading} /> Recarregar
+                    </button>
+                </div>
             </div>
 
-            {/* Barra de Busca e Filtros */}
-            <div className="bg-slate-800/50 p-4 rounded-2xl mb-6 border border-slate-700/50 flex flex-wrap gap-4 items-center">
-                <div className="flex-1 min-w-[300px] relative">
+            {/* Barra de Filtros Minimalista */}
+            <div style={{
+                marginBottom: '24px',
+                background: '#1E293B',
+                padding: '16px',
+                borderRadius: '12px',
+                border: '1px solid #334155',
+                display: 'flex',
+                gap: '20px',
+                alignItems: 'center'
+            }}>
+                <div style={{ position: 'relative', flex: 1 }}>
                     <input
                         type="text"
-                        placeholder="Buscar por arquivo, CNPJ ou competência..."
-                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-sm"
+                        placeholder="Pesquisar por Transmissora, CNPJ ou Competência..."
                         value={filter}
-                        onChange={(e) => setFilter(e.target.value)}
+                        onChange={e => setFilter(e.target.value)}
+                        style={{
+                            width: '100%',
+                            padding: '12px 16px',
+                            background: '#0F172A',
+                            border: '1px solid #475569',
+                            color: '#F8FAFC',
+                            borderRadius: '8px',
+                            outline: 'none',
+                            fontSize: '0.95rem'
+                        }}
                     />
-                    <IconSearch className="absolute left-3 top-3.5 text-slate-500" />
                 </div>
-                <div className="text-sm text-slate-400">
-                    Mostrando <span className="text-blue-400 font-bold">{filteredDocs.length}</span> documentos
+                <div style={{ fontSize: '0.9rem', color: '#94A3B8', fontWeight: '500' }}>
+                    <span style={{ color: '#3B82F6' }}>{filteredDocs.length}</span> documentos processados
                 </div>
             </div>
 
-            {loading && documents.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-64 text-slate-500">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mb-4"></div>
-                    <p>Carregando repositório...</p>
-                </div>
-            ) : filteredDocs.length === 0 ? (
-                <div className="bg-slate-800/30 border-2 border-dashed border-slate-700 rounded-3xl p-12 text-center">
-                    <IconSearch className="text-6xl text-slate-700 mx-auto mb-4" />
-                    <h3 className="text-xl font-medium text-slate-400">Nenhum documento encontrado</h3>
-                    <p className="text-slate-500 mt-2">Aguarde a conclusão de um robô agendado para ver os arquivos aqui.</p>
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredDocs.map((doc) => (
-                        <div
-                            key={doc.id}
-                            className="bg-slate-800 border border-slate-700 rounded-2xl p-5 hover:border-blue-500/50 transition-all group relative overflow-hidden"
-                        >
-                            <div className="absolute top-0 right-0 p-4">
-                                <IconCheck className="text-green-500 opacity-50 group-hover:opacity-100 transition-all" />
-                            </div>
-
-                            <div className="flex items-center gap-4 mb-4">
-                                <div className="p-3 bg-blue-500/10 rounded-xl">
-                                    <IconSearch className="text-blue-400" />
-                                </div>
-                                <div className="truncate pr-8">
-                                    <h4 className="font-bold text-slate-100 truncate text-sm" title={doc.filename}>
-                                        {doc.filename}
-                                    </h4>
-                                    <span className="text-xs text-slate-500">ID: #{doc.id} • {new Date(doc.created_at).toLocaleDateString()}</span>
-                                </div>
-                            </div>
-
-                            <div className="space-y-3 bg-slate-900/50 p-4 rounded-xl border border-slate-700/50 mb-5">
-                                <div className="flex items-center gap-3 text-sm">
-                                    <IconBuilding className="text-slate-500" />
-                                    <span className="text-slate-300 font-medium">CNPJ:</span>
-                                    <span className="text-slate-400 font-mono tracking-tighter">{doc.cnpj_extracted || 'N/A'}</span>
-                                </div>
-                                <div className="flex items-center gap-3 text-sm">
-                                    <IconCalendar className="text-slate-500" />
-                                    <span className="text-slate-300 font-medium">Competência:</span>
-                                    <span className="text-slate-400">{doc.competence_extracted || 'N/A'}</span>
-                                </div>
-                                <div className="flex items-center gap-3 text-sm">
-                                    <IconCurrency className="text-slate-500" />
-                                    <span className="text-slate-300 font-medium">Valor:</span>
-                                    <span className="text-blue-400 font-bold">
-                                        {doc.invoice_value ? `R$ ${doc.invoice_value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'N/A'}
+            {/* Tabela de Dados Auditados */}
+            <div style={{
+                background: '#1E293B',
+                borderRadius: '12px',
+                border: '1px solid #334155',
+                overflow: 'hidden',
+                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+            }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead style={{ background: '#334155', color: '#CBD5E1', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        <tr>
+                            <th style={{ padding: '16px 20px' }}>Ref #</th>
+                            <th>Processado em</th>
+                            <th>Mês Referência</th>
+                            <th>CNPJ Extraído</th>
+                            <th>Valor Auditado</th>
+                            <th style={{ textAlign: 'center', paddingRight: '20px' }}>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody style={{ fontSize: '0.95rem' }}>
+                        {filteredDocs.map((doc) => (
+                            <tr key={doc.id} style={{ borderBottom: '1px solid #334155', transition: 'background 0.2s' }}>
+                                <td style={{ padding: '16px 20px', color: '#94A3B8', fontFamily: 'monospace' }}>#{String(doc.id).padStart(4, '0')}</td>
+                                <td>{doc.created_at ? new Date(doc.created_at).toLocaleString('pt-BR') : '---'}</td>
+                                <td>
+                                    <span style={{
+                                        background: '#1E3A8A',
+                                        color: '#BFDBFE',
+                                        padding: '4px 10px',
+                                        borderRadius: '6px',
+                                        fontSize: '0.85rem',
+                                        fontWeight: '700'
+                                    }}>
+                                        {doc.competence_extracted}
                                     </span>
-                                </div>
-                            </div>
+                                </td>
+                                <td style={{ color: '#94A3B8', fontFamily: 'monospace' }}>{doc.cnpj_extracted}</td>
+                                <td style={{ fontWeight: '700', color: '#10B981' }}>
+                                    {doc.invoice_value ? `R$ ${doc.invoice_value}` : '---'}
+                                </td>
+                                <td style={{ textAlign: 'center', paddingRight: '20px' }}>
+                                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                                        <button
+                                            onClick={() => setSelectedDoc(doc)}
+                                            style={{ background: '#475569', color: '#F8FAFC', padding: '8px', borderRadius: '8px', border: 'none', cursor: 'pointer', display: 'flex' }}
+                                            title="Ver Detalhes"
+                                        >
+                                            <IconEye />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDownload(doc.id)}
+                                            style={{ background: '#10B981', color: 'white', padding: '8px', borderRadius: '8px', border: 'none', cursor: 'pointer', display: 'flex' }}
+                                            title="Download XML"
+                                        >
+                                            <IconDownload />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(doc.id)}
+                                            style={{ background: '#334155', color: '#EF4444', padding: '8px', borderRadius: '8px', border: 'none', cursor: 'pointer', display: 'flex' }}
+                                            title="Excluir Registro"
+                                        >
+                                            <IconTrash size={16} />
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
 
+            {/* Modal de Auditoria Detalhada */}
+            {selectedDoc && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+                    backgroundColor: 'rgba(15, 23, 42, 0.9)', zIndex: 99999,
+                    display: 'flex', justifyContent: 'center', alignItems: 'center',
+                    backdropFilter: 'blur(4px)'
+                }}>
+                    <div style={{
+                        background: '#1E293B', width: '560px', padding: '40px',
+                        borderRadius: '24px', border: '1px solid #475569',
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '32px' }}>
+                            <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: '800', color: '#F8FAFC' }}>
+                                Ficha de Auditoria
+                            </h2>
                             <button
-                                onClick={() => handleDownload(doc.id, doc.filename)}
-                                className="w-full bg-slate-700 hover:bg-blue-600 p-3 rounded-xl transition-all flex items-center justify-center gap-2 font-medium"
+                                onClick={() => setSelectedDoc(null)}
+                                style={{ background: 'transparent', border: 'none', color: '#94A3B8', fontSize: '1.8rem', cursor: 'pointer' }}
                             >
-                                <IconDownload />
-                                Baixar XML
+                                ×
                             </button>
                         </div>
-                    ))}
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '40px' }}>
+                            <div style={{ background: '#0F172A', padding: '16px', borderRadius: '12px', border: '1px solid #334155' }}>
+                                <label style={{ color: '#64748B', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>Nome do Arquivo</label>
+                                <div style={{ color: '#3B82F6', fontWeight: '700', wordBreak: 'break-all' }}>{selectedDoc.filename}</div>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                                <div style={{ background: '#0F172A', padding: '16px', borderRadius: '12px', border: '1px solid #334155' }}>
+                                    <label style={{ color: '#64748B', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>Mês Referência</label>
+                                    <div style={{ color: '#F8FAFC', fontSize: '1.1rem', fontWeight: '600' }}>{selectedDoc.competence_extracted}</div>
+                                </div>
+                                <div style={{ background: '#0F172A', padding: '16px', borderRadius: '12px', border: '1px solid #334155' }}>
+                                    <label style={{ color: '#64748B', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>Data Processo</label>
+                                    <div style={{ color: '#F1F5F9' }}>{selectedDoc.created_at ? new Date(selectedDoc.created_at).toLocaleDateString() : '---'}</div>
+                                </div>
+                            </div>
+
+                            <div style={{ background: '#0F172A', padding: '16px', borderRadius: '12px', border: '1px solid #334155' }}>
+                                <label style={{ color: '#64748B', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>CNPJ Transmissora</label>
+                                <div style={{ color: '#F8FAFC', fontSize: '1.2rem', fontFamily: 'monospace', letterSpacing: '0.05em' }}>{selectedDoc.cnpj_extracted}</div>
+                            </div>
+
+                            <div style={{ background: '#0F172A', padding: '20px', borderRadius: '12px', border: '1px solid #059669', textAlign: 'center' }}>
+                                <label style={{ color: '#10B981', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>Valor Unitário Identificado</label>
+                                <div style={{ color: '#F8FAFC', fontSize: '2rem', fontWeight: '900' }}>R$ {selectedDoc.invoice_value || '0,00'}</div>
+                            </div>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                            <button
+                                onClick={() => handleDownload(selectedDoc.id)}
+                                style={{
+                                    background: '#3B82F6', color: 'white', padding: '14px', borderRadius: '12px', border: 'none',
+                                    display: 'flex', justifyContent: 'center', gap: '10px', alignItems: 'center', fontWeight: '700',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                <IconFileXml /> Download XML
+                            </button>
+                            <button
+                                onClick={() => handleDelete(selectedDoc.id)}
+                                style={{
+                                    background: '#EF4444', color: 'white', padding: '14px', borderRadius: '12px', border: 'none',
+                                    display: 'flex', justifyContent: 'center', gap: '10px', alignItems: 'center', fontWeight: '700',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                <IconTrash /> Excluir Registro
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
+
+            <style>{`
+                tr:hover { background-color: #334155 !important; }
+                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+                .animate-spin { animation: spin 1s linear infinite; }
+            `}</style>
         </div>
     );
 };
