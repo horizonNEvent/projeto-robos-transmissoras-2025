@@ -88,12 +88,8 @@ def scheduled_robot_task(schedule_id, robot_config_id):
         if not config:
             raise Exception("Configuração não encontrada")
 
-        # 3. CHAMA A LÓGICA DO ROBÔ (Aqui integraríamos com seu script de robô)
-        # Por enquanto, simulamos ou chamamos a função principal de execução
-        # result = run_robot_logic(config) 
-        
-        # Simulação de espera do robô
-        time.sleep(5) 
+        # 3. CHAMA A LÓGICA DO ROBÔ
+        run_robot_logic(config.robot_type, config.id, config.target_competence) 
         
         # 4. Processa os arquivos baixados
         process_downloaded_files(execution.id, config.robot_type)

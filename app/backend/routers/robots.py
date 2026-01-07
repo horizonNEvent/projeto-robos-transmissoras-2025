@@ -267,16 +267,17 @@ def download_results(robot: str = "siget"):
         headers={"Content-Disposition": f"attachment; filename={zip_filename}"}
     )
 
-@router.post("/run-robot")
-def run_robot(request: RobotRequest, background_tasks: BackgroundTasks):
-    robot_name = request.robot_name.lower()
-    
+def run_robot_logic(robot_name: str, process_id: int, competencia: Optional[str] = None):
+    """
+    Core logic to execute a robot. Can be called from API or Scheduler.
+    """
+    robot_name = robot_name.lower()
     if robot_name not in ROBOTS_CONFIG:
-        raise HTTPException(status_code=400, detail="Robô inválido")
-    
-    config = ROBOTS_CONFIG[robot_name]
-    process_id = request.process_id or 0
+        print(f"❌ Robô {robot_name} não encontrado nas configurações")
+        return
 
+    config = ROBOTS_CONFIG[robot_name]
+    
     # Lógica de Limpeza: Se é o primeiro processo desse robô a rodar, limpa a pasta geral
     with STATUS_LOCK:
         if robot_name not in ROBOT_STATUS:
@@ -290,62 +291,72 @@ def run_robot(request: RobotRequest, background_tasks: BackgroundTasks):
 
         ROBOT_STATUS[robot_name].add(process_id)
 
-    async def exec_task():
-        db = next(get_db())
-        try:
-            print(f"Iniciando {config['name']} (PID: {process_id})...")
-            
-            db_config = None
-            if process_id:
-                db_config = db.query(models.RobotConfig).filter(models.RobotConfig.id == process_id).first()
-            
-            cmd = ["python", config['script']]
-            
-            final_empresa = request.empresa
-            final_agente = request.agente
-            final_user = request.user
-            final_pass = request.password
-            final_competencia = request.competencia
-            
-            if db_config:
-                final_empresa = db_config.base
-                final_user = db_config.username
-                final_pass = db_config.password
-                try:
-                    agents_dict = json.loads(db_config.agents_json or '{}')
-                    if agents_dict:
-                        final_agente = ",".join(agents_dict.keys())
-                except: pass
+    db = next(get_db())
+    try:
+        print(f"Iniciando {config['name']} (PID: {process_id})...")
+        
+        db_config = None
+        if process_id:
+            db_config = db.query(models.RobotConfig).filter(models.RobotConfig.id == process_id).first()
+        
+        cmd = ["python", config['script']]
+        
+        final_empresa = None
+        final_agente = None
+        final_user = None
+        final_pass = None
+        final_competencia = competencia
+        
+        if db_config:
+            final_empresa = db_config.base
+            final_user = db_config.username
+            final_pass = db_config.password
+            try:
+                agents_dict = json.loads(db_config.agents_json or '{}')
+                if agents_dict:
+                    final_agente = ",".join(agents_dict.keys())
+            except: pass
 
-            if final_empresa: cmd.extend(["--empresa", final_empresa])
-            if final_agente: cmd.extend(["--agente", final_agente])
-            if final_user: cmd.extend(["--user", final_user])
-            if final_pass: cmd.extend(["--password", final_pass])
-            if final_competencia: cmd.extend(["--competencia", final_competencia])
-            cmd.extend(["--output_dir", config['download_dir']])
+        if final_empresa: cmd.extend(["--empresa", final_empresa])
+        if final_agente: cmd.extend(["--agente", final_agente])
+        if final_user: cmd.extend(["--user", final_user])
+        if final_pass: cmd.extend(["--password", final_pass])
+        if final_competencia: cmd.extend(["--competencia", final_competencia])
+        cmd.extend(["--output_dir", config['download_dir']])
 
-            print(f"Executando comando (PID {process_id}): {' '.join(cmd)}")
+        print(f"Executando comando (PID {process_id}): {' '.join(cmd)}")
 
-            process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                cwd=ROOT_DIR,
-                env={**os.environ, "PYTHONUNBUFFERED": "1"}
-            )
-            
-            for line in process.stdout:
-                print(f"[{config['name']}-{process_id}] {line.strip()}")
-            
-            process.wait()
-        except Exception as e:
-            print(f"Erro ao executar {config['name']} (PID {process_id}): {e}")
-        finally:
-            with STATUS_LOCK:
-                if robot_name in ROBOT_STATUS:
-                    ROBOT_STATUS[robot_name].discard(process_id)
-            db.close()
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            cwd=ROOT_DIR,
+            env={**os.environ, "PYTHONUNBUFFERED": "1"}
+        )
+        
+        for line in process.stdout:
+            print(f"[{config['name']}-{process_id}] {line.strip()}")
+        
+        process.wait()
+    except Exception as e:
+        print(f"Erro ao executar {config['name']} (PID {process_id}): {e}")
+        raise e
+    finally:
+        with STATUS_LOCK:
+            if robot_name in ROBOT_STATUS:
+                ROBOT_STATUS[robot_name].discard(process_id)
+        db.close()
 
-    background_tasks.add_task(exec_task)
-    return {"message": f"{config['name']} (PID {process_id}) iniciado", "status": "running"}
+@router.post("/run-robot")
+def run_robot(request: RobotRequest, background_tasks: BackgroundTasks):
+    robot_name = request.robot_name.lower()
+    
+    if robot_name not in ROBOTS_CONFIG:
+        raise HTTPException(status_code=400, detail="Robô inválido")
+    
+    process_id = request.process_id or 0
+    competencia = request.competencia
+
+    background_tasks.add_task(run_robot_logic, robot_name, process_id, competencia)
+    return {"message": f"{robot_name} (PID {process_id}) iniciado", "status": "running"}
