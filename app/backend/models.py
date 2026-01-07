@@ -35,3 +35,11 @@ class RobotConfig(Base):
     password = Column(String)
     agents_json = Column(String) # List of ONS codes assigned to this credential
     active = Column(Boolean, default=True)
+
+class SigetPublicTarget(Base):
+    __tablename__ = 'siget_public_targets'
+    
+    id = Column(Integer, primary_key=True, index=True)
+    codigo_ons = Column(String, unique=True, index=True)
+    nome = Column(String)
+    ativo = Column(Boolean, default=True)

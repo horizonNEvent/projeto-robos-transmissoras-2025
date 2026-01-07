@@ -7,24 +7,46 @@ from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 
 # Configurações de Diretórios
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(SCRIPT_DIR, '..', 'Data')
-SIGET_TARGETS_PATH = os.path.join(DATA_DIR, 'siget_public_targets.json')
-BASE_DOWNLOAD_PATH = r"C:\Users\Bruno\Downloads\TUST\WebSigetPublic"
+import sqlite3
 
-def carregar_targets():
-    try:
-        if not os.path.exists(SIGET_TARGETS_PATH):
-            return {}
-        with open(SIGET_TARGETS_PATH, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except:
-        return {}
+# Configurações de Diretórios
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(os.path.dirname(SCRIPT_DIR), 'Data')
+ROOT_DIR = os.path.dirname(SCRIPT_DIR)
+DB_PATH = os.path.join(ROOT_DIR, 'sql_app.db')
+BASE_DOWNLOAD_PATH = r"C:\Users\Bruno\Downloads\TUST\WebSigetPublic"
 
 def sanitize_name(name):
     if not name: return "DESCONHECIDO"
     clean = re.sub(r'[<>:"/\\|?*]', '_', str(name))
     return " ".join(clean.split()).strip()
+
+def carregar_targets():
+    """Carrega lista de transmissoras do Banco de Dados (SQLite)."""
+    targets = {}
+    try:
+        if not os.path.exists(DB_PATH):
+            print(f"[AVISO] Banco de dados não encontrado: {DB_PATH}. Usando JSON se existir...")
+            json_path = os.path.join(DATA_DIR, "siget_public_targets.json")
+            if os.path.exists(json_path):
+                import json
+                with open(json_path, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            return {}
+
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT codigo_ons, nome FROM siget_public_targets WHERE ativo = 1")
+        rows = cursor.fetchall()
+        
+        for row in rows:
+            targets[str(row[0])] = row[1]
+            
+        conn.close()
+        print(f"Carregados {len(targets)} alvos do banco de dados na Tabela siget_public_targets.")
+    except Exception as e:
+        print(f"Erro ao ler banco de dados: {e}")
+    return targets
 
 class SigetPublicRobot:
     def __init__(self, ons_code, ons_name, agent_code):

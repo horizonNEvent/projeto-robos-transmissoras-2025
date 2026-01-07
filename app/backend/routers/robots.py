@@ -199,6 +199,11 @@ ROBOTS_CONFIG = {
         "script": os.path.join(ROOT_DIR, "Robots", "WebSigetPublic.py"),
         "download_dir": r"C:\Users\Bruno\Downloads\TUST\WebSigetPublic",
         "name": "WebSigetPublic"
+    },
+    "webtaesa": {
+        "script": os.path.join(ROOT_DIR, "Robots", "WebTaesa.py"),
+        "download_dir": r"C:\Users\Bruno\Downloads\TUST\WebTaesa",
+        "name": "WebTaesa"
     }
 }
 

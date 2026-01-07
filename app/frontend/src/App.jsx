@@ -9,6 +9,7 @@ import { ROBOTS } from './constants/robots'
 import RobotConfigManager from './components/RobotConfigManager'
 import TransmissoraModal from './components/TransmissoraModal'
 import EmpresaManager from './components/EmpresaManager'
+import SigetPublicManager from './components/SigetPublicManager'
 import LogsPanel from './components/LogsPanel'
 
 const API_URL = "http://localhost:8000"
@@ -29,6 +30,7 @@ function App() {
   const [robotConfigs, setRobotConfigs] = useState([])
   const [transmissoras, setTransmissoras] = useState([])
   const [showTransmissorasModal, setShowTransmissorasModal] = useState(false)
+  const [showSigetPublicModal, setShowSigetPublicModal] = useState(false)
 
   // Filtros de Consulta Transmissoras
   const [tFilterCNPJ, setTFilterCNPJ] = useState('')
@@ -100,7 +102,7 @@ function App() {
           agente: selectedAgenteFilter || null,
           user: process.username || null,
           password: process.password || null,
-          competencia: (selectedRobotId === 'websigetpublic' && window.tempCompetencia) ? window.tempCompetencia : null,
+          competencia: ((selectedRobotId === 'websigetpublic' || selectedRobotId === 'webtaesa') && window.tempCompetencia) ? window.tempCompetencia : null,
           process_id: process.id
         }
         addLog(`Gatilho disparado para: ${process.label} (${process.base})`);
@@ -252,6 +254,11 @@ function App() {
                     ⬇️ Baixar
                   </button>
                 )}
+                {selectedRobotId === 'websigetpublic' && (
+                  <button onClick={() => setShowSigetPublicModal(true)} style={{ background: '#8b5cf6' }}>
+                    🎯 Parametrizar Alvos
+                  </button>
+                )}
                 <button onClick={handleRunRobot} disabled={status === 'running'}>
                   {status === 'running' ? '🚀 Rodando...' : '▶ Iniciar Execução'}
                 </button>
@@ -259,7 +266,7 @@ function App() {
             </header>
 
             {/* Input Extra para SigetPublic: Competência */}
-            {selectedRobotId === 'websigetpublic' && (
+            {(selectedRobotId === 'websigetpublic' || selectedRobotId === 'webtaesa') && (
               <div style={{ margin: '1rem', padding: '1rem', background: '#334155', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <label style={{ color: '#cbd5e1', fontWeight: 'bold' }}>📅 Competência (YYYYMM):</label>
                 <input
@@ -496,6 +503,27 @@ function App() {
         }}
         onLog={addLog}
       />
+
+      {/* MODAL CONFIG SIGET PUBLIC */}
+      {showSigetPublicModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+          background: 'rgba(0,0,0,0.7)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
+        }}>
+          <div className="card" style={{ width: '90%', maxWidth: '900px', maxHeight: '90vh', overflowY: 'auto', position: 'relative' }}>
+            <button
+              onClick={() => setShowSigetPublicModal(false)}
+              style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'white' }}
+            >
+              &times;
+            </button>
+            <div style={{ marginTop: '1rem' }}>
+              <SigetPublicManager onLog={addLog} />
+            </div>
+          </div>
+        </div>
+      )}
     </div >
   )
 }
