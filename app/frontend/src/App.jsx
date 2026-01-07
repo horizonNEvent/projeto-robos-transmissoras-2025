@@ -1,5 +1,15 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
+import {
+  HiOutlineServer,
+  HiOutlineCog,
+  HiOutlineUserGroup,
+  HiOutlineDatabase,
+  HiOutlineBell,
+  HiOutlineCalendar,
+  HiClock,
+  HiOutlineDocumentSearch
+} from 'react-icons/hi';
 import './index.css'
 
 // Constants
@@ -218,6 +228,13 @@ function App() {
             onClick={() => setActiveTab('config')}
           >
             ⚙️ Credenciais Central
+          </div>
+
+          <div
+            className={`nav-item ${activeTab === 'documents' ? 'active' : ''}`}
+            onClick={() => setActiveTab('documents')}
+          >
+            📦 Documentos Validados
           </div>
         </div>
       </aside>
@@ -516,6 +533,15 @@ function App() {
             </div>
           )
         }
+
+        {activeTab === 'documents' && (
+          <div className="documents-view">
+            <header className="content-header">
+              <h2>Repositório de Documentos</h2>
+            </header>
+            <DocumentManager />
+          </div>
+        )}
       </main >
 
       {/* MODALS QUE FICAM POR CIMA */}
@@ -542,24 +568,8 @@ function App() {
             >
               &times;
             </button>
-            <button
-              onClick={() => setActiveTab('config')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'config' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'text-slate-400 hover:bg-slate-800'}`}
-            >
-              <HiOutlineCog className="text-xl" />
-              Configurações
-            </button>
-
-            <button
-              onClick={() => setActiveTab('documents')}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'documents' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'text-slate-400 hover:bg-slate-800'}`}
-            >
-              <HiOutlineDocumentSearch className="text-xl" />
-              Documentos
-            </button>
             <div style={{ marginTop: '1rem' }}>
-              {activeTab === 'config' && <RobotConfigManager onLog={addLog} />}
-              {activeTab === 'documents' && <DocumentManager />}
+              <SigetPublicManager onLog={addLog} />
             </div>
           </div>
         </div>
