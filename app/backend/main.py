@@ -17,41 +17,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Startup: Seed Siget Public Targets & Init Scheduler
+# Startup: Init Scheduler
 @app.on_event("startup")
 def startup_events():
-    from .database import SessionLocal
     from .scheduler import init_scheduler
-    import json
-    import os
-    
     # Init Background Scheduler
     init_scheduler()
-    
-    db = SessionLocal()
-    try:
-        # Check table exist
-        count = db.query(models.SigetPublicTarget).count()
-        if count == 0:
-            # Caminho relativo baseado na localização do main.py (app/backend/main.py -> ../../Data/...)
-            root_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-            json_path = os.path.join(root_dir, "Data", "siget_public_targets.json")
-            
-            if os.path.exists(json_path):
-                print("Seeding Siget Public Targets from JSON...")
-                with open(json_path, 'r', encoding='utf-8') as f:
-                    targets = json.load(f)
-                    for code, name in targets.items():
-                        # Verifica duplicidade
-                        exists = db.query(models.SigetPublicTarget).filter_by(codigo_ons=code).first()
-                        if not exists:
-                            db.add(models.SigetPublicTarget(codigo_ons=code, nome=name, ativo=True))
-                    db.commit()
-                    print(f"Seeded {len(targets)} targets.")
-    except Exception as e:
-        print(f"Startup Seed Error: {e}")
-    finally:
-        db.close()
 
 # Inclusão dos Roteadores (Modularização)
 app.include_router(robots.router)
