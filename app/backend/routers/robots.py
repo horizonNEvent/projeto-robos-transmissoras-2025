@@ -194,6 +194,11 @@ ROBOTS_CONFIG = {
         "script": os.path.join(ROOT_DIR, "Robots", "WebETTM.py"),
         "download_dir": r"C:\Users\Bruno\Downloads\TUST\WebETTM",
         "name": "WebETTM"
+    },
+    "websigetpublic": {
+        "script": os.path.join(ROOT_DIR, "Robots", "WebSigetPublic.py"),
+        "download_dir": r"C:\Users\Bruno\Downloads\TUST\WebSigetPublic",
+        "name": "WebSigetPublic"
     }
 }
 
@@ -209,6 +214,7 @@ class RobotRequest(BaseModel):
     agente: Optional[str] = None
     user: Optional[str] = None
     password: Optional[str] = None
+    competencia: Optional[str] = None
     process_id: Optional[int] = None
 
 @router.get("/robot-status/{robot_name}")
@@ -286,6 +292,7 @@ def run_robot(request: RobotRequest, background_tasks: BackgroundTasks):
             final_agente = request.agente
             final_user = request.user
             final_pass = request.password
+            final_competencia = request.competencia
             
             if db_config:
                 final_empresa = db_config.base
@@ -301,6 +308,7 @@ def run_robot(request: RobotRequest, background_tasks: BackgroundTasks):
             if final_agente: cmd.extend(["--agente", final_agente])
             if final_user: cmd.extend(["--user", final_user])
             if final_pass: cmd.extend(["--password", final_pass])
+            if final_competencia: cmd.extend(["--competencia", final_competencia])
 
             print(f"Executando comando (PID {process_id}): {' '.join(cmd)}")
 

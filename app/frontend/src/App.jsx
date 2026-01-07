@@ -100,6 +100,7 @@ function App() {
           agente: selectedAgenteFilter || null,
           user: process.username || null,
           password: process.password || null,
+          competencia: (selectedRobotId === 'websigetpublic' && window.tempCompetencia) ? window.tempCompetencia : null,
           process_id: process.id
         }
         addLog(`Gatilho disparado para: ${process.label} (${process.base})`);
@@ -139,9 +140,9 @@ function App() {
   }
 
   const downloadResults = () => {
-    if (!downloadUrl) return
+    const url = downloadUrl || `${API_URL}/download-results?robot=${selectedRobotId}`
     const link = document.createElement('a')
-    link.href = downloadUrl
+    link.href = url
     link.setAttribute('download', '')
     document.body.appendChild(link)
     link.click()
@@ -246,12 +247,34 @@ function App() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '1rem' }}>
-                {downloadUrl && <button onClick={downloadResults} style={{ background: '#10b981' }}>⬇️ Baixar</button>}
+                {(downloadUrl || status === 'finished') && (
+                  <button onClick={downloadResults} style={{ background: '#10b981' }}>
+                    ⬇️ Baixar
+                  </button>
+                )}
                 <button onClick={handleRunRobot} disabled={status === 'running'}>
                   {status === 'running' ? '🚀 Rodando...' : '▶ Iniciar Execução'}
                 </button>
               </div>
             </header>
+
+            {/* Input Extra para SigetPublic: Competência */}
+            {selectedRobotId === 'websigetpublic' && (
+              <div style={{ margin: '1rem', padding: '1rem', background: '#334155', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <label style={{ color: '#cbd5e1', fontWeight: 'bold' }}>📅 Competência (YYYYMM):</label>
+                <input
+                  type="text"
+                  placeholder="Ex: 202602 (Deixe vazio para Auto)"
+                  style={{ background: '#1e293b', border: '1px solid #475569', color: 'white', padding: '0.5rem', borderRadius: '4px' }}
+                  onChange={(e) => {
+                    // Gambiarra: Salvamos no filtro de empresa temporariamente ou criamos state novo?
+                    // Melhor criar um state local rápido se não quisermos mexer muito
+                    window.tempCompetencia = e.target.value;
+                  }}
+                />
+                <small style={{ color: '#94a3b8' }}>Se vazio, usa mês seguinte atual.</small>
+              </div>
+            )}
 
             <div className="dashboard-grid">
               {/* Seleção de Processo / Perfil */}
@@ -339,128 +362,133 @@ function App() {
               </div>
             </div>
           </div>
-        )}
+        )
+        }
 
-        {activeTab === 'transmissoras' && (
-          <div className="transmissoras-view">
-            <header className="content-header" style={{ marginBottom: '1rem' }}>
-              <h2>Base de Transmissoras</h2>
-              <button onClick={() => setShowTransmissorasModal(true)} style={{ background: '#8b5cf6' }}>
-                📊 Gerenciar Planilha
-              </button>
-            </header>
+        {
+          activeTab === 'transmissoras' && (
+            <div className="transmissoras-view">
+              <header className="content-header" style={{ marginBottom: '1rem' }}>
+                <h2>Base de Transmissoras</h2>
+                <button onClick={() => setShowTransmissorasModal(true)} style={{ background: '#8b5cf6' }}>
+                  📊 Gerenciar Planilha
+                </button>
+              </header>
 
-            {/* Barra de Filtros */}
-            <div className="card" style={{ marginBottom: '1.5rem', padding: '1rem', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
-              <div>
-                <label style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>CNPJ</label>
-                <input
-                  placeholder="00.000..."
-                  value={tFilterCNPJ}
-                  onChange={e => setTFilterCNPJ(e.target.value)}
-                  style={{ width: '100%', fontSize: '0.85rem' }}
-                />
+              {/* Barra de Filtros */}
+              <div className="card" style={{ marginBottom: '1.5rem', padding: '1rem', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem' }}>
+                <div>
+                  <label style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>CNPJ</label>
+                  <input
+                    placeholder="00.000..."
+                    value={tFilterCNPJ}
+                    onChange={e => setTFilterCNPJ(e.target.value)}
+                    style={{ width: '100%', fontSize: '0.85rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>NOME</label>
+                  <input
+                    placeholder="Buscar por nome..."
+                    value={tFilterNome}
+                    onChange={e => setTFilterNome(e.target.value)}
+                    style={{ width: '100%', fontSize: '0.85rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>SIGLA</label>
+                  <input
+                    placeholder="Ex: SJP"
+                    value={tFilterSigla}
+                    onChange={e => setTFilterSigla(e.target.value)}
+                    style={{ width: '100%', fontSize: '0.85rem' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>CÓDIGO ONS</label>
+                  <input
+                    placeholder="Ex: 4284"
+                    value={tFilterONS}
+                    onChange={e => setTFilterONS(e.target.value)}
+                    style={{ width: '100%', fontSize: '0.85rem' }}
+                  />
+                </div>
               </div>
-              <div>
-                <label style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>NOME</label>
-                <input
-                  placeholder="Buscar por nome..."
-                  value={tFilterNome}
-                  onChange={e => setTFilterNome(e.target.value)}
-                  style={{ width: '100%', fontSize: '0.85rem' }}
-                />
-              </div>
-              <div>
-                <label style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>SIGLA</label>
-                <input
-                  placeholder="Ex: SJP"
-                  value={tFilterSigla}
-                  onChange={e => setTFilterSigla(e.target.value)}
-                  style={{ width: '100%', fontSize: '0.85rem' }}
-                />
-              </div>
-              <div>
-                <label style={{ fontSize: '0.7rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>CÓDIGO ONS</label>
-                <input
-                  placeholder="Ex: 4284"
-                  value={tFilterONS}
-                  onChange={e => setTFilterONS(e.target.value)}
-                  style={{ width: '100%', fontSize: '0.85rem' }}
-                />
+              <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                <table style={{ width: '100%' }}>
+                  <thead>
+                    <tr>
+                      <th>CNPJ</th>
+                      <th>Nome</th>
+                      <th>Sigla</th>
+                      <th>Cód ONS</th>
+                      <th>Grupo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {transmissoras
+                      .filter(t => {
+                        const matchCNPJ = !tFilterCNPJ || t.cnpj?.toLowerCase().includes(tFilterCNPJ.toLowerCase());
+                        const matchNome = !tFilterNome || t.nome?.toLowerCase().includes(tFilterNome.toLowerCase());
+                        const matchSigla = !tFilterSigla || t.sigla?.toLowerCase().includes(tFilterSigla.toLowerCase());
+                        const matchONS = !tFilterONS || t.codigo_ons?.toLowerCase().includes(tFilterONS.toLowerCase());
+                        return matchCNPJ && matchNome && matchSigla && matchONS;
+                      })
+                      .slice(0, 100).map(t => (
+                        <tr key={t.id}>
+                          <td>{t.cnpj}</td>
+                          <td style={{ fontWeight: 'bold' }}>{t.nome}</td>
+                          <td style={{ color: 'var(--accent)' }}>{t.sigla}</td>
+                          <td>{t.codigo_ons}</td>
+                          <td>{t.grupo}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+                {transmissoras.length > 50 && (
+                  <p style={{ padding: '1rem', textAlign: 'center', color: '#64748b', fontSize: '0.8rem' }}>
+                    Exibindo as primeiras 50 de {transmissoras.length} transmissoras.
+                  </p>
+                )}
               </div>
             </div>
-            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-              <table style={{ width: '100%' }}>
-                <thead>
-                  <tr>
-                    <th>CNPJ</th>
-                    <th>Nome</th>
-                    <th>Sigla</th>
-                    <th>Cód ONS</th>
-                    <th>Grupo</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {transmissoras
-                    .filter(t => {
-                      const matchCNPJ = !tFilterCNPJ || t.cnpj?.toLowerCase().includes(tFilterCNPJ.toLowerCase());
-                      const matchNome = !tFilterNome || t.nome?.toLowerCase().includes(tFilterNome.toLowerCase());
-                      const matchSigla = !tFilterSigla || t.sigla?.toLowerCase().includes(tFilterSigla.toLowerCase());
-                      const matchONS = !tFilterONS || t.codigo_ons?.toLowerCase().includes(tFilterONS.toLowerCase());
-                      return matchCNPJ && matchNome && matchSigla && matchONS;
-                    })
-                    .slice(0, 100).map(t => (
-                      <tr key={t.id}>
-                        <td>{t.cnpj}</td>
-                        <td style={{ fontWeight: 'bold' }}>{t.nome}</td>
-                        <td style={{ color: 'var(--accent)' }}>{t.sigla}</td>
-                        <td>{t.codigo_ons}</td>
-                        <td>{t.grupo}</td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-              {transmissoras.length > 50 && (
-                <p style={{ padding: '1rem', textAlign: 'center', color: '#64748b', fontSize: '0.8rem' }}>
-                  Exibindo as primeiras 50 de {transmissoras.length} transmissoras.
-                </p>
-              )}
-            </div>
-          </div>
-        )}
+          )
+        }
 
-        {activeTab === 'config' && (
-          <div className="config-view">
-            <header className="content-header">
-              <h2>Configurações Globais</h2>
-            </header>
-            <div className="dashboard-grid">
-              <div style={{ gridColumn: '1 / -1' }}>
-                <RobotConfigManager
-                  transmissoras={transmissoras}
-                  empresasMapping={empresasMapping}
-                  configs={robotConfigs}
-                  onUpdate={fetchRobotConfigs}
-                />
-              </div>
-              <div style={{ gridColumn: '1 / -1' }}>
-                <EmpresaManager
-                  empresas={empresas}
-                  onUpdate={fetchEmpresas}
-                  onLog={addLog}
-                  formData={formData}
-                  setFormData={setFormData}
-                  editingId={editingId}
-                  setEditingId={setEditingId}
-                />
+        {
+          activeTab === 'config' && (
+            <div className="config-view">
+              <header className="content-header">
+                <h2>Configurações Globais</h2>
+              </header>
+              <div className="dashboard-grid">
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <RobotConfigManager
+                    transmissoras={transmissoras}
+                    empresasMapping={empresasMapping}
+                    configs={robotConfigs}
+                    onUpdate={fetchRobotConfigs}
+                  />
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <EmpresaManager
+                    empresas={empresas}
+                    onUpdate={fetchEmpresas}
+                    onLog={addLog}
+                    formData={formData}
+                    setFormData={setFormData}
+                    editingId={editingId}
+                    setEditingId={setEditingId}
+                  />
+                </div>
               </div>
             </div>
-          </div>
-        )}
-      </main>
+          )
+        }
+      </main >
 
       {/* MODALS QUE FICAM POR CIMA */}
-      <TransmissoraModal
+      < TransmissoraModal
         show={showTransmissorasModal}
         onClose={() => {
           setShowTransmissorasModal(false)
@@ -468,7 +496,7 @@ function App() {
         }}
         onLog={addLog}
       />
-    </div>
+    </div >
   )
 }
 
