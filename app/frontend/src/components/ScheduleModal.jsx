@@ -72,26 +72,15 @@ export default function ScheduleModal({ show, onClose, configId, label }) {
 
                 <div style={{ marginBottom: '1.5rem', background: '#222', padding: '1rem', borderRadius: '8px' }}>
                     <h4 style={{ marginTop: 0 }}>➕ Novo Agendamento Todo Dia</h4>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '1rem' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '10px', marginBottom: '1rem' }}>
                         <div>
-                            <label style={{ fontSize: '0.8rem', color: '#888' }}>Horário</label>
+                            <label style={{ fontSize: '0.8rem', color: '#888' }}>Horário de Execução Diária</label>
                             <input
                                 type="time"
                                 value={newSchedule.schedule_time}
                                 onChange={e => setNewSchedule({ ...newSchedule, schedule_time: e.target.value })}
-                                style={{ width: '100%', padding: '8px', background: '#111', border: '1px solid #444', color: '#fff' }}
+                                style={{ width: '100%', padding: '12px', background: '#111', border: '1px solid #444', color: '#fff', borderRadius: '8px' }}
                             />
-                        </div>
-                        <div>
-                            <label style={{ fontSize: '0.8rem', color: '#888' }}>Competência Alvo</label>
-                            <select
-                                value={newSchedule.target_competence}
-                                onChange={e => setNewSchedule({ ...newSchedule, target_competence: e.target.value })}
-                                style={{ width: '100%', padding: '8px', background: '#111', border: '1px solid #444', color: '#fff' }}
-                            >
-                                <option value="CURRENT">Mês Atual</option>
-                                <option value="NEXT">Próximo Mês</option>
-                            </select>
                         </div>
                     </div>
                     <button onClick={() => handleSave(newSchedule)} style={{ width: '100%', background: '#2980b9' }}>Ativar Agendamento Diário</button>
@@ -103,12 +92,12 @@ export default function ScheduleModal({ show, onClose, configId, label }) {
                         schedules.map(s => (
                             <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', borderBottom: '1px solid #333' }}>
                                 <div>
-                                    <strong>{s.schedule_time}</strong>
-                                    <span style={{ fontSize: '0.7rem', marginLeft: '10px', background: '#444', padding: '2px 5px', borderRadius: '4px' }}>
-                                        Competência: {s.target_competence === 'CURRENT' ? 'Mês Atual' : s.target_competence}
+                                    <strong style={{ fontSize: '1.2rem', color: '#3498db' }}>{s.schedule_time}</strong>
+                                    <span style={{ fontSize: '0.7rem', marginLeft: '10px', color: '#888' }}>
+                                        Execução recorrente diária
                                     </span>
                                 </div>
-                                <button onClick={() => handleDelete(s.id)} style={{ background: '#c0392b', padding: '4px 8px', fontSize: '0.7rem' }}>Excluir</button>
+                                <button onClick={() => handleDelete(s.id)} style={{ background: '#c0392b', padding: '4px 12px', fontSize: '0.8rem', borderRadius: '6px' }}>Excluir</button>
                             </div>
                         ))
                     )}
