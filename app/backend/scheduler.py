@@ -17,14 +17,18 @@ def process_downloaded_files(execution_id, robot_id):
     db = SessionLocal()
     try:
         # Pasta temporária onde o robô jogou os arquivos
-        raw_dir = os.path.join(os.getcwd(), "downloads", robot_id)
-        if not os.path.exists(raw_dir):
+        # Ex: /app/downloads/TUST/CNT
+        root_raw_dir = os.path.join(os.getcwd(), "downloads", "TUST", robot_id.upper())
+        if not os.path.exists(root_raw_dir):
+            print(f"⚠️ Pasta temporária {root_raw_dir} não encontrada.")
             return
 
-        for filename in os.listdir(raw_dir):
-            if filename.endswith(".xml"):
-                filepath = os.path.join(raw_dir, filename)
-                data = extract_xml_data(filepath)
+        # Varre recursivamente todas as subpastas em busca de XMLs
+        for root, dirs, files in os.walk(root_raw_dir):
+            for filename in files:
+                if filename.endswith(".xml"):
+                    filepath = os.path.join(root, filename)
+                    data = extract_xml_data(filepath)
                 
                 if data.get("valid"):
                     comp = data["competencia"]  # YYYY-MM
