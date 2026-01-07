@@ -17,9 +17,9 @@ git pull origin $CURRENT_BRANCH
 # echo "🛑 Parando containers atuais..."
 # docker-compose down
 
-# 3. Reconstrói as imagens e sobe os containers em background
+# 3. Constrói e reinicia os containers (Forçando build para pegar novos requirements)
 echo "🏗️ Construindo imagens e iniciando containers..."
-docker compose up --build -d
+docker compose up -d --build --force-recreate
 
 # 4. Limpeza de imagens antigas/órfãs para economizar espaço
 echo "🧹 Limpando restos de builds antigos..."
