@@ -5,7 +5,6 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from .database import SessionLocal
 from .models import RobotSchedule, RobotConfig, RobotExecution, DocumentRegistry
-from .routers.robots import run_robot_logic  # Função que vamos precisar refatorar ou usar
 from .xml_utils import extract_xml_data
 
 # Instância Global do Scheduler
@@ -89,6 +88,7 @@ def scheduled_robot_task(schedule_id, robot_config_id):
             raise Exception("Configuração não encontrada")
 
         # 3. CHAMA A LÓGICA DO ROBÔ
+        from .routers.robots import run_robot_logic
         run_robot_logic(config.robot_type, config.id, config.target_competence) 
         
         # 4. Processa os arquivos baixados
