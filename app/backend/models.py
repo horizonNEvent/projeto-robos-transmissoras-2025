@@ -35,11 +35,45 @@ class RobotConfig(Base):
     password = Column(String)
     agents_json = Column(String) # List of ONS codes assigned to this credential
     active = Column(Boolean, default=True)
+    
+    # Scheduling fields
+    schedule_time = Column(String, nullable=True) # e.g. "08:00"
+    target_competence = Column(String, nullable=True) # e.g. "2026-01"
+    last_success_competence = Column(String, nullable=True) # e.g. "2025-12"
 
-class SigetPublicTarget(Base):
-    __tablename__ = 'siget_public_targets'
+class RobotSchedule(Base):
+    __tablename__ = 'robot_schedules'
     
     id = Column(Integer, primary_key=True, index=True)
-    codigo_ons = Column(String, unique=True, index=True)
-    nome = Column(String)
-    ativo = Column(Boolean, default=True)
+    robot_config_id = Column(Integer, index=True)
+    schedule_time = Column(String)  # HH:MM
+    days_of_week = Column(String)  # "MON,TUE,WED,THU,FRI,SAT,SUN"
+    target_competence = Column(String)  # "CURRENT", "NEXT", "YYYY-MM"
+    active = Column(Boolean, default=True)
+
+class RobotExecution(Base):
+    __tablename__ = 'robot_executions'
+    
+    id = Column(Integer, primary_key=True, index=True)
+    robot_config_id = Column(Integer, index=True)
+    start_time = Column(String)
+    end_time = Column(String, nullable=True)
+    status = Column(String)  # "RUNNING", "SUCCESS", "FAILED"
+    logs = Column(String, nullable=True)
+    error_message = Column(String, nullable=True)
+    trigger_type = Column(String)  # "MANUAL", "SCHEDULED"
+
+class DocumentRegistry(Base):
+    __tablename__ = 'document_registry'
+    
+    id = Column(Integer, primary_key=True, index=True)
+    execution_id = Column(Integer, index=True)
+    filename = Column(String)
+    file_path = Column(String)
+    file_hash = Column(String, index=True)  # To avoid physical duplicates
+    cnpj_extracted = Column(String, index=True)
+    competence_extracted = Column(String, index=True)
+    invoice_value = Column(String, nullable=True)
+    is_valid = Column(Boolean, default=True)
+    validation_notes = Column(String, nullable=True)
+    created_at = Column(String)
