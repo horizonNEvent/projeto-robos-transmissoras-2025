@@ -10,13 +10,14 @@ import RobotConfigManager from './components/RobotConfigManager'
 import TransmissoraModal from './components/TransmissoraModal'
 import EmpresaManager from './components/EmpresaManager'
 import SigetPublicManager from './components/SigetPublicManager'
+import DocumentManager from './components/DocumentManager'
 import LogsPanel from './components/LogsPanel'
 import ScheduleModal from './components/ScheduleModal'
 
 const API_URL = "/api"
 
 function App() {
-  const [activeTab, setActiveTab] = useState('dashboard') // dashboard, robot_id, transmissoras, config
+  const [activeTab, setActiveTab] = useState('dashboard') // dashboard, robot_id, transmissoras, config, documents
   const [status, setStatus] = useState('idle')
   const [logs, setLogs] = useState([])
   const [downloadUrl, setDownloadUrl] = useState(null)
@@ -541,8 +542,24 @@ function App() {
             >
               &times;
             </button>
+            <button
+              onClick={() => setActiveTab('config')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'config' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'text-slate-400 hover:bg-slate-800'}`}
+            >
+              <HiOutlineCog className="text-xl" />
+              Configurações
+            </button>
+
+            <button
+              onClick={() => setActiveTab('documents')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeTab === 'documents' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'text-slate-400 hover:bg-slate-800'}`}
+            >
+              <HiOutlineDocumentSearch className="text-xl" />
+              Documentos
+            </button>
             <div style={{ marginTop: '1rem' }}>
-              <SigetPublicManager onLog={addLog} />
+              {activeTab === 'config' && <RobotConfigManager onLog={addLog} />}
+              {activeTab === 'documents' && <DocumentManager />}
             </div>
           </div>
         </div>
