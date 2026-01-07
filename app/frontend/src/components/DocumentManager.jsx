@@ -8,7 +8,6 @@ const IconEye = ({ size = 18 }) => <svg width={size} height={size} viewBox="0 0 
 const IconDownload = ({ size = 18 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
 const IconRefresh = ({ animate, size = 18 }) => <svg width={size} height={size} className={animate ? 'animate-spin' : ''} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" /></svg>
 const IconFileXml = ({ size = 18 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><path d="M8 13h1" /><path d="M8 17h1" /><path d="M12 13h4" /><path d="M12 17h4" /></svg>
-const IconFilePdf = ({ size = 18 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><path d="M9 15h3a2 2 0 0 0 0-4H9v4Z" /><path d="M9 18v-3" /><path d="M14 15h1a1.5 1.5 0 0 1 0 3h-1v-3Z" /><path d="M17 11v3a1.5 1.5 0 0 0 3 0v-3" /></svg>
 const IconTrash = ({ size = 18 }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /><line x1="10" y1="11" x2="10" y2="17" /><line x1="14" y1="11" x2="14" y2="17" /></svg>
 
 const DocumentManager = () => {
@@ -58,7 +57,9 @@ const DocumentManager = () => {
     const filteredDocs = docs.filter(d =>
         (d.filename || "").toLowerCase().includes(filter.toLowerCase()) ||
         (d.cnpj_extracted || "").includes(filter) ||
-        (d.competence_extracted || "").includes(filter)
+        (d.competence_extracted || "").includes(filter) ||
+        (d.agent_name || "").toLowerCase().includes(filter.toLowerCase()) ||
+        (d.ons_code || "").includes(filter)
     );
 
     return (
@@ -126,7 +127,7 @@ const DocumentManager = () => {
                 <div style={{ position: 'relative', flex: 1 }}>
                     <input
                         type="text"
-                        placeholder="Pesquisar por Transmissora, CNPJ ou Competência..."
+                        placeholder="Pesquisar por Base, Agente, ONS, CNPJ ou Competência..."
                         value={filter}
                         onChange={e => setFilter(e.target.value)}
                         style={{
@@ -158,9 +159,10 @@ const DocumentManager = () => {
                     <thead style={{ background: '#334155', color: '#CBD5E1', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                         <tr>
                             <th style={{ padding: '16px 20px' }}>Ref #</th>
+                            <th>Base</th>
+                            <th>Agente (ONS)</th>
                             <th>Processado em</th>
                             <th>Mês Referência</th>
-                            <th>CNPJ Extraído</th>
                             <th>Valor Auditado</th>
                             <th style={{ textAlign: 'center', paddingRight: '20px' }}>Ações</th>
                         </tr>
@@ -169,7 +171,23 @@ const DocumentManager = () => {
                         {filteredDocs.map((doc) => (
                             <tr key={doc.id} style={{ borderBottom: '1px solid #334155', transition: 'background 0.2s' }}>
                                 <td style={{ padding: '16px 20px', color: '#94A3B8', fontFamily: 'monospace' }}>#{String(doc.id).padStart(4, '0')}</td>
-                                <td>{doc.created_at ? new Date(doc.created_at).toLocaleString('pt-BR') : '---'}</td>
+                                <td>
+                                    <span style={{
+                                        background: doc.base === 'DE' ? '#7C3AED' : '#475569',
+                                        color: 'white',
+                                        padding: '2px 8px',
+                                        borderRadius: '4px',
+                                        fontSize: '0.75rem',
+                                        fontWeight: '800'
+                                    }}>
+                                        {doc.base || '---'}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div style={{ fontWeight: '600' }}>{doc.agent_name || 'Desconhecido'}</div>
+                                    <div style={{ fontSize: '0.75rem', color: '#64748B' }}>ONS: {doc.ons_code || '---'}</div>
+                                </td>
+                                <td style={{ fontSize: '0.85rem' }}>{doc.created_at ? new Date(doc.created_at).toLocaleString('pt-BR') : '---'}</td>
                                 <td>
                                     <span style={{
                                         background: '#1E3A8A',
@@ -182,7 +200,6 @@ const DocumentManager = () => {
                                         {doc.competence_extracted}
                                     </span>
                                 </td>
-                                <td style={{ color: '#94A3B8', fontFamily: 'monospace' }}>{doc.cnpj_extracted}</td>
                                 <td style={{ fontWeight: '700', color: '#10B981' }}>
                                     {doc.invoice_value ? `R$ ${doc.invoice_value}` : '---'}
                                 </td>
@@ -243,6 +260,17 @@ const DocumentManager = () => {
                         </div>
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '40px' }}>
+                            <div style={{ background: '#0F172A', padding: '16px', borderRadius: '12px', border: '1px solid #334155', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div>
+                                    <label style={{ color: '#64748B', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>Base / Empresa</label>
+                                    <div style={{ color: '#F8FAFC', fontWeight: '700' }}>{selectedDoc.base} - {selectedDoc.agent_name}</div>
+                                </div>
+                                <div style={{ textAlign: 'right' }}>
+                                    <label style={{ color: '#64748B', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>Código ONS</label>
+                                    <div style={{ color: '#F8FAFC', fontWeight: '700' }}>{selectedDoc.ons_code}</div>
+                                </div>
+                            </div>
+
                             <div style={{ background: '#0F172A', padding: '16px', borderRadius: '12px', border: '1px solid #334155' }}>
                                 <label style={{ color: '#64748B', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>Nome do Arquivo</label>
                                 <div style={{ color: '#3B82F6', fontWeight: '700', wordBreak: 'break-all' }}>{selectedDoc.filename}</div>
@@ -260,12 +288,12 @@ const DocumentManager = () => {
                             </div>
 
                             <div style={{ background: '#0F172A', padding: '16px', borderRadius: '12px', border: '1px solid #334155' }}>
-                                <label style={{ color: '#64748B', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>CNPJ Transmissora</label>
+                                <label style={{ color: '#64748B', fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>CNPJ Transmissora (Lido no XML)</label>
                                 <div style={{ color: '#F8FAFC', fontSize: '1.2rem', fontFamily: 'monospace', letterSpacing: '0.05em' }}>{selectedDoc.cnpj_extracted}</div>
                             </div>
 
                             <div style={{ background: '#0F172A', padding: '20px', borderRadius: '12px', border: '1px solid #059669', textAlign: 'center' }}>
-                                <label style={{ color: '#10B981', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>Valor Unitário Identificado</label>
+                                <label style={{ color: '#10B981', fontSize: '0.75rem', fontWeight: '800', textTransform: 'uppercase', marginBottom: '4px', display: 'block' }}>Valor Identificado no XML</label>
                                 <div style={{ color: '#F8FAFC', fontSize: '2rem', fontWeight: '900' }}>R$ {selectedDoc.invoice_value || '0,00'}</div>
                             </div>
                         </div>

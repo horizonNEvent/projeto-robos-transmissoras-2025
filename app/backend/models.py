@@ -75,6 +75,9 @@ class DocumentRegistry(Base):
     cnpj_extracted = Column(String, index=True)
     competence_extracted = Column(String, index=True)
     invoice_value = Column(String, nullable=True)
+    base = Column(String, nullable=True) # e.g. 'DE'
+    ons_code = Column(String, nullable=True) # e.g. '3748'
+    agent_name = Column(String, nullable=True) # e.g. 'Diamante'
     is_valid = Column(Boolean, default=True)
     validation_notes = Column(String, nullable=True)
     created_at = Column(String)

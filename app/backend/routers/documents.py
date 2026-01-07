@@ -18,7 +18,10 @@ class DocumentSchema(BaseModel):
     file_path: str
     cnpj_extracted: str | None
     competence_extracted: str | None
-    invoice_value: float | None
+    invoice_value: str | None
+    base: str | None
+    ons_code: str | None
+    agent_name: str | None
     created_at: str
 
     class Config:

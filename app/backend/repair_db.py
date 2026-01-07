@@ -39,9 +39,18 @@ def repair():
     print("Checking table 'document_registry'...")
     cursor.execute("PRAGMA table_info(document_registry)")
     existing_doc_cols = [col[1] for col in cursor.fetchall()]
-    if "robot_config_id" not in existing_doc_cols:
-        print("➕ Adding column robot_config_id to document_registry...")
-        cursor.execute("ALTER TABLE document_registry ADD COLUMN robot_config_id INTEGER")
+    
+    doc_cols_to_add = [
+        ("robot_config_id", "INTEGER"),
+        ("base", "TEXT"),
+        ("ons_code", "TEXT"),
+        ("agent_name", "TEXT")
+    ]
+    
+    for col_name, col_type in doc_cols_to_add:
+        if col_name not in existing_doc_cols:
+            print(f"➕ Adding column {col_name} to document_registry...")
+            cursor.execute(f"ALTER TABLE document_registry ADD COLUMN {col_name} {col_type}")
     
     conn.commit()
     conn.close()

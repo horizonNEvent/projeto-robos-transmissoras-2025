@@ -37,6 +37,21 @@ def process_downloaded_files(execution_id, robot_type, robot_config_id=None):
                     comp = data["competencia"]
                     cnpj = data["cnpj"]
                     
+                    # Tenta inferir Base e ONS Code pela estrutura de pastas (Padrão: .../BASE/ONS_CODE/...)
+                    # root exemplo: /app/downloads/TUST/CNT/DE/3748
+                    path_parts = root.replace("\\", "/").split("/")
+                    # Partes de trás para frente: [..., ROBOT_TYPE, BASE, ONS_CODE]
+                    inferred_ons = path_parts[-1] if len(path_parts) > 0 else None
+                    inferred_base = path_parts[-2] if len(path_parts) > 1 else None
+                    
+                    # Nome do Agente: Tenta buscar no banco pela ONS
+                    agent_name = "Auditoria"
+                    if inferred_ons:
+                        from .models import Empresa
+                        emp = db.query(Empresa).filter_by(codigo_ons=str(inferred_ons)).first()
+                        if emp:
+                            agent_name = emp.nome_empresa
+
                     final_dir = os.path.join(os.getcwd(), "downloads", "FINAL", comp, cnpj)
                     os.makedirs(final_dir, exist_ok=True)
                     
@@ -52,13 +67,16 @@ def process_downloaded_files(execution_id, robot_type, robot_config_id=None):
                         cnpj_extracted=cnpj,
                         competence_extracted=comp,
                         invoice_value=data["valor"],
+                        base=inferred_base,
+                        ons_code=inferred_ons,
+                        agent_name=agent_name,
                         created_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     )
                     
                     exists = db.query(DocumentRegistry).filter_by(file_hash=data["hash"]).first()
                     if not exists:
                         db.add(doc)
-                        print(f"📦 [VALIDADOR] Arquivo organizado e registrado: {comp}/{filename}")
+                        print(f"📦 [VALIDADOR] Arquivo organizado e registrado: {agent_name} ({comp})")
                     else:
                         print(f"⏭️ [VALIDADOR] Arquivo já registrado: {filename}")
                 elif filename.endswith(".xml"):
