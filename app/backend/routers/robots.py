@@ -345,7 +345,7 @@ def run_robot_logic(robot_name: str, process_id: int, competencia: Optional[str]
         try:
             from ..scheduler import process_downloaded_files
             print(f"🧐 [VALIDADOR] Escaneando arquivos baixados por {robot_name}...")
-            process_downloaded_files(execution_id=None, robot_id=robot_name)
+            process_downloaded_files(execution_id=None, robot_type=robot_name)
         except Exception as e:
             print(f"⚠️ Erro ao organizar arquivos pós-execução: {e}")
 

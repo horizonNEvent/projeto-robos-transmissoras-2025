@@ -26,6 +26,7 @@ def process_downloaded_files(execution_id, robot_type, robot_config_id=None):
         # Varre recursivamente todas as subpastas em busca de XMLs
         for root, dirs, files in os.walk(root_raw_dir):
             for filename in files:
+                data = {}
                 if filename.endswith(".xml"):
                     filepath = os.path.join(root, filename)
                     data = extract_xml_data(filepath)
