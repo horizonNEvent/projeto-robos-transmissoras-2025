@@ -12,7 +12,7 @@ import EmpresaManager from './components/EmpresaManager'
 import SigetPublicManager from './components/SigetPublicManager'
 import LogsPanel from './components/LogsPanel'
 
-const API_URL = `http://${window.location.hostname}:8000`
+const API_URL = "/api"
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard') // dashboard, robot_id, transmissoras, config

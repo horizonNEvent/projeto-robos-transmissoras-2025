@@ -8,9 +8,10 @@
 
 echo "🚀 Iniciando deploy da nova versão..."
 
-# 1. Atualiza o código fonte via Git
+# 1. Atualiza o código fonte via Git (Puxa da branch atual)
 echo "📥 Puxando atualizações do repositório..."
-git pull origin main
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+git pull origin $CURRENT_BRANCH
 
 # 2. Garante que os containers atuais parem (opcional, mas evita conflitos de porta na reconstrução)
 # echo "🛑 Parando containers atuais..."

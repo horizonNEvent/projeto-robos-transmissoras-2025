@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 
-const API_URL = `http://${window.location.hostname}:8000`
+const API_URL = "/api"
 
 function RobotConfigManager({ transmissoras = [], empresasMapping = {}, configs = [], onUpdate, forcedRobotType = null }) {
     const [editingConfigs, setEditingConfigs] = useState([])

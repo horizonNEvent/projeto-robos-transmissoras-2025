@@ -1,5 +1,5 @@
 import axios from 'axios'
-const API_URL = `http://${window.location.hostname}:8000`
+const API_URL = "/api"
 
 function EmpresaManager({ empresas, onUpdate, onLog, formData, setFormData, editingId, setEditingId }) {
 
