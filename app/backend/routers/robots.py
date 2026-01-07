@@ -299,59 +299,52 @@ def run_robot_logic(robot_name: str, process_id: int, competencia: Optional[str]
         if process_id:
             db_config = db.query(models.RobotConfig).filter(models.RobotConfig.id == process_id).first()
         
+        # Comando simplificado
         cmd = ["python", config['script']]
         
-        final_empresa = None
-        final_agente = None
-        final_user = None
-        final_pass = None
-        final_competencia = competencia
-        
         if db_config:
-            final_empresa = db_config.base
-            final_user = db_config.username
-            final_pass = db_config.password
+            if db_config.base: cmd.extend(["--empresa", db_config.base])
+            if db_config.username: cmd.extend(["--user", db_config.username])
+            if db_config.password: cmd.extend(["--password", db_config.password])
+            
             try:
                 agents_dict = json.loads(db_config.agents_json or '{}')
                 if agents_dict:
-                    final_agente = ",".join(agents_dict.keys())
+                    cmd.extend(["--agente", ",".join(agents_dict.keys())])
             except: pass
 
-        if final_empresa: cmd.extend(["--empresa", final_empresa])
-        if final_agente: cmd.extend(["--agente", final_agente])
-        if final_user: cmd.extend(["--user", final_user])
-        if final_pass: cmd.extend(["--password", final_pass])
-        if final_competencia: cmd.extend(["--competencia", final_competencia])
+        if competencia:
+            # Só passa competência se o robô não for CNT (que não aceita o parâmetro)
+            if robot_name != 'cnt':
+                cmd.extend(["--competencia", competencia])
+
         cmd.extend(["--output_dir", config['download_dir']])
 
-        print(f"Executando comando (PID {process_id}): {' '.join(cmd)}")
+        print(f"Executando (PID {process_id}): {' '.join(cmd)}")
 
         process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
-            cwd=ROOT_DIR,
-            env={**os.environ, "PYTHONUNBUFFERED": "1"}
+            bufsize=1,
+            universal_newlines=True
         )
         
         for line in process.stdout:
-            print(f"[{config['name']}-{process_id}] {line.strip()}")
+            print(f"[{config['name']}] {line.strip()}")
         
         process.wait()
 
-        # 🔥 AÇÃO DEFINITIVA: Organiza e registra os documentos após o robô terminar
-        # Fazemos o import local para evitar erro de importação circular
-        try:
-            from ..scheduler import process_downloaded_files
-            print(f"🧐 [VALIDADOR] Escaneando arquivos baixados por {robot_name}...")
-            process_downloaded_files(execution_id=None, robot_type=robot_name)
-        except Exception as e:
-            print(f"⚠️ Erro ao organizar arquivos pós-execução: {e}")
+        # 🔥 Organiza os documentos APENAS se o robô terminar com sucesso
+        if process.returncode == 0:
+            try:
+                from ..scheduler import process_downloaded_files
+                process_downloaded_files(execution_id=None, robot_type=robot_name, robot_config_id=process_id)
+            except: pass
 
     except Exception as e:
-        print(f"Erro ao executar {config['name']} (PID {process_id}): {e}")
-        raise e
+        print(f"Erro no robô {robot_name}: {e}")
     finally:
         with STATUS_LOCK:
             if robot_name in ROBOT_STATUS:
