@@ -339,6 +339,16 @@ def run_robot_logic(robot_name: str, process_id: int, competencia: Optional[str]
             print(f"[{config['name']}-{process_id}] {line.strip()}")
         
         process.wait()
+
+        # 🔥 AÇÃO DEFINITIVA: Organiza e registra os documentos após o robô terminar
+        # Fazemos o import local para evitar erro de importação circular
+        try:
+            from ..scheduler import process_downloaded_files
+            print(f"🧐 [VALIDADOR] Escaneando arquivos baixados por {robot_name}...")
+            process_downloaded_files(execution_id=None, robot_id=robot_name)
+        except Exception as e:
+            print(f"⚠️ Erro ao organizar arquivos pós-execução: {e}")
+
     except Exception as e:
         print(f"Erro ao executar {config['name']} (PID {process_id}): {e}")
         raise e
