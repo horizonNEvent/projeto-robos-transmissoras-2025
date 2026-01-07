@@ -13,22 +13,22 @@ help:
 	@echo "  make deploy   - (Executa no SERVIDOR) Pull e rebuild automatizado"
 
 up:
-	docker-compose up -d
+	docker compose up -d
 
 build:
-	docker-compose up --build -d
+	docker compose up --build -d
 
 down:
-	docker-compose down
+	docker compose down
 
 restart:
-	docker-compose restart
+	docker compose restart
 
 logs:
-	docker-compose logs -f
+	docker compose logs -f
 
 ps:
-	docker-compose ps
+	docker compose ps
 
 deploy:
 	chmod +x deploy.sh

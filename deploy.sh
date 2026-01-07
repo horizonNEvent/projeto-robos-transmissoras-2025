@@ -18,7 +18,7 @@ git pull origin main
 
 # 3. Reconstrói as imagens e sobe os containers em background
 echo "🏗️ Construindo imagens e iniciando containers..."
-docker-compose up --build -d
+docker compose up --build -d
 
 # 4. Limpeza de imagens antigas/órfãs para economizar espaço
 echo "🧹 Limpando restos de builds antigos..."
