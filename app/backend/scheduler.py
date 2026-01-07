@@ -24,27 +24,25 @@ def process_downloaded_files(execution_id, robot_type, robot_config_id=None):
             return
 
         # Varre recursivamente todas as subpastas em busca de XMLs
+        found_files = 0
         for root, dirs, files in os.walk(root_raw_dir):
             for filename in files:
                 data = {}
                 if filename.endswith(".xml"):
+                    found_files += 1
                     filepath = os.path.join(root, filename)
                     data = extract_xml_data(filepath)
                 
                 if data.get("valid"):
-                    comp = data["competencia"]  # YYYY-MM
+                    comp = data["competencia"]
                     cnpj = data["cnpj"]
                     
-                    # Define e cria a pasta final organizada
                     final_dir = os.path.join(os.getcwd(), "downloads", "FINAL", comp, cnpj)
                     os.makedirs(final_dir, exist_ok=True)
                     
                     final_path = os.path.join(final_dir, filename)
-                    
-                    # Move o arquivo para a pasta definitiva
                     os.rename(filepath, final_path)
                     
-                    # Registra o documento no banco
                     doc = DocumentRegistry(
                         execution_id=execution_id,
                         robot_config_id=robot_config_id,
@@ -57,11 +55,19 @@ def process_downloaded_files(execution_id, robot_type, robot_config_id=None):
                         created_at=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     )
                     
-                    # Evita duplicidade no banco
                     exists = db.query(DocumentRegistry).filter_by(file_hash=data["hash"]).first()
                     if not exists:
                         db.add(doc)
-                        print(f"📦 Arquivo organizado: {comp}/{cnpj}/{filename}")
+                        print(f"📦 [VALIDADOR] Arquivo organizado e registrado: {comp}/{filename}")
+                    else:
+                        print(f"⏭️ [VALIDADOR] Arquivo já registrado: {filename}")
+                elif filename.endswith(".xml"):
+                    print(f"⚠️ [VALIDADOR] Arquivo XML inválido ou sem CNPJ: {filename}")
+        
+        if found_files == 0:
+            print(f"📭 [VALIDADOR] Nenhum XML encontrado em {root_raw_dir}")
+        else:
+            print(f"🏁 [VALIDADOR] Processamento concluído. {found_files} arquivos encontrados.")
         
         db.commit()
     except Exception as e:

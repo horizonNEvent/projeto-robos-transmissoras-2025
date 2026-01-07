@@ -31,35 +31,39 @@ def extract_xml_data(filepath):
                 continue
             elem.tag = elem.tag.split("}", 1)[1]
 
-        # 1. Tentar achar o CNPJ do Emissor (Transmissora)
-        # Geralmente em <emit><CNPJ>
+        # 1. CNPJ do Emissor (Transmissora)
         cnpj = None
-        cnpj_elem = root.find(".//emit/CNPJ")
-        if cnpj_elem is not None:
-            cnpj = cnpj_elem.text
+        for path in [".//emit/CNPJ", ".//CNPJ", ".//emitente/CNPJ"]:
+            elem = root.find(path)
+            if elem is not None and elem.text:
+                cnpj = elem.text.strip()
+                break
 
-        # 2. Tentar achar a Competência (Mês/Ano)
-        # Geralmente extraída da data de emissão <dhEmi> ou <ide><dEmi>
+        # 2. Competência (Mês/Ano)
         competencia = None
-        data_emi_elem = root.find(".//dhEmi") or root.find(".//dEmi")
-        if data_emi_elem is not None:
-            # Pega os primeiros 7 caracteres (YYYY-MM)
-            # Ex: 2026-01-07T... -> 2026-01
-            competencia = data_emi_elem.text[:7]
+        for path in [".//dhEmi", ".//dEmi", ".//dhSaida", ".//dSaiEnt"]:
+            elem = root.find(path)
+            if elem is not None and elem.text:
+                competencia = elem.text.strip()[:7]
+                break
+        
+        if not competencia:
+            competencia = datetime.now().strftime("%Y-%m")
 
-        # 3. Tentar achar o Valor Total
-        # Geralmente em <total><ICMSTot><vNF>
+        # 3. Valor Total
         valor = None
-        valor_elem = root.find(".//vNF") or root.find(".//vServ")
-        if valor_elem is not None:
-            valor = valor_elem.text
+        for path in [".//vNF", ".//vServ", ".//vTotal", ".//vLiq"]:
+            elem = root.find(path)
+            if elem is not None and elem.text:
+                valor = elem.text.strip()
+                break
 
         return {
             "cnpj": cnpj,
             "competencia": competencia,
             "valor": valor,
             "hash": calculate_file_hash(filepath),
-            "valid": cnpj is not None and competencia is not None
+            "valid": cnpj is not None
         }
 
     except Exception as e:

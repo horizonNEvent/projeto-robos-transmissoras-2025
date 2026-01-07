@@ -336,13 +336,6 @@ def run_robot_logic(robot_name: str, process_id: int, competencia: Optional[str]
         
         process.wait()
 
-        # 🔥 Organiza os documentos APENAS se o robô terminar com sucesso
-        if process.returncode == 0:
-            try:
-                from ..scheduler import process_downloaded_files
-                process_downloaded_files(execution_id=None, robot_type=robot_name, robot_config_id=process_id)
-            except: pass
-
     except Exception as e:
         print(f"Erro no robô {robot_name}: {e}")
     finally:
@@ -350,6 +343,21 @@ def run_robot_logic(robot_name: str, process_id: int, competencia: Optional[str]
             if robot_name in ROBOT_STATUS:
                 ROBOT_STATUS[robot_name].discard(process_id)
         db.close()
+
+def run_robot_and_organize(robot_name: str, process_id: int, competencia: Optional[str] = None):
+    """
+    Wrapper para execuções MANUAIS: Roda o robô e depois organiza os arquivos.
+    """
+    # 1. Executa o script do robô (Lógica Bruta)
+    run_robot_logic(robot_name, process_id, competencia)
+    
+    # 2. Chama o Validador para organizar os novos arquivos
+    try:
+        from ..scheduler import process_downloaded_files
+        print(f"🧐 [VALIDADOR-MANUAL] Iniciando organização para {robot_name}...")
+        process_downloaded_files(execution_id=None, robot_type=robot_name, robot_config_id=process_id)
+    except Exception as e:
+        print(f"⚠️ Erro no validador manual: {e}")
 
 @router.post("/run-robot")
 def run_robot(request: RobotRequest, background_tasks: BackgroundTasks):
@@ -361,5 +369,5 @@ def run_robot(request: RobotRequest, background_tasks: BackgroundTasks):
     process_id = request.process_id or 0
     competencia = request.competencia
 
-    background_tasks.add_task(run_robot_logic, robot_name, process_id, competencia)
+    background_tasks.add_task(run_robot_and_organize, robot_name, process_id, competencia)
     return {"message": f"{robot_name} (PID {process_id}) iniciado", "status": "running"}
