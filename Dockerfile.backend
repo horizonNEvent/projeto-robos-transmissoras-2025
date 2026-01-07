@@ -8,7 +8,7 @@ FROM python:3.11-slim
 # Como o usuário pediu para "containerizar" depois, vou deixar o Dockerfile preparado
 # mas alertando sobre o Chrome.
 
-RUN apt-get update && apt-get install -w wget gnupg2 -y
+RUN apt-get update && apt-get install -y wget gnupg2
 
 # Instalar Chrome e WebDriver seria necessário aqui para o robô funcionar full em Docker
 # Por simplicidade/MVP, focaremos nas dependências Python.
