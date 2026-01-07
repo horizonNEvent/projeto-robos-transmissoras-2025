@@ -17,6 +17,9 @@ class RobotConfigSchema(BaseModel):
     password: str
     agents_json: str
     active: bool = True
+    schedule_time: str | None = None
+    target_competence: str | None = None
+    last_success_competence: str | None = None
 
     class Config:
         from_attributes = True
