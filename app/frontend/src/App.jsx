@@ -158,7 +158,7 @@ function App() {
       {/* SIDEBAR */}
       <aside className="sidebar">
         <div className="sidebar-header">
-          <h1>AETE ROBO RUNNER</h1>
+          <h1>ROBO RUNNER</h1>
         </div>
 
         <div className="sidebar-search">
