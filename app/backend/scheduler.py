@@ -1,5 +1,7 @@
 import os
 import time
+import shutil
+import json # Importação adicionada # Importação adicionada
 from datetime import datetime
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -14,6 +16,15 @@ def process_downloaded_files(execution_id, robot_type, robot_config_id=None):
     """
     Varre a pasta de downloads, organiza por competência/CNPJ e registra no banco.
     """
+    # Carrega empresas.json para lookup
+    try:
+        json_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'Data', 'empresas.json')
+        with open(json_path, 'r', encoding='utf-8') as f:
+            EMPRESAS_DATA = json.load(f)
+    except Exception as e:
+        print(f"⚠️ Erro ao carregar empresas.json: {e}")
+        EMPRESAS_DATA = {}
+
     db = SessionLocal()
     try:
         # Pasta temporária onde o robô jogou os arquivos
@@ -44,9 +55,19 @@ def process_downloaded_files(execution_id, robot_type, robot_config_id=None):
                     inferred_ons = path_parts[-1] if len(path_parts) > 0 else None
                     inferred_base = path_parts[-2] if len(path_parts) > 1 else None
                     
-                    # Nome do Agente: Tenta buscar no banco pela ONS
-                    agent_name = "Auditoria"
-                    if inferred_ons:
+                    # Nome do Agente: Busca no JSON, fallback para DB, ultimo caso string vazia
+                    agent_name = "Desconhecido"
+                    
+                    # 1. Tenta pegar do JSON (Mais rápido e confiável conforme parametrização)
+                    if inferred_base and inferred_ons:
+                        # Varre o JSON pra achar o match
+                        # Estrutura: { "DE": { "3748": "Diamante" } }
+                        base_data = EMPRESAS_DATA.get(inferred_base.upper()) or EMPRESAS_DATA.get(inferred_base)
+                        if base_data:
+                            agent_name = base_data.get(str(inferred_ons)) or agent_name
+
+                    # 2. Se falhou e ainda é Desconhecido, tenta DB
+                    if agent_name == "Desconhecido" and inferred_ons:
                         from .models import Empresa
                         emp = db.query(Empresa).filter_by(codigo_ons=str(inferred_ons)).first()
                         if emp:
@@ -56,7 +77,9 @@ def process_downloaded_files(execution_id, robot_type, robot_config_id=None):
                     os.makedirs(final_dir, exist_ok=True)
                     
                     final_path = os.path.join(final_dir, filename)
-                    os.rename(filepath, final_path)
+                    # Alterado de rename para copy2 para manter o arquivo na pasta temporária (Download zip)
+                    shutil.copy2(filepath, final_path)
+                    # os.rename(filepath, final_path)
                     
                     doc = DocumentRegistry(
                         execution_id=execution_id,

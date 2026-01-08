@@ -6,3 +6,10 @@ venv/
 .vscode/
 *.log
 Results/
+sql_app.db
+downloads/
+dist/
+node_modules/
+package-lock.json
+yarn.lock
+RioEnergy.Tust/

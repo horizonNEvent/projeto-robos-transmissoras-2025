@@ -1,152 +1,142 @@
 import requests
 import json
 import os
-from pathlib import Path
 from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
-import argparse
+from base_robot import BaseRobot
 
-# Configurações de Diretórios
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(os.path.dirname(SCRIPT_DIR), 'Data')
-EMPRESAS_JSON_PATH = os.path.join(DATA_DIR, 'empresas.json')
-from utils_paths import get_base_download_path, ensure_dir
-BASE_DIR_DEFAULT = get_base_download_path("TROPICALIA")
+class TropicaliaRobot(BaseRobot):
+    """
+    Robô para Portal Tropicalia, herdando do BaseRobot.
+    """
+    def __init__(self):
+        super().__init__("tropicalia")
+        
+        # Headers Fixos
+        self.headers = {
+            "accept": "*/*",
+            "accept-language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+            "content-type": "application/json",
+            "origin": "https://nf-tropicalia-transmissora.cust.app.br",
+            "referer": "https://nf-tropicalia-transmissora.cust.app.br/",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
+        }
+        self.api_url = "https://ms-site.cap-tropicalia.cust.app.br/site/usuaria"
 
-# URL da API
-API_URL = "https://ms-site.cap-tropicalia.cust.app.br/site/usuaria"
-
-# Headers da requisição
-HEADERS = {
-    "accept": "*/*",
-    "accept-language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
-    "content-type": "application/json",
-    "origin": "https://nf-tropicalia-transmissora.cust.app.br",
-    "referer": "https://nf-tropicalia-transmissora.cust.app.br/",
-    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
-}
-
-def carregar_empresas():
-    """Carrega os dados das empresas do arquivo JSON padrão"""
-    try:
-        if not os.path.exists(EMPRESAS_JSON_PATH):
-            print(f"Erro: Arquivo {EMPRESAS_JSON_PATH} não encontrado!")
+    def carregar_referencia_empresas(self):
+        """Carrega o arquivo auxiliar empresas.json."""
+        try:
+            arquivo_json = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'Data', 'empresas.json')
+            with open(arquivo_json, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            self.logger.error(f"Erro ao carregar referencia de empresas: {e}")
             return {}
-        with open(EMPRESAS_JSON_PATH, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except Exception as e:
-        print(f"Erro ao carregar empresas: {e}")
-        return {}
 
-def download_file(url, filepath):
-    """Baixa um arquivo da URL fornecida"""
-    try:
-        response = requests.get(url, timeout=30)
-        if response.status_code == 200:
-            with open(filepath, 'wb') as f:
-                f.write(response.content)
-            print(f"    [OK] Salvo: {os.path.basename(filepath)}")
-            return True
+    def obter_competencia_alvo(self):
+        """
+        Se o usuário passou --competencia (ex: 11/2025), usa ela.
+        Senão, calcula o mês anterior.
+        Formato esperado pelo site: JANEIRO-2025 (Upper)
+        """
+        if self.args.competencia:
+            # Tenta parsear 11/2025 -> NOVEMBRO-2025
+            try:
+                dt = datetime.strptime(self.args.competencia, "%m/%Y")
+            except:
+                try:
+                    dt = datetime.strptime(self.args.competencia, "%Y-%m")
+                except:
+                    self.logger.warning(f"Formato de competência inválido: {self.args.competencia}. Usando automático.")
+                    dt = None
         else:
-            print(f"    [ERROR] Erro ao baixar (Status {response.status_code}): {os.path.basename(filepath)}")
-    except Exception as e:
-        print(f"    [ERROR] Erro no download: {e}")
-    return False
+            # Automático: Mês anterior
+            hoje = datetime.now()
+            primeiro_dia = hoje.replace(day=1)
+            dt = primeiro_dia - timedelta(days=1)
 
-def obter_competencia_alvo():
-    """Determina a competência do mês anterior em português"""
-    hoje = datetime.now()
-    # Mês anterior
-    primeiro_dia_mes_atual = hoje.replace(day=1)
-    mes_anterior = primeiro_dia_mes_atual - timedelta(days=1)
-    
-    meses_pt = {
-        1: "JANEIRO", 2: "FEVEREIRO", 3: "MARÇO", 4: "ABRIL",
-        5: "MAIO", 6: "JUNHO", 7: "JULHO", 8: "AGOSTO",
-        9: "SETEMBRO", 10: "OUTUBRO", 11: "NOVEMBRO", 12: "DEZEMBRO"
-    }
-    
-    return f"{meses_pt[mes_anterior.month]}-{mes_anterior.year}"
+        meses_pt = {
+            1: "JANEIRO", 2: "FEVEREIRO", 3: "MARÇO", 4: "ABRIL",
+            5: "MAIO", 6: "JUNHO", 7: "JULHO", 8: "AGOSTO",
+            9: "SETEMBRO", 10: "OUTUBRO", 11: "NOVEMBRO", 12: "DEZEMBRO"
+        }
+        
+        return f"{meses_pt[dt.month]}-{dt.year}"
 
-def processar_faturas(empresa_nome, ons_code, ons_name, output_dir=None):
-    """Busca e baixa as faturas para uma empresa/ONS específica"""
-    print(f"\n>>> Processando {empresa_nome} | ONS {ons_code} ({ons_name})")
-    
-    # Caminho padrão ASSU: TUST / TROPICALIA / Empresa / ONS
-    final_output_dir = os.path.join(output_dir or BASE_DIR_DEFAULT, empresa_nome, ons_code)
-    ensure_dir(final_output_dir)
-
-    params = {"numeroOns": ons_code}
-    try:
-        response = requests.get(API_URL, params=params, headers=HEADERS, timeout=30)
-        if response.status_code != 200:
-            print(f"    [ERROR] Erro na API (Status {response.status_code})")
-            return False
-            
-        data = response.json()
-        competencia_alvo = obter_competencia_alvo()
-        found = False
-
-        for item in data:
-            # Limpar tags HTML do período (ex: <b>FEVEREIRO-2025</b>)
-            periodo_raw = item.get('periodoContabil', '')
-            periodo_limpo = BeautifulSoup(periodo_raw, 'html.parser').get_text().strip().upper()
-            
-            # Se for a competência alvo ou se quisermos baixar as recentes (aqui focamos na alvo)
-            if periodo_limpo == competencia_alvo:
-                found = True
-                print(f"    Nota encontrada para {periodo_limpo}")
-                
-                # Nomes de arquivo padronizados
-                base_name = f"{ons_name}_{periodo_limpo.replace('-', '_')}"
-                
-                # Download DANFE
-                if item.get('linkDanfe'):
-                    download_file(item['linkDanfe'], os.path.join(final_output_dir, f"DANFE_{base_name}.pdf"))
-                
-                # Download XML
-                if item.get('linkXml'):
-                    download_file(item['linkXml'], os.path.join(final_output_dir, f"XML_{base_name}.xml"))
-                
-                # Download Boleto
-                if item.get('linkBoleto'):
-                    download_file(item['linkBoleto'], os.path.join(final_output_dir, f"BOLETO_{base_name}.pdf"))
-                
-        if not found:
-            print(f"    Aviso: Competência {competencia_alvo} não disponível para ONS {ons_code}")
-            
-    except Exception as e:
-        print(f"    [ERROR] Erro ao processar faturas: {e}")
+    def download_file(self, url, filepath):
+        """Baixa arquivo e loga resultado."""
+        try:
+            r = requests.get(url, timeout=30)
+            if r.status_code == 200:
+                with open(filepath, 'wb') as f:
+                    f.write(r.content)
+                self.logger.info(f"    [OK] Salvo: {os.path.basename(filepath)}")
+                return True
+            else:
+                self.logger.error(f"    [ERRO] HTTP {r.status_code} ao baixar {os.path.basename(filepath)}")
+        except Exception as e:
+            self.logger.error(f"    [ERRO] Falha no download: {e}")
         return False
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--empresa", help="Nome da empresa para filtrar")
-    parser.add_argument("--agente", help="Código ONS do agente para filtrar")
-    parser.add_argument("--output_dir", help="Pasta de destino dos downloads")
-    args = parser.parse_args()
+    def processar_ons(self, empresa_nome, ons_code, ons_name):
+        """Processa um único ONS (Agente)."""
+        self.logger.info(f"[{empresa_nome}] Consultando ONS {ons_code} ({ons_name})...")
+        
+        # Define pasta de destino
+        path_final = os.path.join(self.get_output_path(), empresa_nome, str(ons_code))
+        os.makedirs(path_final, exist_ok=True)
 
-    print("Iniciando Robô Tropicalia")
-    empresas_dict = carregar_empresas()
-    
-    if not empresas_dict:
-        print("Erro: Nenhuma empresa carregada.")
-        return
+        params = {"numeroOns": ons_code}
+        try:
+            resp = requests.get(self.api_url, params=params, headers=self.headers, timeout=30)
+            if resp.status_code != 200:
+                self.logger.error(f"Erro na API Tropicalia: {resp.status_code}")
+                return
 
-    for empresa_nome, ons_dict in empresas_dict.items():
-        if args.empresa and args.empresa.strip().upper() != empresa_nome.strip().upper():
-            continue
-            
-        filtro_agentes = []
-        if args.agente:
-            filtro_agentes = [a.strip() for a in str(args.agente).split(',')]
+            data = resp.json()
+            competencia_alvo = self.obter_competencia_alvo()
+            found = False
 
-        for ons_code, ons_name in ons_dict.items():
-            if filtro_agentes and str(ons_code).strip() not in filtro_agentes:
+            for item in data:
+                # Limpeza do período (ex: <b>FEVEREIRO-2025</b>)
+                raw = item.get('periodoContabil', '')
+                periodo = BeautifulSoup(raw, 'html.parser').get_text().strip().upper()
+
+                if periodo == competencia_alvo:
+                    found = True
+                    self.logger.info(f"    Fatura encontrada para {periodo}")
+                    
+                    base_name = f"{ons_name}_{periodo.replace('-', '_')}"
+
+                    # Baixar arquivos disponíveis
+                    if item.get('linkDanfe'):
+                        self.download_file(item['linkDanfe'], os.path.join(path_final, f"DANFE_{base_name}.pdf"))
+                    if item.get('linkXml'):
+                        self.download_file(item['linkXml'], os.path.join(path_final, f"XML_{base_name}.xml"))
+                    if item.get('linkBoleto'):
+                        self.download_file(item['linkBoleto'], os.path.join(path_final, f"BOLETO_{base_name}.pdf"))
+
+            if not found:
+                self.logger.warning(f"    Nenhuma fatura encontrada para competência {competencia_alvo}")
+
+        except Exception as e:
+            self.logger.error(f"Falha ao processar ONS {ons_code}: {e}")
+
+    def run(self):
+        """Loop principal do robô."""
+        ref_empresas = self.carregar_referencia_empresas()
+        agentes_alvo = self.get_agents()
+
+        for empresa_nome, codigos_dict in ref_empresas.items():
+            if self.args.empresa and self.args.empresa.strip().upper() != empresa_nome.strip().upper():
                 continue
+
+            for codigo_ons, nome_ons in codigos_dict.items():
+                if agentes_alvo and str(codigo_ons).strip() not in agentes_alvo:
+                    continue
                 
-            processar_faturas(empresa_nome, ons_code, ons_name, output_dir=args.output_dir)
+                self.processar_ons(empresa_nome, codigo_ons, nome_ons)
 
 if __name__ == "__main__":
-    main()
-    print("\nProcesso finalizado!")
+    bot = TropicaliaRobot()
+    bot.run()

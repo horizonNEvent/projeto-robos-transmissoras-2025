@@ -120,6 +120,27 @@ function RobotConfigManager({ transmissoras = [], empresasMapping = {}, configs 
         updateConfigField(id, 'agents_json', JSON.stringify(agents))
     }
 
+    const addAllAgentsFromBase = (id) => {
+        const config = editingConfigs.find(c => c.id === id)
+        if (!config) return
+
+        const baseAgents = empresasMapping[config.base] || {}
+        if (Object.keys(baseAgents).length === 0) {
+            alert(`Nenhum agente encontrado para a base ${config.base} na lista de empresas.`)
+            return
+        }
+
+        let currentAgents = {}
+        try {
+            currentAgents = JSON.parse(config.agents_json || '{}') || {}
+        } catch (e) { currentAgents = {} }
+
+        // Merge novos agentes
+        const updatedAgents = { ...currentAgents, ...baseAgents }
+
+        updateConfigField(id, 'agents_json', JSON.stringify(updatedAgents))
+    }
+
     return (
         <div className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
@@ -202,6 +223,15 @@ function RobotConfigManager({ transmissoras = [], empresasMapping = {}, configs 
                                     <input placeholder="Cód" list="master-agents" value={newAgentCode} onChange={e => setNewAgentCode(e.target.value)} style={{ width: '80px', background: '#111', border: '1px solid #555', color: '#fff' }} />
                                     <input placeholder="Nome do Agente" value={newAgentName} onChange={e => setNewAgentName(e.target.value)} onKeyDown={e => e.key === 'Enter' && addAgent(c.id)} style={{ flex: 1, background: '#111', border: '1px solid #555', color: '#fff' }} />
                                     <button onClick={() => addAgent(c.id)} style={{ background: '#2980b9' }}>+ Adicionar</button>
+
+                                    {/* Botão de Adicionar Todos da Base */}
+                                    <button
+                                        onClick={() => addAllAgentsFromBase(c.id)}
+                                        title={`Adicionar todos os agentes da base ${c.base}`}
+                                        style={{ background: '#8e44ad', marginLeft: '5px' }}
+                                    >
+                                        ++ Todos ({c.base})
+                                    </button>
                                 </div>
 
                                 <div style={{ display: 'flex', gap: '10px' }}>

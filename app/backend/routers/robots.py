@@ -296,9 +296,53 @@ def run_robot_logic(robot_name: str, process_id: int, competencia: Optional[str]
         print(f"Iniciando {config['name']} (PID: {process_id})...")
         
         db_config = None
+        target_agents = []
+        
         if process_id:
             db_config = db.query(models.RobotConfig).filter(models.RobotConfig.id == process_id).first()
-        
+            if db_config:
+                try:
+                    agents_dict = json.loads(db_config.agents_json or '{}')
+                    target_agents = list(agents_dict.keys())
+                except: pass
+
+        # --- IDEMPOTÊNCIA BLINDADA 🛡️ ---
+        # Só podemos verificar se tivermos uma competência alvo explícita
+        if competencia and target_agents:
+            normalized_comp = competencia
+            if "/" in competencia:
+                try:
+                    mes, ano = competencia.split("/")
+                    normalized_comp = f"{ano}-{mes}"
+                except: pass
+            
+            print(f"🛡️ Verificando idempotência para {len(target_agents)} agentes na competência {normalized_comp}...")
+            
+            # Busca documentos existentes para essa competência e códigos ONS
+            existing_docs = db.query(models.DocumentRegistry.ons_code).filter(
+                models.DocumentRegistry.competence_extracted == normalized_comp,
+                models.DocumentRegistry.ons_code.in_(target_agents),
+                models.DocumentRegistry.is_valid == True
+            ).all()
+            
+            existing_agents = {doc.ons_code for doc in existing_docs}
+            
+            if existing_agents:
+                print(f"✅ Documentos já validados encontrados para: {', '.join(existing_agents)}")
+                # Filtra a lista de execução
+                target_agents = [a for a in target_agents if a not in existing_agents]
+                
+                if not target_agents:
+                    print(f"🎉 Todos os {len(existing_agents)} agentes já possuem documentos validados para {normalized_comp}.")
+                    print(f"⏩ Pulando execução do robô para economizar recursos.")
+                    return # Encerra sem rodar nada
+
+                print(f"🚀 Executando APENAS para os {len(target_agents)} pendentes: {', '.join(target_agents)}")
+            else:
+                print("ℹ️ Nenhum documento validado encontrado anteriormente. Executando para todos.")
+                
+        # -----------------------------------
+
         # Comando simplificado
         cmd = ["python", config['script']]
         
@@ -307,16 +351,12 @@ def run_robot_logic(robot_name: str, process_id: int, competencia: Optional[str]
             if db_config.username: cmd.extend(["--user", db_config.username])
             if db_config.password: cmd.extend(["--password", db_config.password])
             
-            try:
-                agents_dict = json.loads(db_config.agents_json or '{}')
-                if agents_dict:
-                    cmd.extend(["--agente", ",".join(agents_dict.keys())])
-            except: pass
+            # Passa a lista filtrada (ou original ser não houve filtro)
+            if target_agents:
+                cmd.extend(["--agente", ",".join(target_agents)])
 
         if competencia:
-            # Só passa competência se o robô não for CNT (que não aceita o parâmetro)
-            if robot_name != 'cnt':
-                cmd.extend(["--competencia", competencia])
+            cmd.extend(["--competencia", competencia])
 
         cmd.extend(["--output_dir", config['download_dir']])
 
