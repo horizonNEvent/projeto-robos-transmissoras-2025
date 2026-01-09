@@ -109,7 +109,7 @@ function App() {
           agente: selectedAgenteFilter || null,
           user: process.username || null,
           password: process.password || null,
-          competencia: ((['websigetpublic', 'webtaesa', 'light', 'glorian', 'cpfl', 'rialmas', 'equatorial', 'copel', 'mge', 'stategrid', 'stn', 'tecp', 'elte', 'etes', 'tme', 'etem', 'etvg', 'tne', 'etc', 'etap', 'tcc', 'tpe', 'tsm', 'etb', 'amazonia', 'tcpe'].includes(selectedRobotId)) && window.tempCompetencia) ? window.tempCompetencia : null,
+          competencia: ((['websigetpublic', 'webtaesa', 'light', 'glorian', 'cpfl', 'rialmas', 'equatorial', 'copel', 'mge', 'stategrid', 'stn', 'tecp', 'elte', 'etes', 'tme', 'etem', 'etvg', 'tne', 'etc', 'etap', 'tcc', 'tpe', 'tsm', 'etb', 'amazonia', 'tcpe', 'vsb', 'verene'].includes(selectedRobotId)) && window.tempCompetencia) ? window.tempCompetencia : null,
           process_id: process.id
         }
         addLog(`Gatilho disparado para: ${process.label} (${process.base})`);
@@ -280,7 +280,7 @@ function App() {
             </header>
 
             {/* Input Extra para SigetPublic / Taesa / Light e novos robôs: Competência */}
-            {['websigetpublic', 'webtaesa', 'light', 'glorian', 'cpfl', 'rialmas', 'equatorial', 'copel', 'mge', 'stategrid', 'stn', 'tecp', 'elte', 'etes', 'tme', 'etem', 'etvg', 'tne', 'etc', 'etap', 'tcc', 'tpe', 'tsm', 'etb', 'amazonia', 'tcpe'].includes(selectedRobotId) && (
+            {['websigetpublic', 'webtaesa', 'light', 'glorian', 'cpfl', 'rialmas', 'equatorial', 'copel', 'mge', 'stategrid', 'stn', 'tecp', 'elte', 'etes', 'tme', 'etem', 'etvg', 'tne', 'etc', 'etap', 'tcc', 'tpe', 'tsm', 'etb', 'amazonia', 'tcpe', 'vsb', 'verene'].includes(selectedRobotId) && (
               <div style={{ margin: '1rem', padding: '1rem', background: '#334155', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <label style={{ color: '#cbd5e1', fontWeight: 'bold' }}>📅 Competência (YYYYMM):</label>
                 <input

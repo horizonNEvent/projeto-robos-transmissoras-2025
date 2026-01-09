@@ -63,4 +63,7 @@ export const ROBOTS = [
     { id: 'etb', name: 'WebETB' },
     { id: 'amazonia', name: 'WebAmazonia' },
     { id: 'tcpe', name: 'WebTCPE' },
+    { id: 'vsb', name: 'WebVSB' },
+    { id: 'verene', name: 'WebVerene' },
+    { id: 'tbe', name: 'WebTBE' },
 ]

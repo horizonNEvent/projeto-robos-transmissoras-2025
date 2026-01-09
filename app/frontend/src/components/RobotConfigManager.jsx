@@ -279,6 +279,9 @@ function RobotConfigManager({ transmissoras = [], empresasMapping = {}, configs 
                                 <option value="ETB">WebETB</option>
                                 <option value="AMAZONIA">WebAmazonia</option>
                                 <option value="TCPE">WebTCPE</option>
+                                <option value="VSB">WebVSB</option>
+                                <option value="VERENE">WebVerene</option>
+                                <option value="TBE">WebTBE</option>
                             </select>
                         </div>
                     )}

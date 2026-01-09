@@ -297,7 +297,22 @@ ROBOTS_CONFIG = {
     "tsm": {"script": os.path.join(ROOT_DIR, "Robots", "tsm.py"), "download_dir": get_download_path("TSM"), "name": "WebTSM"},
     "etb": {"script": os.path.join(ROOT_DIR, "Robots", "etb.py"), "download_dir": get_download_path("ETB"), "name": "WebETB"},
     "amazonia": {"script": os.path.join(ROOT_DIR, "Robots", "amazonia.py"), "download_dir": get_download_path("AMAZONIA"), "name": "WebAmazonia"},
-    "tcpe": {"script": os.path.join(ROOT_DIR, "Robots", "tcpe.py"), "download_dir": get_download_path("TCPE"), "name": "WebTCPE"}
+    "tcpe": {"script": os.path.join(ROOT_DIR, "Robots", "tcpe.py"), "download_dir": get_download_path("TCPE"), "name": "WebTCPE"},
+    "vsb": {
+        "script": os.path.join(ROOT_DIR, "Robots", "vsb.py"),
+        "download_dir": get_download_path("VSB"),
+        "name": "WebVSB"
+    },
+    "verene": {
+        "script": os.path.join(ROOT_DIR, "Robots", "verene.py"),
+        "download_dir": get_download_path("VERENE"),
+        "name": "WebVerene"
+    },
+    "tbe": {
+        "script": os.path.join(ROOT_DIR, "Robots", "tbe.py"),
+        "download_dir": get_download_path("TBE"),
+        "name": "WebTBE"
+    }
 }
 
 # Estado global: { robot_name: { set_of_active_process_ids } }
