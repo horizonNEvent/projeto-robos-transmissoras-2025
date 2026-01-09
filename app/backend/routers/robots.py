@@ -252,7 +252,52 @@ ROBOTS_CONFIG = {
         "script": os.path.join(ROOT_DIR, "Robots", "glorian.py"),
         "download_dir": get_download_path("GLORIAN"),
         "name": "WebGlorian"
-    }
+    },
+    "copel": {
+        "script": os.path.join(ROOT_DIR, "Robots", "copel.py"),
+        "download_dir": get_download_path("COPEL"),
+        "name": "WebCopel"
+    },
+    "mge": {
+        "script": os.path.join(ROOT_DIR, "Robots", "mge.py"),
+        "download_dir": get_download_path("MGE"),
+        "name": "WebMGE"
+    },
+    "stategrid": {
+        "script": os.path.join(ROOT_DIR, "Robots", "stategrid.py"),
+        "download_dir": get_download_path("STATEGRID"),
+        "name": "WebStateGrid"
+    },
+    "stn": {
+        "script": os.path.join(ROOT_DIR, "Robots", "stn.py"),
+        "download_dir": get_download_path("STN"),
+        "name": "WebSTN"
+    },
+    "webtaesa": {
+        "script": os.path.join(ROOT_DIR, "Robots", "taesa.py"),
+        "download_dir": get_download_path("TAESA"),
+        "name": "WebTaesa"
+    },
+    "tecp": {
+        "script": os.path.join(ROOT_DIR, "Robots", "tecp.py"),
+        "download_dir": get_download_path("TECP"),
+        "name": "WebTECP"
+    },
+    # Alupar Group
+    "elte": {"script": os.path.join(ROOT_DIR, "Robots", "elte.py"), "download_dir": get_download_path("ELTE"), "name": "WebELTE"},
+    "etes": {"script": os.path.join(ROOT_DIR, "Robots", "etes.py"), "download_dir": get_download_path("ETES"), "name": "WebETES"},
+    "tme": {"script": os.path.join(ROOT_DIR, "Robots", "tme.py"), "download_dir": get_download_path("TME"), "name": "WebTME"},
+    "etem": {"script": os.path.join(ROOT_DIR, "Robots", "etem.py"), "download_dir": get_download_path("ETEM"), "name": "WebETEM"},
+    "etvg": {"script": os.path.join(ROOT_DIR, "Robots", "etvg.py"), "download_dir": get_download_path("ETVG"), "name": "WebETVG"},
+    "tne": {"script": os.path.join(ROOT_DIR, "Robots", "tne.py"), "download_dir": get_download_path("TNE"), "name": "WebTNE"},
+    "etc": {"script": os.path.join(ROOT_DIR, "Robots", "etc.py"), "download_dir": get_download_path("ETC"), "name": "WebETC"},
+    "etap": {"script": os.path.join(ROOT_DIR, "Robots", "etap.py"), "download_dir": get_download_path("ETAP"), "name": "WebETAP"},
+    "tcc": {"script": os.path.join(ROOT_DIR, "Robots", "tcc.py"), "download_dir": get_download_path("TCC"), "name": "WebTCC"},
+    "tpe": {"script": os.path.join(ROOT_DIR, "Robots", "tpe.py"), "download_dir": get_download_path("TPE"), "name": "WebTPE"},
+    "tsm": {"script": os.path.join(ROOT_DIR, "Robots", "tsm.py"), "download_dir": get_download_path("TSM"), "name": "WebTSM"},
+    "etb": {"script": os.path.join(ROOT_DIR, "Robots", "etb.py"), "download_dir": get_download_path("ETB"), "name": "WebETB"},
+    "amazonia": {"script": os.path.join(ROOT_DIR, "Robots", "amazonia.py"), "download_dir": get_download_path("AMAZONIA"), "name": "WebAmazonia"},
+    "tcpe": {"script": os.path.join(ROOT_DIR, "Robots", "tcpe.py"), "download_dir": get_download_path("TCPE"), "name": "WebTCPE"}
 }
 
 # Estado global: { robot_name: { set_of_active_process_ids } }

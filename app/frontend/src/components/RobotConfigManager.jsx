@@ -259,6 +259,26 @@ function RobotConfigManager({ transmissoras = [], empresasMapping = {}, configs 
                                 <option value="RIALMAS">WebRialmas</option>
                                 <option value="CPFL">WebCPFL</option>
                                 <option value="GLORIAN">WebGlorian</option>
+                                <option value="COPEL">WebCopel</option>
+                                <option value="MGE">WebMGE</option>
+                                <option value="STATEGRID">WebStateGrid</option>
+                                <option value="STN">WebSTN</option>
+                                <option value="WEBTAESA">WebTaesa</option>
+                                <option value="TECP">WebTECP</option>
+                                <option value="ELTE">WebELTE</option>
+                                <option value="ETES">WebETES</option>
+                                <option value="TME">WebTME</option>
+                                <option value="ETEM">WebETEM</option>
+                                <option value="ETVG">WebETVG</option>
+                                <option value="TNE">WebTNE</option>
+                                <option value="ETC">WebETC</option>
+                                <option value="ETAP">WebETAP</option>
+                                <option value="TCC">WebTCC</option>
+                                <option value="TPE">WebTPE</option>
+                                <option value="TSM">WebTSM</option>
+                                <option value="ETB">WebETB</option>
+                                <option value="AMAZONIA">WebAmazonia</option>
+                                <option value="TCPE">WebTCPE</option>
                             </select>
                         </div>
                     )}
