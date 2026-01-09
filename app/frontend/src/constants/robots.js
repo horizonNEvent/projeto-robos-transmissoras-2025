@@ -36,4 +36,11 @@ export const ROBOTS = [
     { id: 'webettm', name: 'WebETTM' },
     { id: 'websigetpublic', name: 'WebSigetPublic' },
     { id: 'webtaesa', name: 'WebTaesa' },
+    { id: 'celeo', name: 'WebCeleo' },
+    { id: 'web_ie', name: 'WebIE' },
+    { id: 'arteon', name: 'WebArteon' },
+    { id: 'light', name: 'WebLight' },
+    { id: 'equatorial', name: 'WebEquatorial' },
+    { id: 'rialmas', name: 'WebRialmas' },
+    { id: 'cpfl', name: 'WebCPFL' },
 ]

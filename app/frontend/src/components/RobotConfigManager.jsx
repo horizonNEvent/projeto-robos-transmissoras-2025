@@ -185,8 +185,8 @@ function RobotConfigManager({ transmissoras = [], empresasMapping = {}, configs 
                                         <input value={c.username} onChange={e => updateConfigField(c.id, 'username', e.target.value)} style={{ width: '100%', background: '#111', border: '1px solid #444', color: '#fff', padding: '5px' }} />
                                     </div>
                                     <div>
-                                        <label style={{ fontSize: '0.75em', color: '#888' }}>Senha</label>
-                                        <input type="password" value={c.password} onChange={e => updateConfigField(c.id, 'password', e.target.value)} style={{ width: '100%', background: '#111', border: '1px solid #444', color: '#fff', padding: '5px' }} />
+                                        <label style={{ fontSize: '0.75em', color: '#888' }}>Senha / SPE</label>
+                                        <input type="text" value={c.password} onChange={e => updateConfigField(c.id, 'password', e.target.value)} style={{ width: '100%', background: '#111', border: '1px solid #444', color: '#fff', padding: '5px' }} />
                                     </div>
                                 </div>
 
@@ -253,6 +253,11 @@ function RobotConfigManager({ transmissoras = [], empresasMapping = {}, configs 
                             <select value={newConfig.robot_type} onChange={e => setNewConfig({ ...newConfig, robot_type: e.target.value })} style={{ width: '100%', background: '#333', color: '#fff', padding: '5px' }}>
                                 <option value="SIGET">WebSiget</option>
                                 <option value="WEBIE">WebIERIACHOGRANDE</option>
+                                <option value="SIGET">WebSiget</option>
+                                <option value="WEBIE">WebIERIACHOGRANDE</option>
+                                <option value="EQUATORIAL">WebEquatorial</option>
+                                <option value="RIALMAS">WebRialmas</option>
+                                <option value="CPFL">WebCPFL</option>
                             </select>
                         </div>
                     )}

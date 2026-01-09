@@ -109,7 +109,7 @@ function App() {
           agente: selectedAgenteFilter || null,
           user: process.username || null,
           password: process.password || null,
-          competencia: ((selectedRobotId === 'websigetpublic' || selectedRobotId === 'webtaesa') && window.tempCompetencia) ? window.tempCompetencia : null,
+          competencia: ((selectedRobotId === 'websigetpublic' || selectedRobotId === 'webtaesa' || selectedRobotId === 'light') && window.tempCompetencia) ? window.tempCompetencia : null,
           process_id: process.id
         }
         addLog(`Gatilho disparado para: ${process.label} (${process.base})`);
@@ -279,8 +279,8 @@ function App() {
               </div>
             </header>
 
-            {/* Input Extra para SigetPublic: Competência */}
-            {(selectedRobotId === 'websigetpublic' || selectedRobotId === 'webtaesa') && (
+            {/* Input Extra para SigetPublic / Taesa / Light: Competência */}
+            {(selectedRobotId === 'websigetpublic' || selectedRobotId === 'webtaesa' || selectedRobotId === 'light') && (
               <div style={{ margin: '1rem', padding: '1rem', background: '#334155', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <label style={{ color: '#cbd5e1', fontWeight: 'bold' }}>📅 Competência (YYYYMM):</label>
                 <input

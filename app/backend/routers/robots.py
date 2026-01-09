@@ -212,6 +212,41 @@ ROBOTS_CONFIG = {
         "script": os.path.join(ROOT_DIR, "Robots", "WebTaesa.py"),
         "download_dir": get_download_path("WebTaesa"),
         "name": "WebTaesa"
+    },
+    "celeo": {
+        "script": os.path.join(ROOT_DIR, "Robots", "celeo.py"),
+        "download_dir": get_download_path("celeo"),
+        "name": "WebCeleo"
+    },
+    "web_ie": {
+        "script": os.path.join(ROOT_DIR, "Robots", "web_ie.py"),
+        "download_dir": get_download_path("WebIE"),
+        "name": "WebIE"
+    },
+    "arteon": {
+        "script": os.path.join(ROOT_DIR, "Robots", "arteon.py"),
+        "download_dir": get_download_path("ARTEON"),
+        "name": "WebArteon"
+    },
+    "light": {
+        "script": os.path.join(ROOT_DIR, "Robots", "light.py"),
+        "download_dir": get_download_path("LIGHT"),
+        "name": "WebLight"
+    },
+    "equatorial": {
+        "script": os.path.join(ROOT_DIR, "Robots", "equatorial.py"),
+        "download_dir": get_download_path("EQUATORIAL"),
+        "name": "WebEquatorial"
+    },
+    "rialmas": {
+        "script": os.path.join(ROOT_DIR, "Robots", "rialmas.py"),
+        "download_dir": get_download_path("RIALMAS"),
+        "name": "WebRialmas"
+    },
+    "cpfl": {
+        "script": os.path.join(ROOT_DIR, "Robots", "cpfl.py"),
+        "download_dir": get_download_path("CPFL"),
+        "name": "WebCPFL"
     }
 }
 
