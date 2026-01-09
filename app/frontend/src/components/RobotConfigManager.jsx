@@ -258,6 +258,7 @@ function RobotConfigManager({ transmissoras = [], empresasMapping = {}, configs 
                                 <option value="EQUATORIAL">WebEquatorial</option>
                                 <option value="RIALMAS">WebRialmas</option>
                                 <option value="CPFL">WebCPFL</option>
+                                <option value="GLORIAN">WebGlorian</option>
                             </select>
                         </div>
                     )}

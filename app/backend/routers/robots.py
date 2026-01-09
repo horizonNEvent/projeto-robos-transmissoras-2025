@@ -247,6 +247,11 @@ ROBOTS_CONFIG = {
         "script": os.path.join(ROOT_DIR, "Robots", "cpfl.py"),
         "download_dir": get_download_path("CPFL"),
         "name": "WebCPFL"
+    },
+    "glorian": {
+        "script": os.path.join(ROOT_DIR, "Robots", "glorian.py"),
+        "download_dir": get_download_path("GLORIAN"),
+        "name": "WebGlorian"
     }
 }
 
