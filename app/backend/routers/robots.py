@@ -30,7 +30,7 @@ def get_download_path(robot_key: str):
 ROBOTS_CONFIG = {
     "siget": {
         "script": os.path.join(ROOT_DIR, "Robots", "siget.py"),
-        "download_dir": get_download_path("sigetplus"),
+        "download_dir": get_download_path("siget"),
         "name": "WebSiget"
     },
     "cnt": {

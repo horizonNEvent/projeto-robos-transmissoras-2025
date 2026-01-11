@@ -27,13 +27,8 @@ class VereneRobot(BaseRobot):
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
         }
         
-        # Wkhtmltopdf config
-        path_wkhtmltopdf = r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe"
-        if os.path.exists(path_wkhtmltopdf):
-            self.pdf_config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
-        else:
-            self.logger.warning("wkhtmltopdf não encontrado. Conversão de boletos falhará.")
-            self.pdf_config = None
+        # Configuração PDF (Dinâmica via BaseRobot)
+        self.pdf_config = self.get_pdf_config()
 
     def sanitize_filename(self, name):
         name = re.sub(r'[<>:"/\\|?*]', '', name)

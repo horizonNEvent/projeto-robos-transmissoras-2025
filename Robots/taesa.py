@@ -29,13 +29,8 @@ class TaesaRobot(BaseRobot):
             "Upgrade-Insecure-Requests": "1"
         }
         
-        # Wkhtmltopdf config
-        path_wkhtmltopdf = r"C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe"
-        if os.path.exists(path_wkhtmltopdf):
-            self.pdf_config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
-        else:
-            self.logger.warning("wkhtmltopdf não encontrado. Conversão de boletos falhará.")
-            self.pdf_config = None
+        # Configuração PDF (Dinâmica via BaseRobot)
+        self.pdf_config = self.get_pdf_config()
 
     def sanitize_filename(self, name):
         cleaned = re.sub(r'[<>:"/\\|?*\x00-\x1F]', '', name)

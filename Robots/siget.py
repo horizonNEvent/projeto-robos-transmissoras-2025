@@ -15,59 +15,27 @@ from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 from urllib.parse import urljoin
 from concurrent.futures import ThreadPoolExecutor
-import argparse
-import sqlite3
 
-# Configurações de Diretórios
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(os.path.dirname(SCRIPT_DIR), 'Data')
-ROOT_DIR = os.path.dirname(SCRIPT_DIR)
-DB_PATH = os.path.join(ROOT_DIR, 'sql_app.db')
+try:
+    from Robots.base_robot import BaseRobot
+except ImportError:
+    from base_robot import BaseRobot
 
-def get_base_download_path():
-    base = os.environ.get("TUST_DOWNLOADS_BASE", os.path.join(ROOT_DIR, "downloads"))
-    return os.path.join(base, "TUST", "SIGETPLUS")
-
-BASE_DOWNLOAD_PATH = get_base_download_path()
-WKHTMLTOPDF_PATH = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
-
-def sanitize_name(name):
-    if not name: return "DESCONHECIDO"
-    clean = re.sub(r'[<>:"/\\|?*]', '_', str(name))
-    return " ".join(clean.split()).strip()
-
-def carregar_config():
-    configs = []
-    try:
-        if not os.path.exists(DB_PATH):
-            return configs
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute("SELECT label, username, agents_json, base FROM robot_configs WHERE robot_type = 'SIGET' AND active = 1")
-        rows = cursor.fetchall()
-        for row in rows:
-            configs.append({
-                "label": row[0],
-                "email": row[1],
-                "agentes": json.loads(row[2] or '{}'),
-                "base": row[3]
-            })
-        conn.close()
-    except Exception as e:
-        print(f"Erro ao carregar config do banco: {e}")
-    return configs
-
-class SigetRobot:
-    def __init__(self, output_dir=None):
-        self.output_dir = output_dir or BASE_DOWNLOAD_PATH
+class SigetRobot(BaseRobot):
+    def __init__(self):
+        super().__init__("siget")
+        self.output_dir = self.get_output_path()
+        self.pdf_config = self.get_pdf_config()
+        
+        # Selenium Config
         self.options = Options()
         self.options.add_argument("--headless=new")
         self.options.add_argument("--disable-gpu")
         self.options.add_argument("--window-size=1920,1080")
         self.options.add_argument("--no-sandbox")
         self.options.add_argument("--disable-dev-shm-usage")
-        self.options.add_argument("--log-level=3")  # Silencia logs de erro internos do Chrome
-        self.options.add_experimental_option("excludeSwitches", ["enable-logging"]) # Remove warnings de devtools
+        self.options.add_argument("--log-level=3")
+        self.options.add_experimental_option("excludeSwitches", ["enable-logging"])
         
         self.service = Service(ChromeDriverManager().install())
         self.driver = None
@@ -77,22 +45,33 @@ class SigetRobot:
         })
 
     def iniciar_driver(self):
-        self.driver = webdriver.Chrome(service=self.service, options=self.options)
+        if not self.driver:
+            self.driver = webdriver.Chrome(service=self.service, options=self.options)
         return self.driver
 
     def login(self, email):
-        print(f"\n[LOGIN] Logando: {email}")
+        self.logger.info(f"Realizando login no SigetPlus para: {email}")
         self.driver.get("https://sys.sigetplus.com.br/portal/login")
         wait = WebDriverWait(self.driver, 20)
-        email_input = wait.until(EC.presence_of_element_located((By.ID, "email")))
-        email_input.send_keys(email)
-        self.driver.find_element(By.XPATH, "//button[contains(., 'Entrar')]").click()
-        wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
-        self.sincronizar_cookies()
+        try:
+            email_input = wait.until(EC.presence_of_element_located((By.ID, "email")))
+            email_input.send_keys(email)
+            self.driver.find_element(By.XPATH, "//button[contains(., 'Entrar')]").click()
+            wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+            self.sincronizar_cookies()
+            return True
+        except Exception as e:
+            self.logger.error(f"Erro ao realizar login: {e}")
+            return False
 
     def sincronizar_cookies(self):
         for cookie in self.driver.get_cookies():
             self.session.cookies.set(cookie['name'], cookie['value'])
+
+    def sanitize_name(self, name):
+        if not name: return "DESCONHECIDO"
+        clean = re.sub(r'[<>:"/\\|?*]', '_', str(name))
+        return " ".join(clean.split()).strip()
 
     def baixar_arquivo_direto(self, url, dest_path, tipo):
         if os.path.exists(dest_path): return True
@@ -101,43 +80,38 @@ class SigetRobot:
             if res.status_code == 200:
                 with open(dest_path, 'wb') as f:
                     f.write(res.content)
-                print(f"    [OK] {tipo}: {os.path.basename(dest_path)}")
+                self.logger.info(f"    [OK] {tipo}: {os.path.basename(dest_path)}")
                 return True
         except Exception as e:
-            print(f"    [ERROR] Erro {tipo}: {e}")
+            self.logger.error(f"    [ERROR] Erro ao baixar {tipo}: {e}")
         return False
 
     def baixar_boleto_otimizado(self, url, dest_path):
-        """Baixa HTML via requests e converte para PDF (Ultra Rápido)"""
         if os.path.exists(dest_path): return True
+        if not self.pdf_config:
+            self.logger.warning(f"Ignorando boleto {os.path.basename(dest_path)} - wkhtmltopdf não disponível")
+            return False
         try:
             res = self.session.get(url, timeout=30)
             if res.status_code == 200:
-                config = pdfkit.configuration(wkhtmltopdf=WKHTMLTOPDF_PATH)
-                pdfkit.from_string(res.text, dest_path, configuration=config)
-                print(f"    [OK] BOLETO: {os.path.basename(dest_path)}")
+                pdfkit.from_string(res.text, dest_path, configuration=self.pdf_config)
+                self.logger.info(f"    [OK] BOLETO: {os.path.basename(dest_path)}")
                 return True
         except Exception as e:
-            print(f"    [WARN] Falha Boleto Express, tentando Selenium...")
+            self.logger.warning(f"    [WARN] Falha ao converter boleto: {e}")
             return False
 
     def processar_fatura_paralelo(self, dados_fatura):
-        """Baixa XML, DANFE e Boletos simultaneamente"""
         dest_folder, info = dados_fatura
-        tasks = []
         with ThreadPoolExecutor(max_workers=5) as executor:
-            # XML
             if info['xml']:
-                tasks.append(executor.submit(self.baixar_arquivo_direto, info['xml'], info['xml_path'], "XML"))
-            # DANFE
+                executor.submit(self.baixar_arquivo_direto, info['xml'], info['xml_path'], "XML")
             if info['danfe']:
-                tasks.append(executor.submit(self.baixar_arquivo_direto, info['danfe'], info['danfe_path'], "DANFE"))
-            # Boletos
+                executor.submit(self.baixar_arquivo_direto, info['danfe'], info['danfe_path'], "DANFE")
             for i, b_url in enumerate(info['boletos'], 1):
-                tasks.append(executor.submit(self.baixar_boleto_otimizado, b_url, info['boleto_paths'][i-1]))
-        
+                executor.submit(self.baixar_boleto_otimizado, b_url, info['boleto_paths'][i-1])
+
     def extrair_dados_tabela(self, ons_name, ons_path):
-        """Usa BeautifulSoup para extrair dados sem erros de Stale Element"""
         soup = BeautifulSoup(self.driver.page_source, 'html.parser')
         rows = soup.select("table.table-striped tbody tr")
         faturas_para_baixar = []
@@ -146,8 +120,8 @@ class SigetRobot:
             cols = row.find_all("td")
             if len(cols) < 10: continue
             
-            trans_name = sanitize_name(cols[0].get_text(strip=True))
-            num_nf = sanitize_name(cols[1].get_text(strip=True))
+            trans_name = self.sanitize_name(cols[0].get_text(strip=True))
+            num_nf = self.sanitize_name(cols[1].get_text(strip=True))
             dest_dir = os.path.join(ons_path, trans_name)
             os.makedirs(dest_dir, exist_ok=True)
             
@@ -159,15 +133,13 @@ class SigetRobot:
                 'boletos': [], 'boleto_paths': []
             }
             
-            # XML e DANFE
             xml_a = cols[9].find("a")
             if xml_a: links['xml'] = urljoin("https://sys.sigetplus.com.br", xml_a.get('href'))
             
             danfe_a = cols[8].find("a")
             if danfe_a: links['danfe'] = urljoin("https://sys.sigetplus.com.br", danfe_a.get('href'))
             
-            # Boletos
-            for i in range(4, 7): # Índices 0-based para colunas 5, 6, 7
+            for i in range(4, 7):
                 try:
                     b_a = cols[i].find("a")
                     if b_a and 'billet' in b_a.get('href', ''):
@@ -177,86 +149,67 @@ class SigetRobot:
                 except: continue
             
             faturas_para_baixar.append((dest_dir, links))
-            
         return faturas_para_baixar
 
     def processar_agente(self, empresa_nome, ons_code, ons_name):
-        print(f"\n[INFO] Iniciando Agent: {ons_name} (ID: {ons_code})")
+        self.logger.info(f"Processando Agente: {ons_name} (ID: {ons_code})")
+        # Criar pasta no padrão: downloads/siget/Empresa/ONS/Transmissora
         ons_path = os.path.join(self.output_dir, empresa_nome, str(ons_code))
         os.makedirs(ons_path, exist_ok=True)
         
         self.driver.get(f"https://sys.sigetplus.com.br/portal?agent={ons_code}")
         
         while True:
-            WebDriverWait(self.driver, 15).until(EC.presence_of_element_located((By.CLASS_NAME, "table-striped")))
-            self.sincronizar_cookies()
-            
-            # Coleta todos os links da página
-            faturas = self.extrair_dados_tabela(ons_name, ons_path)
-            
-            # Baixa tudo da página em paralelo
-            print(f"  [INFO] Baixando {len(faturas)} faturas da página atual em paralelo...")
-            for f in faturas:
-                self.processar_fatura_paralelo(f)
-
-            # Próxima Página
             try:
+                WebDriverWait(self.driver, 15).until(EC.presence_of_element_located((By.CLASS_NAME, "table-striped")))
+                self.sincronizar_cookies()
+                faturas = self.extrair_dados_tabela(ons_name, ons_path)
+                
+                if faturas:
+                    self.logger.info(f"  Baixando {len(faturas)} faturas da página atual...")
+                    for f in faturas:
+                        self.processar_fatura_paralelo(f)
+                else:
+                    self.logger.info("  Nenhuma fatura encontrada nesta página.")
+
+                # Paginação
                 next_btn = self.driver.find_elements(By.XPATH, "//a[@rel='next']")
                 if next_btn:
                     next_btn[0].click()
-                    time.sleep(1) # Pequeno buffer para o DOM atualizar
-                else: break
-            except: break
+                    time.sleep(1)
+                else:
+                    break
+            except Exception as e:
+                self.logger.error(f"Erro ao processar página de faturas: {e}")
+                break
 
-    def fechar(self):
-        if self.driver: self.driver.quit()
+    def run(self):
+        email = self.args.user
+        empresa_label = self.args.empresa or "PADRAO"
+        agentes_str = self.args.agente
+        
+        if not email:
+            self.logger.error("E-mail não fornecido. O robô precisa de um usuário para logar.")
+            return
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--empresa", help="Nome da empresa para filtrar")
-    parser.add_argument("--agente", help="Código ONS do agente para filtrar")
-    parser.add_argument("--output_dir", help="Pasta de destino dos downloads")
-    args = parser.parse_args()
+        self.iniciar_driver()
+        try:
+            if self.login(email):
+                # Se passou agentes específicos, usa eles. Se não, tenta descobrir? 
+                # (No Siget o padrão é receber a lista de quem processar)
+                lista_agentes = self.get_agents()
+                if not lista_agentes:
+                    self.logger.warning("Nenhum agente fornecido para processamento.")
+                    return
 
-    config_list = carregar_config()
-    if not config_list: 
-        print("Nenhuma configuração encontrada no banco.")
-        return
-    
-    robot = SigetRobot(output_dir=args.output_dir)
-    robot.iniciar_driver()
-    try:
-        for info in config_list:
-            emp_name = (info['label'] or "").strip().upper()
-            base_group = (info['base'] or "").strip().upper()
-            input_empresa = (args.empresa or "").strip().upper()
-            
-            # Filtro de empresa/base
-            if input_empresa:
-                if input_empresa != emp_name and input_empresa != base_group:
-                    # Caso especial: AE agrupa SJP, LIBRA, COREMAS
-                    ae_matches = ["SJP", "LIBRA", "COREMAS", "AE"]
-                    if input_empresa == "AE" and base_group in ae_matches:
-                        pass 
-                    else:
-                        continue
-
-            email = info.get('email')
-            if not email: continue
-            
-            if robot.login(email):
-                agentes = info.get('agentes', {})
-                filtro_agentes = []
-                if args.agente:
-                    filtro_agentes = [a.strip() for a in str(args.agente).split(',')]
-
-                for code, name in agentes.items(): 
-                    if filtro_agentes and str(code).strip() not in filtro_agentes:
-                        continue
-                    robot.processar_agente(emp_name, code, name)
-    finally:
-        robot.fechar()
-        print("\n[FINISH] Processo Finalizado com Alta Performance!")
+                for ons_code in lista_agentes:
+                    # Como o label amigável (nome do agente) não vem no argumento, usamos o próprio código como nome
+                    self.processar_agente(empresa_label, ons_code, ons_code)
+        finally:
+            if self.driver:
+                self.driver.quit()
+            self.logger.info("Processo Finalizado!")
 
 if __name__ == "__main__":
-    main()
+    robot = SigetRobot()
+    robot.run()

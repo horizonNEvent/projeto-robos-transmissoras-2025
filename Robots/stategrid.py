@@ -25,13 +25,8 @@ class StateGridRobot(BaseRobot):
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         }
-        # Configuração do wkhtmltopdf
-        path_wkhtmltopdf = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
-        if os.path.exists(path_wkhtmltopdf):
-            self.config = pdfkit.configuration(wkhtmltopdf=path_wkhtmltopdf)
-        else:
-            self.logger.warning(f"wkhtmltopdf não encontrado em {path_wkhtmltopdf}. Conversão de boleto HTML->PDF falhará.")
-            self.config = None
+        # Configuração PDF (Dinâmica via BaseRobot)
+        self.config = self.get_pdf_config()
 
     def sanitizar_nome(self, nome):
         nome_limpo = re.sub(r'[<>:"/\\|?*\n\r]', ' ', nome)

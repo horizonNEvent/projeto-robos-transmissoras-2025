@@ -186,8 +186,9 @@ class RobotBase:
         """
         # Configuração da IE
         self.nome_ie = nome_ie
-        # Salvar local em C:\\Users\\Bruno\\Downloads\\TUST\\<IE>
-        self.base_dir = os.path.join(r"C:\\Users\\Bruno\\Downloads\\TUST", nome_ie)
+        # Local de salvamento dinâmico (Raiz / downloads / <IE>)
+        root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.base_dir = os.path.join(root_dir, "downloads", "TUST", nome_ie)
         self.sites = {nome_ie: url_ie}
 
         # Mapeamentos e configurações

@@ -57,7 +57,7 @@ def main():
     logger.info("Iniciando o processo de download das faturas da IERIACHOGRANDE (salvamento local)...")
     logger.info("=" * 80)
     
-    # Inicializa o robô (SharePoint desativado; salvamento local em C:\\Users\\Bruno\\Downloads\\TUST\\IERIACHOGRANDE)
+    # Inicializa o robô (SharePoint desativado; salvamento local na pasta downloads do projeto)
     robot = IeriachograndeRobot(sharepoint_disponivel=False)
     
     # Verifica se as credenciais foram carregadas corretamente
