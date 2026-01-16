@@ -52,6 +52,7 @@ class EquatorialRobot(BaseRobot):
         
         # Novo argumento especifico
         parser.add_argument("--spe", help="Código da SPE específica (ex: SP01). Se vazio, roda todas.")
+        parser.add_argument("--headless", action="store_true", help="Executar em modo headless")
         
         return parser.parse_args()
 
