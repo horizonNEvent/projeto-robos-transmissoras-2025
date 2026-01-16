@@ -139,3 +139,45 @@ async def upload_transmissoras(file: UploadFile = File(...), db: Session = Depen
         return {"message": "Processamento concluído", "stats": stats}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao ler planilha: {str(e)}")
+
+from pydantic import BaseModel
+import subprocess
+
+class AmseCredentials(BaseModel):
+    user: str
+    password: str
+
+@router.post("/update-amse")
+def update_transmissoras_amse(creds: AmseCredentials, db: Session = Depends(get_db)):
+    """
+    Executa o robô AMSE para atualizar a tabela de transmissoras.
+    """
+    try:
+        # Caminho do script
+        root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        script_path = os.path.join(root_dir, "Robots", "amse.py")
+        
+        if not os.path.exists(script_path):
+            raise HTTPException(status_code=500, detail="Script do robô AMSE não encontrado.")
+
+        cmd = ["python", script_path, "--user", creds.user, "--password", creds.password, "--update-db"]
+        
+        # Executa
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding='utf-8',
+            errors='replace'
+        )
+        stdout, _ = process.communicate()
+        
+        if process.returncode != 0:
+            print(f"Erro AMSE: {stdout}")
+            raise HTTPException(status_code=500, detail=f"Erro na execução do robô: {stdout}")
+            
+        return {"message": "Atualização concluída com sucesso.", "logs": stdout}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

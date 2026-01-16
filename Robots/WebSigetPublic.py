@@ -199,6 +199,7 @@ if __name__ == "__main__":
     parser.add_argument("--user", type=str, help="User (Ignorado)")
     parser.add_argument("--competencia", type=str, help="Competência YYYYMM (Opcional)")
     parser.add_argument("--output_dir", help="Pasta de destino dos downloads")
+    parser.add_argument("--headless", action="store_true", help="Executar em modo headless (ignorado)")
     
     args = parser.parse_args()
     targets = carregar_targets()

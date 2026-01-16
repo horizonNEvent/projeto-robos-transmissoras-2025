@@ -48,6 +48,7 @@ function App() {
   const [showScheduleModal, setShowScheduleModal] = useState(false)
   const [scheduledConfigId, setScheduledConfigId] = useState(null)
   const [scheduledConfigLabel, setScheduledConfigLabel] = useState('')
+  const [viewingTransmissora, setViewingTransmissora] = useState(null)
 
   useEffect(() => {
     fetchEmpresas()
@@ -145,6 +146,45 @@ function App() {
       }
     } catch (e) {
       setTimeout(() => pollStatus(robotId), 5000);
+    }
+  }
+
+  // AMSE Update State
+  const [showAmseModal, setShowAmseModal] = useState(false)
+  const [amseCreds, setAmseCreds] = useState({ user: '', password: '' })
+  const [isAmseRunning, setIsAmseRunning] = useState(false)
+
+  const handleUpdateAmse = async (e) => {
+    e.preventDefault()
+    if (!amseCreds.user || !amseCreds.password) return alert("Preencha usuário e senha")
+
+    setIsAmseRunning(true)
+    addLog("Iniciando atualização via AMSE... Isso pode demorar.")
+
+    try {
+      const res = await axios.post(`${API_URL}/transmissoras/update-amse`, amseCreds)
+
+      // Parse logs for specific counts
+      const logs = res.data.logs || ""
+      const match = logs.match(/New: (\d+), Updated: (\d+)/)
+
+      let msg = "Processo finalizado."
+      if (match) {
+        msg = `Concluído! ${match[1]} novas transmissoras, ${match[2]} atualizadas.`
+      }
+
+      addLog(msg)
+      alert(msg)
+
+      console.log(logs)
+      setShowAmseModal(false)
+      fetchTransmissoras()
+    } catch (err) {
+      const errorMsg = `Erro AMSE: ${err.response?.data?.detail || err.message}`
+      addLog(errorMsg)
+      alert(errorMsg)
+    } finally {
+      setIsAmseRunning(false)
     }
   }
 
@@ -408,8 +448,11 @@ function App() {
             <div className="transmissoras-view">
               <header className="content-header" style={{ marginBottom: '1rem' }}>
                 <h2>Base de Transmissoras</h2>
-                <button onClick={() => setShowTransmissorasModal(true)} style={{ background: '#8b5cf6' }}>
+                <button onClick={() => setShowTransmissorasModal(true)} style={{ background: '#8b5cf6', marginRight: '1rem' }}>
                   📊 Gerenciar Planilha
+                </button>
+                <button onClick={() => setShowAmseModal(true)} style={{ background: '#2563eb' }}>
+                  🤖 Atualizar via AMSE
                 </button>
               </header>
 
@@ -461,6 +504,7 @@ function App() {
                       <th>Sigla</th>
                       <th>Cód ONS</th>
                       <th>Grupo</th>
+                      <th>Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -479,6 +523,15 @@ function App() {
                           <td style={{ color: 'var(--accent)' }}>{t.sigla}</td>
                           <td>{t.codigo_ons}</td>
                           <td>{t.grupo}</td>
+                          <td>
+                            <button
+                              onClick={() => setViewingTransmissora(t)}
+                              title="Ver Detalhes"
+                              style={{ background: 'transparent', border: 'none', fontSize: '1.2rem', cursor: 'pointer' }}
+                            >
+                              👁️
+                            </button>
+                          </td>
                         </tr>
                       ))}
                   </tbody>
@@ -565,6 +618,52 @@ function App() {
         </div>
       )}
 
+      {/* AMSE MODAL */}
+      {showAmseModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+          background: 'rgba(0,0,0,0.7)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
+        }}>
+          <div className="card" style={{ width: '400px', position: 'relative' }}>
+            <h3>Atualizar via AMSE (ONS)</h3>
+            <p style={{ fontSize: '0.8rem', color: '#ccc' }}>Isso irá baixar a planilha mais recente do portal AMSE e atualizar o banco de dados.</p>
+
+            <form onSubmit={handleUpdateAmse}>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '4px' }}>Usuário</label>
+                <input
+                  type="text"
+                  value={amseCreds.user}
+                  onChange={e => setAmseCreds({ ...amseCreds, user: e.target.value })}
+                  style={{ width: '100%', padding: '8px', background: '#333', border: '1px solid #555', color: 'white' }}
+                  required
+                />
+              </div>
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'block', marginBottom: '4px' }}>Senha</label>
+                <input
+                  type="password"
+                  value={amseCreds.password}
+                  onChange={e => setAmseCreds({ ...amseCreds, password: e.target.value })}
+                  style={{ width: '100%', padding: '8px', background: '#333', border: '1px solid #555', color: 'white' }}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                <button type="button" onClick={() => setShowAmseModal(false)} style={{ background: 'transparent', border: '1px solid #555' }} disabled={isAmseRunning}>
+                  Cancelar
+                </button>
+                <button type="submit" style={{ background: '#2563eb' }} disabled={isAmseRunning}>
+                  {isAmseRunning ? 'Rodando...' : 'Iniciar Atualização'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* SCHEDULE MODAL */}
       <ScheduleModal
         show={showScheduleModal}
@@ -572,6 +671,235 @@ function App() {
         configId={scheduledConfigId}
         label={scheduledConfigLabel}
       />
+
+      {/* DETAILS MODAL (AMSE STYLE) */}
+      {viewingTransmissora && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
+        }}>
+          <div style={{
+            width: '95%', maxWidth: '1000px', maxHeight: '95vh', overflowY: 'auto',
+            background: '#fff', boxShadow: '0 0 20px rgba(0,0,0,0.3)',
+            fontFamily: 'Arial, sans-serif', color: '#333', fontSize: '13px',
+            padding: '20px'
+          }}>
+
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', background: '#f5f5f5', padding: '10px', borderBottom: '1px solid #ddd' }}>
+              <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <span style={{ fontWeight: 'bold' }}>Código</span>
+                  <div style={{ border: '1px solid #84cc16', padding: '2px 10px', fontWeight: 'bold', color: '#000', background: '#fff' }}>{viewingTransmissora.codigo_ons}</div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <span style={{ fontWeight: 'bold' }}>Sigla</span>
+                  <div style={{ border: '1px solid #84cc16', padding: '2px 10px', fontWeight: 'bold', color: '#000', background: '#fff' }}>{viewingTransmissora.sigla}</div>
+                </div>
+              </div>
+              <button
+                onClick={() => setViewingTransmissora(null)}
+                style={{
+                  background: '#ef4444', color: 'white', border: 'none',
+                  padding: '5px 15px', fontWeight: 'bold', fontSize: '12px',
+                  borderRadius: '4px', cursor: 'pointer', textTransform: 'uppercase',
+                  boxShadow: 'none'
+                }}
+              >
+                FECHAR
+              </button>
+            </div>
+
+            {(() => {
+              const data = JSON.parse(viewingTransmissora.dados_json || '{}')
+
+              // Helper to safely get value checking multiple keys/cases
+              const getVal = (keys) => {
+                if (!keys) return null;
+                if (!Array.isArray(keys)) keys = [keys];
+                for (const k of keys) {
+                  try {
+                    // Try Exact
+                    if (data[k] !== undefined && data[k] !== null && data[k] !== "" && String(data[k]) !== "nan" && String(data[k]) !== "undefined") return data[k];
+                    // Try Upper (Robot output)
+                    const kUp = k.toUpperCase().replace(/_/g, ' ');
+                    if (data[kUp] !== undefined && data[kUp] !== null && data[kUp] !== "" && String(data[kUp]) !== "nan") return data[kUp];
+                    // Try Raw Upper
+                    const kRaw = k.toUpperCase();
+                    if (data[kRaw] !== undefined && data[kRaw] !== null && data[kRaw] !== "" && String(data[kRaw]) !== "nan") return data[kRaw];
+                  } catch (e) { return null }
+                }
+                return null;
+              }
+
+              const SectionTitle = ({ title }) => (
+                <h3 style={{
+                  color: '#65a30d', borderBottom: '1px solid #65a30d',
+                  paddingBottom: '2px', marginTop: '15px', marginBottom: '10px',
+                  fontSize: '12px', textTransform: 'uppercase', fontWeight: 'bold',
+                  letterSpacing: '0.5px'
+                }}>
+                  {title}
+                </h3>
+              )
+
+              const Field = ({ label, value, full = false }) => (
+                <div style={{ display: 'flex', flexDirection: 'column', marginBottom: '5px', width: full ? '100%' : 'auto' }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px' }}>
+                    <span style={{ fontWeight: 'bold', fontSize: '11px', color: '#000', minWidth: 'fit-content' }}>{label}:</span>
+                    <span style={{ fontSize: '11px', color: '#333' }}>{value && value !== 'undefined' ? value : '-'}</span>
+                  </div>
+                </div>
+              )
+
+              const Box = ({ children }) => (
+                <div style={{ border: '1px solid #ccc', padding: '10px 15px', marginBottom: '5px', background: '#fff' }}>
+                  {children}
+                </div>
+              )
+
+              // Computed Values
+              const bancoName = getVal(['banco', 'BANCO']);
+              const bancoNum = getVal(['numero_do_banco', 'NUMERO DO BANCO']);
+              const bancoDisplay = bancoName ? (bancoNum ? `${bancoName} (${bancoNum})` : bancoName) : '-';
+
+              const logradouro = getVal(['logradouro', 'LOGRADOURO']) || '';
+              const num = getVal(['numero', 'NUMERO']) || '';
+              const comp = getVal(['complemento', 'COMPLEMENTO']) || '';
+
+              return (
+                <div style={{ padding: '5px' }}>
+                  <SectionTitle title="VINCULAÇÃO AO SACT" />
+                  <Box>
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '20px' }}>
+                      <Field label="Agente SACT" value={viewingTransmissora.sigla} />
+                      <Field label="Concessão" value={getVal(['concessao', 'CONCESSÃO'])} />
+                      <Field label="Data" value={getVal(['dt_concessao', 'DT CONCESSÃO'])} />
+                    </div>
+                    <div style={{ marginTop: '5px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                      <Field label="Contrato" value={getVal(['contrato', 'CONTRATO'])} />
+                      <Field label="Termo Aditivo Vigente" value={getVal(['termo_aditivo', 'TERMO ADITIVO']) || '-'} />
+                    </div>
+                  </Box>
+
+                  <SectionTitle title="DADOS GERAIS" />
+                  <Box>
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '20px' }}>
+                      <Field label="Responsável" value={getVal(['nome_do_representante', 'NOME DO REPRESENTANTE'])} />
+                      <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+                        <span style={{ fontWeight: 'bold', fontSize: '11px' }}>Status:</span>
+                        <span style={{ color: 'green', fontWeight: 'bold', fontSize: '11px' }}>Ativo</span>
+                      </div>
+                      <Field label="Classificação" value={getVal(['classificacao_empresa', 'CLASSIFICAÇÃO EMPRESA']) || viewingTransmissora.grupo} />
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '5px' }}>
+                      <Field label="Início Contábil" value={getVal(['dt_inicio_contabil', 'DT INICIO CONTÁBIL'])} />
+                      <Field label="Operação" value={getVal(['dt_inicio_operacao', 'DT INICIO OPERAÇÃO'])} />
+                    </div>
+                  </Box>
+
+                  <SectionTitle title="DADOS DO AGENTE" />
+                  <Box>
+                    <div style={{ marginBottom: '5px' }}><Field label="Razão Social" value={getVal(['razao_social', 'RAZÃO SOCIAL']) || viewingTransmissora.nome} full /></div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}>
+                      <Field label="CNPJ" value={viewingTransmissora.cnpj} />
+                      <Field label="Inscrição Estadual" value={getVal(['inscricao_estadual', 'INSCRIÇÃO ESTADUAL'])} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <div style={{ width: '12px', height: '12px', background: '#555', borderRadius: '2px' }}></div>
+                        <span style={{ fontSize: '11px', color: '#555' }}>Padrão Desligamento</span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '3fr 1fr', gap: '20px', marginTop: '5px' }}>
+                      <Field label="Logradouro" value={logradouro} />
+                      <Field label="Número" value={num} />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '20px', marginTop: '5px' }}>
+                      <div style={{ display: 'flex', gap: '20px' }}>
+                        <Field label="Complemento" value={comp} />
+                      </div>
+                      <Field label="Bairro" value={getVal(['bairro', 'BAIRRO'])} />
+                      <Field label="CEP" value={getVal(['cep', 'CEP'])} />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'min-content 1fr 1fr', gap: '20px', marginTop: '5px', alignItems: 'baseline' }}>
+                      <Field label="Estado" value={getVal(['uf', 'UF'])} />
+                      <Field label="Cidade" value={getVal(['cidade', 'CIDADE'])} />
+                      <Field label="Região" value={getVal(['regiao', 'REGIÃO'])} />
+                    </div>
+                  </Box>
+
+                  <SectionTitle title="DADOS BANCÁRIOS" />
+                  <Box>
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '20px' }}>
+                      <Field label="Banco" value={bancoDisplay} />
+                      <Field label="Agência" value={getVal(['agencia', 'AGENCIA'])} />
+                      <Field label="Conta" value={getVal(['conta', 'CONTA'])} />
+                    </div>
+                  </Box>
+
+                  <SectionTitle title="DADOS FISCAIS" />
+                  <Box>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}>
+                      <Field label="PIS/COFINS %" value={getVal(['%_aliquota_pis_confins', '% ALIQUOTA PIS CONFINS'])} />
+                      <Field label="Aliquota RGR %" value={getVal(['%_aliquota_rgr', '% ALIQUOTA RGR'])} />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <div style={{ width: '12px', height: '12px', background: '#555', borderRadius: '2px' }}></div>
+                        <span style={{ fontSize: '11px', color: '#555' }}>Incluir PIS/COFINS</span>
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '5px' }}>
+                      <Field label="RAP RB %" value="-" />
+                      <Field label="RAP RF %" value="-" />
+                    </div>
+                  </Box>
+
+                  <SectionTitle title="ENCAMINHAMENTO DAS FATURAS" />
+                  <Box>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 3fr', gap: '20px' }}>
+                      <Field label="Forma" value={getVal(['forma_de_encaminhamento_das_fat', 'FORMA DE ENCAMINHAMENTO DAS FAT'])} />
+                      <Field label="URL do Site" value={getVal(['url_do_site', 'URL DO SITE'])} />
+                    </div>
+                  </Box>
+
+                  <SectionTitle title="REPRESENTANTES" />
+                  <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '5px', fontSize: '11px' }}>
+                    <thead>
+                      <tr style={{ background: '#84cc16', color: 'white', textAlign: 'left' }}>
+                        <th style={{ padding: '5px' }}>NOME</th>
+                        <th style={{ padding: '5px' }}>TELEFONE</th>
+                        <th style={{ padding: '5px' }}>E-MAIL</th>
+                        <th style={{ padding: '5px' }}>FUNÇÕES</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr style={{ borderBottom: '1px solid #eee' }}>
+                        <td style={{ padding: '5px' }}>{getVal(['nome_do_representante', 'NOME DO REPRESENTANTE']) || '-'}</td>
+                        <td style={{ padding: '5px' }}>{getVal(['telefone', 'TELEFONE']) || '-'}</td>
+                        <td style={{ padding: '5px' }}>{getVal(['email', 'E-MAIL']) || '-'}</td>
+                        <td style={{ padding: '5px' }}>{getVal(['funcao_do_representante', 'FUNÇÃO DO REPRESENTANTE']) || '-'}</td>
+                      </tr>
+                      {data['representantes_list'] && data['representantes_list'].length > 0 && data['representantes_list'].map((rep, idx) => (
+                        <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
+                          <td style={{ padding: '5px' }}>{rep.nome}</td>
+                          <td style={{ padding: '5px' }}>{rep.telefone}</td>
+                          <td style={{ padding: '5px' }}>{rep.email}</td>
+                          <td style={{ padding: '5px' }}>{rep.funcao}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+
+                </div>
+              )
+            })()}
+          </div>
+        </div>
+      )}
     </div >
   )
 }

@@ -4,3 +4,6 @@ pdfkit
 playwright
 lxml
 python-dotenv
+pandas
+xlrd
+openpyxl

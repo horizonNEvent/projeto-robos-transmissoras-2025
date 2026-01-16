@@ -143,6 +143,7 @@ if __name__ == "__main__":
     parser.add_argument("--user", type=str)
     parser.add_argument("--password", type=str)
     parser.add_argument("--output_dir", help="Pasta de destino dos downloads")
+    parser.add_argument("--headless", action="store_true", help="Executar em modo headless (ignorado)")
     
     args = parser.parse_args()
     full_config = carregar_empresas()

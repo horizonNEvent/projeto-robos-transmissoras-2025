@@ -91,6 +91,7 @@ def main():
     parser.add_argument("--empresa", help="Nome da empresa para filtrar")
     parser.add_argument("--agente", help="Código ONS do agente para filtrar")
     parser.add_argument("--output_dir", help="Pasta de destino dos downloads")
+    parser.add_argument("--headless", action="store_true", help="Executar em modo headless (ignorado)")
     args = parser.parse_args()
 
     empresas = carregar_empresas()

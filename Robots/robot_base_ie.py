@@ -263,6 +263,7 @@ class RobotBaseIE:
         parser.add_argument("--user", help="Usuário para login direto")
         parser.add_argument("--password", help="Senha para login direto")
         parser.add_argument("--output_dir", help="Pasta de destino dos downloads")
+        parser.add_argument("--headless", action="store_true", help="Executar em modo headless (ignorado)")
         args = parser.parse_args()
 
         if args.output_dir:

@@ -222,6 +222,7 @@ if __name__ == "__main__":
     parser.add_argument("--agente", default="3748") # Exemplo
     parser.add_argument("--competencia", default="")
     parser.add_argument("--output_dir", help="Pasta de destino dos downloads")
+    parser.add_argument("--headless", action="store_true", help="Executar em modo headless (ignorado)")
     
     args = parser.parse_args()
     bot = WebTaesaRobot(args.agente, "TESTE", args.empresa, output_dir=args.output_dir)
