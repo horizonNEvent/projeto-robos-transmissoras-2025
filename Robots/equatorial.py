@@ -6,7 +6,7 @@ import json
 import requests
 import urllib3
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -76,7 +76,8 @@ class EquatorialRobot(BaseRobot):
         self.wait = WebDriverWait(self.driver, 15)
 
     def close_popups(self):
-        """Fecha modais e avisos de cookies"""
+        """Fecha modais e avisos de cookies (Verificação Robusta)"""
+        # 1. Cookies
         try:
             cookie_btn = WebDriverWait(self.driver, 2).until(
                 EC.element_to_be_clickable((By.ID, "onetrust-accept-btn-handler"))
@@ -84,11 +85,14 @@ class EquatorialRobot(BaseRobot):
             self.driver.execute_script("arguments[0].click();", cookie_btn)
         except: pass
 
+        # 2. Modal Chato (gmz-modal-close)
         try:
-            modal_close = WebDriverWait(self.driver, 2).until(
+            modal_close = WebDriverWait(self.driver, 3).until(
                 EC.element_to_be_clickable((By.ID, "gmz-modal-close"))
             )
+            # Tenta clicar via JS para garantir
             self.driver.execute_script("arguments[0].click();", modal_close)
+            self.logger.info("Modal 'gmz-modal-close' fechado.")
         except: pass
 
     def download_file(self, url, dest_folder, filename):
@@ -118,8 +122,9 @@ class EquatorialRobot(BaseRobot):
         try:
             self.logger.info(f"Processando SPE: {spe} | ONS: {codigo_ons}")
             
+            # 1. Acesso Inicial
             self.driver.get(self.url)
-            self.close_popups()
+            self.close_popups() # Tenta fechar modal logo de entrada
 
             # Preenchimento do Login
             try:
@@ -142,14 +147,39 @@ class EquatorialRobot(BaseRobot):
                 spe_input.send_keys(spe)
                 spe_input.send_keys(Keys.ENTER)
                 
+                # Aguarda processamento do Login
                 time.sleep(3)
+                
+                # 2. Pós-Login: Fecha modal novamente se aparecer
                 self.close_popups()
+
+                # Determine target year for URL (default to previous month if no filter)
+                if date_filter:
+                    target_year = date_filter[0]
+                else:
+                    # Use previous month's year (e.g. In Jan 2026 -> Dec 2025)
+                    prev_month_date = datetime.now().replace(day=1) - timedelta(days=1)
+                    target_year = prev_month_date.year
+                
+                # 3. Navegação por Exercicio (Ano)
+                # O usuario indicou usar o link ou input. Link com parametro é mais direto.
+                target_url = f"{self.url}?exercicio={target_year}"
+                
+                if str(target_year) not in self.driver.current_url:
+                     self.logger.info(f"Redirecionando para exercício {target_year}: {target_url}")
+                     self.driver.get(target_url)
+                     time.sleep(2) # Espera carregar
+                     
+                     # 4. Pós-Redirecionamento: Fecha modal novamente (crítico)
+                     self.close_popups()
 
                 # Busca faturas na tabela
                 rows = self.driver.find_elements(By.CSS_SELECTOR, "table tbody tr")
                 
                 target_date = None
                 target_row = None
+                
+                # ... (rest of logic)
                 
                 # Se nao tiver filtro de data, busca a mais recente
                 # Se tiver, busca a data especifica (YYYYMM)
