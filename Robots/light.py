@@ -427,6 +427,14 @@ class LightRobot(BaseRobot):
         empresas = self.carregar_referencia_empresas_light()
         
         # Iterar sobre (Categoria -> Lista ou Dict)
+        # Validação extra ANTES do loop
+        if target_empresa and target_empresa.upper() != "LIGHT":
+            found = any(g.upper() == target_empresa.upper() for g in empresas.keys())
+            if not found:
+                self.logger.error(f"A empresa '{target_empresa}' não foi encontrada em Data/empresas.light.json. Adicione os CNPJs neste arquivo.")
+                return
+
+        # Iterar sobre (Categoria -> Lista ou Dict)
         for grupo, itens in empresas.items():
             # Filtro de Grupo (AETE, DE, etc)
             if target_empresa and target_empresa.upper() not in [grupo.upper(), "LIGHT"]:

@@ -25,6 +25,7 @@ class BaseRobot:
         parser.add_argument("--agente", help="Código ONS ou CNPJ")
         parser.add_argument("--competencia", help="Mês referência (Ex: 202512)")
         parser.add_argument("--output_dir", help="Pasta base para salvar os downloads")
+        parser.add_argument("--headless", action="store_true", help="Executar em modo headless (sem interface)")
         return parser.parse_known_args()[0] # Evita erro com args extras do frontend
 
     def _setup_logging(self):

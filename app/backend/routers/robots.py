@@ -312,6 +312,16 @@ ROBOTS_CONFIG = {
         "script": os.path.join(ROOT_DIR, "Robots", "tbe.py"),
         "download_dir": get_download_path("TBE"),
         "name": "WebTBE"
+    },
+    "ons": {
+        "script": os.path.join(ROOT_DIR, "Robots", "ons.py"),
+        "download_dir": get_download_path("ONS"),
+        "name": "WebOns"
+    },
+    "harpix": {
+        "script": os.path.join(ROOT_DIR, "Robots", "harpix.py"),
+        "download_dir": get_download_path("HARPIX"),
+        "name": "WebHarpix"
     }
 }
 
@@ -329,6 +339,7 @@ class RobotRequest(BaseModel):
     password: Optional[str] = None
     competencia: Optional[str] = None
     process_id: Optional[int] = None
+    headless: bool = True  # Default True
 
 @router.get("/robot-status/{robot_name}")
 def get_robot_status(robot_name: str):
@@ -367,7 +378,7 @@ def download_results(robot: str = "siget"):
         headers={"Content-Disposition": f"attachment; filename={zip_filename}"}
     )
 
-def run_robot_logic(robot_name: str, process_id: int, competencia: Optional[str] = None):
+def run_robot_logic(robot_name: str, process_id: int, competencia: Optional[str] = None, headless: bool = True):
     """
     Core logic to execute a robot. Can be called from API or Scheduler.
     """
@@ -458,6 +469,9 @@ def run_robot_logic(robot_name: str, process_id: int, competencia: Optional[str]
         if competencia:
             cmd.extend(["--competencia", competencia])
 
+        if headless:
+            cmd.extend(["--headless"])
+
         cmd.extend(["--output_dir", config['download_dir']])
 
         print(f"Executando (PID {process_id}): {' '.join(cmd)}")
@@ -484,12 +498,12 @@ def run_robot_logic(robot_name: str, process_id: int, competencia: Optional[str]
                 ROBOT_STATUS[robot_name].discard(process_id)
         db.close()
 
-def run_robot_and_organize(robot_name: str, process_id: int, competencia: Optional[str] = None):
+def run_robot_and_organize(robot_name: str, process_id: int, competencia: Optional[str] = None, headless: bool = True):
     """
     Wrapper para execuções MANUAIS: Roda o robô e depois organiza os arquivos.
     """
     # 1. Executa o script do robô (Lógica Bruta)
-    run_robot_logic(robot_name, process_id, competencia)
+    run_robot_logic(robot_name, process_id, competencia, headless=headless)
     
     # 2. Chama o Validador para organizar os novos arquivos
     try:
@@ -508,6 +522,7 @@ def run_robot(request: RobotRequest, background_tasks: BackgroundTasks):
     
     process_id = request.process_id or 0
     competencia = request.competencia
+    headless = request.headless
 
-    background_tasks.add_task(run_robot_and_organize, robot_name, process_id, competencia)
+    background_tasks.add_task(run_robot_and_organize, robot_name, process_id, competencia, headless)
     return {"message": f"{robot_name} (PID {process_id}) iniciado", "status": "running"}

@@ -66,4 +66,6 @@ export const ROBOTS = [
     { id: 'vsb', name: 'WebVSB' },
     { id: 'verene', name: 'WebVerene' },
     { id: 'tbe', name: 'WebTBE' },
+    { id: 'ons', name: 'WebOns' },
+    { id: 'harpix', name: 'WebHarpix' },
 ]

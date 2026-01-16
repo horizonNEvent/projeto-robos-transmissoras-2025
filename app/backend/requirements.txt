@@ -12,3 +12,5 @@ xlrd
 python-multipart
 apscheduler
 lxml  # Para leitura robusta de XML
+pdfplumber
+lxml
