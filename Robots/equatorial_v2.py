@@ -224,7 +224,6 @@ class EquatorialRobotV2(BaseRobot):
                 most_recent = rows_to_check[0]
                 
                 ano_fatura, mes_fatura = most_recent['date']
-                ano_fatura, mes_fatura = most_recent['date']
                 self.logger.info(f"    ✅ [{spe}] Fatura Encontrada: {mes_fatura:02d}/{ano_fatura} (Status: {most_recent['status']})")
 
                 # 5. Download
