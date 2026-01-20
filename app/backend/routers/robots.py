@@ -337,6 +337,21 @@ ROBOTS_CONFIG = {
         "script": os.path.join(ROOT_DIR, "Robots", "cemig.py"),
         "download_dir": get_download_path("CEMIG"),
         "name": "WebCemig"
+    },
+    "rio_largo": {
+        "script": os.path.join(ROOT_DIR, "Robots", "rio_largo.py"),
+        "download_dir": get_download_path("RIO_LARGO"),
+        "name": "WebRioLargo"
+    },
+    "etepa": {
+        "script": os.path.join(ROOT_DIR, "Robots", "etepa.py"),
+        "download_dir": get_download_path("ETEPA"),
+        "name": "WebEtepa"
+    },
+    "etene": {
+        "script": os.path.join(ROOT_DIR, "Robots", "etene.py"),
+        "download_dir": get_download_path("ETENE"),
+        "name": "WebEtene"
     }
 }
 
