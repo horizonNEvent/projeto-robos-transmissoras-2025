@@ -28,6 +28,11 @@ def get_download_path(robot_key: str):
     return os.path.join(base, "TUST", robot_key.upper())
 
 ROBOTS_CONFIG = {
+    "eletrobras": {
+        "script": os.path.join(ROOT_DIR, "Robots", "eletrobras.py"),
+        "download_dir": get_download_path("ELETROBRAS"),
+        "name": "WebEletrobras"
+    },
     "siget": {
         "script": os.path.join(ROOT_DIR, "Robots", "siget.py"),
         "download_dir": get_download_path("siget"),

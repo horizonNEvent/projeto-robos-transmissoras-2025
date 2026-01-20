@@ -1,5 +1,6 @@
 export const ROBOTS = [
     { id: 'siget', name: 'WebSiget' },
+    { id: 'eletrobras', name: 'WebEletrobras' },
     { id: 'cnt', name: 'WebCnt' },
     { id: 'pantanal', name: 'WebPantanal' },
     { id: 'assu', name: 'WebAssu' },
