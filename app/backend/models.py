@@ -9,6 +9,7 @@ class Empresa(Base):
     id = Column(Integer, primary_key=True, index=True)
     codigo_ons = Column(String, unique=True, index=True)
     nome_empresa = Column(String)
+    cnpj = Column(String, nullable=True) # Adicionado para suporte ao robo Equatorial
     base = Column(String, default="AETE")
     ativo = Column(Boolean, default=True)
 

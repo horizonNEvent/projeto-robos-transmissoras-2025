@@ -11,10 +11,12 @@ router = APIRouter(prefix="/empresas", tags=["empresas"])
 # Caminhos
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 EMPRESAS_JSON_PATH = os.path.join(ROOT_DIR, "Data", "empresas.json")
+EMPRESAS_EQUATORIAL_JSON_PATH = os.path.join(ROOT_DIR, "Data", "empresas.equatorial.json")
 
 class EmpresaBase(BaseModel):
     codigo_ons: str
     nome_empresa: str
+    cnpj: str | None = None
     base: str
     ativo: bool = True
 
@@ -32,7 +34,10 @@ def update_json_file(db: Session):
     for emp in empresas:
         if emp.base not in data:
             data[emp.base] = {}
-        data[emp.base][emp.codigo_ons] = emp.nome_empresa
+        data[emp.base][emp.codigo_ons] = {
+            "nome": emp.nome_empresa,
+            "cnpj": emp.cnpj
+        }
         
     os.makedirs(os.path.dirname(EMPRESAS_JSON_PATH), exist_ok=True)
     with open(EMPRESAS_JSON_PATH, 'w', encoding='utf-8') as f:
@@ -47,6 +52,7 @@ def create_empresa(empresa: EmpresaCreate, db: Session = Depends(get_db)):
     db_empresa = models.Empresa(
         codigo_ons=empresa.codigo_ons,
         nome_empresa=empresa.nome_empresa,
+        cnpj=empresa.cnpj,
         base=empresa.base
     )
     db.add(db_empresa)
@@ -67,6 +73,7 @@ def update_empresa(empresa_id: int, empresa: EmpresaUpdate, db: Session = Depend
     
     db_empresa.codigo_ons = empresa.codigo_ons
     db_empresa.nome_empresa = empresa.nome_empresa
+    db_empresa.cnpj = empresa.cnpj
     db_empresa.base = empresa.base
     
     db.commit()
@@ -87,21 +94,35 @@ def delete_empresa(empresa_id: int, db: Session = Depends(get_db)):
 
 @router.post("/sync")
 def sync_empresas(db: Session = Depends(get_db)):
-    if os.path.exists(EMPRESAS_JSON_PATH):
+    # Prioridade para o arquivo equatorial que tem os CNPJs
+    json_to_load = EMPRESAS_EQUATORIAL_JSON_PATH if os.path.exists(EMPRESAS_EQUATORIAL_JSON_PATH) else EMPRESAS_JSON_PATH
+    
+    if os.path.exists(json_to_load):
         try:
-            with open(EMPRESAS_JSON_PATH, 'r', encoding='utf-8') as f:
+            with open(json_to_load, 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 for base_name, emps in data.items():
-                    for codigo, nome in emps.items():
+                    for codigo, info in emps.items():
+                        # Suporta tanto o formato antigo (str) quanto novo (dict)
+                        nome = info["nome"] if isinstance(info, dict) else info
+                        cnpj = info.get("cnpj") if isinstance(info, dict) else None
+                        
                         existing = db.query(models.Empresa).filter(models.Empresa.codigo_ons == str(codigo)).first()
                         if not existing:
                             try:
-                                db.add(models.Empresa(codigo_ons=str(codigo), nome_empresa=nome, base=base_name))
+                                db.add(models.Empresa(codigo_ons=str(codigo), nome_empresa=nome, cnpj=cnpj, base=base_name))
                                 db.commit()
                             except Exception as e:
                                 print(f"Erro ao inserir {codigo}: {e}")
                                 db.rollback()
-            return {"status": "synced"}
+                        else:
+                            # Se ja existe, atualiza o CNPJ se estiver vazio
+                            if not existing.cnpj and cnpj:
+                                existing.cnpj = cnpj
+                                existing.nome_empresa = nome
+                                db.commit()
+                                
+            return {"status": "synced", "source": os.path.basename(json_to_load)}
         except Exception as e:
             return {"status": "error", "detail": str(e)}
     return {"status": "file not found"}

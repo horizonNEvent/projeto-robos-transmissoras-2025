@@ -41,7 +41,7 @@ function App() {
   const [tFilterONS, setTFilterONS] = useState('')
 
   // Form states for EmpresaManager
-  const [formData, setFormData] = useState({ codigo_ons: '', nome_empresa: '', base: 'AETE' })
+  const [formData, setFormData] = useState({ codigo_ons: '', nome_empresa: '', cnpj: '', base: 'AETE' })
   const [editingId, setEditingId] = useState(null)
 
   // Scheduling states
@@ -142,6 +142,7 @@ function App() {
         setStatus('finished');
         addLog(`Todos os processos do ${robotId.toUpperCase()} foram concluídos.`);
         setDownloadUrl(`${API_URL}/download-results?robot=${robotId}`);
+        setFormData({ codigo_ons: '', nome_empresa: '', cnpj: '', base: 'AETE' })
         setSelectedProcessIds([]); // Limpa seleção ao terminar
       }
     } catch (e) {

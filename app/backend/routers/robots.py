@@ -238,6 +238,11 @@ ROBOTS_CONFIG = {
         "download_dir": get_download_path("EQUATORIAL"),
         "name": "WebEquatorial"
     },
+    "equatorial_v2": {
+        "script": os.path.join(ROOT_DIR, "Robots", "equatorial_v2.py"),
+        "download_dir": get_download_path("EQUATORIAL"),
+        "name": "WebEquatorialV2"
+    },
     "rialmas": {
         "script": os.path.join(ROOT_DIR, "Robots", "rialmas.py"),
         "download_dir": get_download_path("RIALMAS"),
@@ -378,7 +383,7 @@ def download_results(robot: str = "siget"):
         headers={"Content-Disposition": f"attachment; filename={zip_filename}"}
     )
 
-def run_robot_logic(robot_name: str, process_id: int, competencia: Optional[str] = None, headless: bool = True):
+def run_robot_logic(robot_name: str, process_id: int, competencia: Optional[str] = None, headless: bool = True, manual_args: Optional[dict] = None):
     """
     Core logic to execute a robot. Can be called from API or Scheduler.
     """
@@ -465,6 +470,12 @@ def run_robot_logic(robot_name: str, process_id: int, competencia: Optional[str]
             # Passa a lista filtrada (ou original ser não houve filtro)
             if target_agents:
                 cmd.extend(["--agente", ",".join(target_agents)])
+        elif manual_args:
+             # Fallback para argumentos manuais se não tiver config de banco
+             if manual_args.get("empresa"): cmd.extend(["--empresa", manual_args["empresa"]])
+             if manual_args.get("user"): cmd.extend(["--user", manual_args["user"]])
+             if manual_args.get("password"): cmd.extend(["--password", manual_args["password"]])
+             if manual_args.get("agente"): cmd.extend(["--agente", manual_args["agente"]])
 
         if competencia:
             cmd.extend(["--competencia", competencia])
@@ -498,12 +509,12 @@ def run_robot_logic(robot_name: str, process_id: int, competencia: Optional[str]
                 ROBOT_STATUS[robot_name].discard(process_id)
         db.close()
 
-def run_robot_and_organize(robot_name: str, process_id: int, competencia: Optional[str] = None, headless: bool = True):
+def run_robot_and_organize(robot_name: str, process_id: int, competencia: Optional[str] = None, headless: bool = True, manual_args: Optional[dict] = None):
     """
     Wrapper para execuções MANUAIS: Roda o robô e depois organiza os arquivos.
     """
     # 1. Executa o script do robô (Lógica Bruta)
-    run_robot_logic(robot_name, process_id, competencia, headless=headless)
+    run_robot_logic(robot_name, process_id, competencia, headless=headless, manual_args=manual_args)
     
     # 2. Chama o Validador para organizar os novos arquivos
     try:
@@ -523,6 +534,15 @@ def run_robot(request: RobotRequest, background_tasks: BackgroundTasks):
     process_id = request.process_id or 0
     competencia = request.competencia
     headless = request.headless
+    
+    # Extrai argumentos manuais do request
+    manual_args = {
+        "user": request.user,
+        "password": request.password, 
+        "agente": request.agente,
+        "empresa": request.empresa
+    }
 
-    background_tasks.add_task(run_robot_and_organize, robot_name, process_id, competencia, headless)
+    background_tasks.add_task(run_robot_and_organize, robot_name, process_id, competencia, headless, manual_args)
     return {"message": f"{robot_name} (PID {process_id}) iniciado", "status": "running"}
+

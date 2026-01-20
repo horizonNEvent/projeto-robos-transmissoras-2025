@@ -41,6 +41,7 @@ export const ROBOTS = [
     { id: 'arteon', name: 'WebArteon' },
     { id: 'light', name: 'WebLight' },
     { id: 'equatorial', name: 'WebEquatorial' },
+    { id: 'equatorial_v2', name: 'WebEquatorial V2' },
     { id: 'rialmas', name: 'WebRialmas' },
     { id: 'cpfl', name: 'WebCPFL' },
     { id: 'glorian', name: 'WebGlorian' },

@@ -18,7 +18,7 @@ function EmpresaManager({ empresas, onUpdate, onLog, formData, setFormData, edit
                 await axios.post(`${API_URL}/empresas`, formData)
                 onLog(`Nova empresa criada: ${formData.nome_empresa}`)
             }
-            setFormData({ codigo_ons: '', nome_empresa: '', base: 'AETE' })
+            setFormData({ codigo_ons: '', nome_empresa: '', cnpj: '', base: 'AETE' })
             setEditingId(null)
             onUpdate()
         } catch (err) {
@@ -28,7 +28,7 @@ function EmpresaManager({ empresas, onUpdate, onLog, formData, setFormData, edit
     }
 
     const handleEdit = (emp) => {
-        setFormData({ codigo_ons: emp.codigo_ons, nome_empresa: emp.nome_empresa, base: emp.base })
+        setFormData({ codigo_ons: emp.codigo_ons, nome_empresa: emp.nome_empresa, cnpj: emp.cnpj || '', base: emp.base })
         setEditingId(emp.id)
     }
 
@@ -75,6 +75,13 @@ function EmpresaManager({ empresas, onUpdate, onLog, formData, setFormData, edit
                         style={{ flex: 1, padding: '0.5em', borderRadius: '4px', border: '1px solid #444', background: '#222', color: 'white' }}
                     />
                     <input
+                        name="cnpj"
+                        value={formData.cnpj}
+                        onChange={handleInputChange}
+                        placeholder="CNPJ (Equatorial)"
+                        style={{ width: '150px', padding: '0.5em', borderRadius: '4px', border: '1px solid #444', background: '#222', color: 'white' }}
+                    />
+                    <input
                         name="base"
                         value={formData.base}
                         onChange={handleInputChange}
@@ -86,7 +93,7 @@ function EmpresaManager({ empresas, onUpdate, onLog, formData, setFormData, edit
                         {editingId ? 'Salvar' : 'Adicionar'}
                     </button>
                     {editingId && (
-                        <button type="button" onClick={() => { setEditingId(null); setFormData({ codigo_ons: '', nome_empresa: '', base: 'AETE' }) }} style={{ background: '#555' }}>
+                        <button type="button" onClick={() => { setEditingId(null); setFormData({ codigo_ons: '', nome_empresa: '', cnpj: '', base: 'AETE' }) }} style={{ background: '#555' }}>
                             Cancelar
                         </button>
                     )}
@@ -112,6 +119,7 @@ function EmpresaManager({ empresas, onUpdate, onLog, formData, setFormData, edit
                             <tr>
                                 <th>ID ONS</th>
                                 <th>Nome Empresa</th>
+                                <th>CNPJ</th>
                                 <th>Base</th>
                                 <th>Ações</th>
                             </tr>
@@ -121,6 +129,7 @@ function EmpresaManager({ empresas, onUpdate, onLog, formData, setFormData, edit
                                 <tr key={emp.id}>
                                     <td>{emp.codigo_ons}</td>
                                     <td>{emp.nome_empresa}</td>
+                                    <td style={{ fontSize: '0.85em', color: '#888' }}>{emp.cnpj || '-'}</td>
                                     <td>
                                         <span style={{
                                             background: '#333',

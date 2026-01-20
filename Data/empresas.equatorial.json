@@ -1,16 +1,162 @@
 {
+    "RE": {
+        "4313": {
+            "nome": "BRJA",
+            "cnpj": "33485728000100",
+            "codigoneoenergia": "1108376"
+        },
+        "4314": {
+            "nome": "BRJB",
+            "cnpj": "33485874000135",
+            "codigoneoenergia": "1108377"
+        },
+        "3430": {
+            "nome": "CECA",
+            "cnpj": "19233858000205",
+            "codigoneoenergia": "1101532"
+        },
+        "3431": {
+            "nome": "CECB",
+            "cnpj": "19235607000260",
+            "codigoneoenergia": "1101533"
+        },
+        "3432": {
+            "nome": "CECC",
+            "cnpj": "19560109000292",
+            "codigoneoenergia": "1101534"
+        },
+        "4415": {
+            "nome": "CECD",
+            "cnpj": "33457932000117",
+            "codigoneoenergia": "1108935"
+        },
+        "4315": {
+            "nome": "CECE",
+            "cnpj": "33471379000177",
+            "codigoneoenergia": "1108378"
+        },
+        "4316": {
+            "nome": "CECF",
+            "cnpj": "33468809000100",
+            "codigoneoenergia": "1108379"
+        },
+        "3502": {
+            "nome": "ITA1",
+            "cnpj": "19560032000250",
+            "codigoneoenergia": "1101690"
+        },
+        "3497": {
+            "nome": "ITA2",
+            "cnpj": "19560074000291",
+            "codigoneoenergia": "1101632"
+        },
+        "3503": {
+            "nome": "ITA3",
+            "cnpj": "19560839000293",
+            "codigoneoenergia": "1101691"
+        },
+        "3530": {
+            "nome": "ITA4",
+            "cnpj": "20553751000223",
+            "codigoneoenergia": "1101738"
+        },
+        "3498": {
+            "nome": "ITA5",
+            "cnpj": "19560868000255",
+            "codigoneoenergia": "1101633"
+        },
+        "3531": {
+            "nome": "ITA6",
+            "cnpj": "20533879000225",
+            "codigoneoenergia": "1101739"
+        },
+        "3532": {
+            "nome": "ITA7",
+            "cnpj": "20533473000242",
+            "codigoneoenergia": "1101740"
+        },
+        "3537": {
+            "nome": "ITA8",
+            "cnpj": "20533310000260",
+            "codigoneoenergia": "1101754"
+        },
+        "3538": {
+            "nome": "ITA9",
+            "cnpj": "20533377000202",
+            "codigoneoenergia": "1101755"
+        }
+    },
+    "AE": {
+        "3859": {
+            "nome": "SJP1",
+            "cnpj": "30520122000170",
+            "codigoneoenergia": "1103697"
+        },
+        "3860": {
+            "nome": "SJP2",
+            "cnpj": "30432072000179",
+            "codigoneoenergia": "1103698"
+        },
+        "3861": {
+            "nome": "SJP3",
+            "cnpj": "30486042000145",
+            "codigoneoenergia": "1103699"
+        },
+        "3862": {
+            "nome": "SJP4",
+            "cnpj": "30425445000184",
+            "codigoneoenergia": "1103700"
+        },
+        "3863": {
+            "nome": "SJP5",
+            "cnpj": "30456405000108",
+            "codigoneoenergia": "1103701"
+        },
+        "3864": {
+            "nome": "SJP6",
+            "cnpj": "30421756000175",
+            "codigoneoenergia": "1103702"
+        },
+        "3740": {
+            "nome": "COR1",
+            "cnpj": "14285232000148",
+            "codigoneoenergia": "1102652"
+        },
+        "3741": {
+            "nome": "COR2",
+            "cnpj": "14285242000183",
+            "codigoneoenergia": "1102653"
+        },
+        "3750": {
+            "nome": "COR3",
+            "cnpj": "24342513000149",
+            "codigoneoenergia": "1102829"
+        },
+        "8011": {
+            "nome": "LIBRA",
+            "cnpj": "10500221000182",
+            "codigoneoenergia": "1100243"
+        }
+    },
+    "DE": {
+        "3748": {
+            "nome": "DE",
+            "cnpj": "27093977000238",
+            "codigoneoenergia": "1102827"
+        }
+    },
     "AETE": {
-        "4284" : {
+        "4284": {
             "nome": "Anemus_I",
-            "cnpj": "29481536000158" 
+            "cnpj": "29481536000158"
         },
-        "4292" : {
+        "4292": {
             "nome": "Anemus_II",
-            "cnpj": "29492546000199" 
+            "cnpj": "29492546000199"
         },
-        "4319" : {
+        "4319": {
             "nome": "Anemus_III",
-            "cnpj": "38350307000195" 
-        }       
+            "cnpj": "38350307000195"
+        }
     }
 }
