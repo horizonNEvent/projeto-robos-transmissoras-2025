@@ -238,7 +238,7 @@ class GlorianRobot(BaseRobot):
                 self._click("//div[@title='Download do boleto']")
                 time.sleep(1)
             except: self.logger.warning("Botão Boleto não achado/clicável")
-
+            time.sleep(3)
             try:
                 self.logger.info("- XMLs")
                 self._click("//div[@title='Download do XML da NF-e.']")
