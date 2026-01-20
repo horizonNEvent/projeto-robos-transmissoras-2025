@@ -332,6 +332,11 @@ ROBOTS_CONFIG = {
         "script": os.path.join(ROOT_DIR, "Robots", "harpix.py"),
         "download_dir": get_download_path("HARPIX"),
         "name": "WebHarpix"
+    },
+    "cemig": {
+        "script": os.path.join(ROOT_DIR, "Robots", "cemig.py"),
+        "download_dir": get_download_path("CEMIG"),
+        "name": "WebCemig"
     }
 }
 

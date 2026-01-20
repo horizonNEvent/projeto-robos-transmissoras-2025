@@ -70,4 +70,5 @@ export const ROBOTS = [
     { id: 'tbe', name: 'WebTBE' },
     { id: 'ons', name: 'WebOns' },
     { id: 'harpix', name: 'WebHarpix' },
+    { id: 'cemig', name: 'WebCemig' },
 ]
