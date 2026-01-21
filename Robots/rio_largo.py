@@ -218,4 +218,4 @@ if __name__ == "__main__":
             # If a date is passed via CLI, use it. Otherwise, defaults to None (most recent)
             bot.run(output_dir=agent_output_dir, target_date=args.competencia)
         except Exception as e:
-            print(f"❌ Error processing agent {code}: {e}")
+            print(f"[X] Error processing agent {code}: {e}")

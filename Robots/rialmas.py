@@ -104,8 +104,12 @@ class RialmasRobot(BaseRobot):
                 transmissora = self.sanitizar_nome(colunas[0].get_text(strip=True))
                 numero = self.sanitizar_nome(colunas[1].get_text(strip=True))
                 
-                # Pasta Final: output_dir/Transmissora
-                final_dir = os.path.join(output_dir, transmissora)
+                # Pasta Final: output_dir/Transmissora_AgentCode para garantir separação
+                nome_pasta = f"{transmissora}_{agent}"
+                final_dir = os.path.join(output_dir, nome_pasta)
+                
+                # Garante que a pasta da transmissora existe
+                os.makedirs(final_dir, exist_ok=True)
                 
                 # Links
                 boletos_links = [a["href"] for a in colunas[3].find_all("a")]
@@ -118,6 +122,7 @@ class RialmasRobot(BaseRobot):
 
                 # Boleto
                 for idx, b_url in enumerate(boletos_links, 1):
+                    # Salva na raiz do agente
                     path = os.path.join(final_dir, f"boleto_{numero}_{idx}.pdf")
                     try:
                         r = session.get(b_url)
@@ -127,11 +132,13 @@ class RialmasRobot(BaseRobot):
 
                 # XMLs
                 for x_url in xml_finais:
+                    # Salva na raiz do agente
                     path = os.path.join(final_dir, os.path.basename(x_url))
                     self.baixar_arquivo(x_url, path, session=session)
 
                 # DANFEs
                 for d_url in danfe_finais:
+                    # Salva na raiz do agente
                     path = os.path.join(final_dir, os.path.basename(d_url))
                     self.baixar_arquivo(d_url, path, session=session)
 
@@ -233,6 +240,7 @@ class RialmasRobot(BaseRobot):
                 doc_num = self.sanitizar_nome(cols[5].text) if len(cols) > 5 else "000"
                 
                 cliente_dir = os.path.join(output_dir, cliente)
+                os.makedirs(cliente_dir, exist_ok=True)
                 
                 links = row.find_all('a', href=True)
                 for link in links:
@@ -269,14 +277,19 @@ class RialmasRobot(BaseRobot):
             self.logger.error("Código ONS (--agente) é obrigatório.")
             return
 
-        agente_ons = str(self.args.agente).strip()
+        agentes_raw = str(self.args.agente).strip()
+        lista_agentes = [a.strip() for a in agentes_raw.split(',') if a.strip()]
+        
         base_dir = self.get_output_path()
-        
-        # Tenta SIGET
-        self.processar_siget(agente_ons, base_dir)
-        
-        # Tenta ALUPAR
-        self.processar_alupar(agente_ons, base_dir)
+
+        for agente_ons in lista_agentes:
+            self.logger.info(f"--- Iniciando processamento para Agente: {agente_ons} ---")
+            
+            # Tenta SIGET
+            self.processar_siget(agente_ons, base_dir)
+            
+            # Tenta ALUPAR
+            self.processar_alupar(agente_ons, base_dir)
         
         self.logger.info("Execução finalizada.")
 

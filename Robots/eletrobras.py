@@ -167,18 +167,48 @@ class EletrobrasRobot(BaseRobot):
             
             def get_btn_id(col_index):
                 if col_index < len(cols):
-                    a_tag = cols[col_index].find('a')
-                    if a_tag: return a_tag.get('id')
+                    cell = cols[col_index]
+                    # Priority 1: <a> tag with ID
+                    a_tag = cell.find('a')
+                    if a_tag and a_tag.get('id'):
+                        return a_tag.get('id')
+                    
+                    # Priority 2: <img> tag acting as button (common for XML)
+                    # User provided example: id="WD0DBE-img", Event ID="WD0DBE"
+                    img_tag = cell.find('img', {'class': 'urImgBtn'})
+                    if img_tag and img_tag.get('id'):
+                        raw_id = img_tag.get('id')
+                        return raw_id.replace('-img', '') # Strip suffix to get Event ID
+                        
                 return None
             
             xml_btn = None
             boleto_btn = None
             fatura_btn = None
             
+            # Robust Button Identification
             if len(cols) > 12:
+                 # XML is usually around col 12. 
+                 # We specifically look for the XML icon/button here.
                  xml_btn = get_btn_id(12)
+                 
+                 # Fallback: Search neighbors
+                 if not xml_btn:
+                     xml_btn = get_btn_id(11) or get_btn_id(13)
+                 
+                 # Extra Fallback: Look for any 'urImgBtn' with "Xml" in src in ANY column
+                 if not xml_btn:
+                     for c_idx, col in enumerate(cols):
+                         img = col.find('img', {'src': re.compile(r'Xml', re.IGNORECASE)})
+                         if img and img.get('id'):
+                             xml_btn = img.get('id').replace('-img', '')
+                             break
+                     
                  fatura_btn = get_btn_id(2)
                  boleto_btn = get_btn_id(3)
+            
+            # Ensure we don't map the same button twice
+            if xml_btn == fatura_btn: xml_btn = None 
 
             data.append({
                 'col_values': col_texts,
@@ -265,14 +295,18 @@ class EletrobrasRobot(BaseRobot):
                         target_dir = os.path.join(base_output, fatura_num)
                         os.makedirs(target_dir, exist_ok=True)
                         
+                        # XML Download with Validation
                         if row['xml_btn_id']:
                              fname = os.path.join(target_dir, f"NF_{fatura_num}.xml")
-                             if not os.path.exists(fname): self.download_file(row['xml_btn_id'], fname)
+                             if not os.path.exists(fname): 
+                                 self.download_file(row['xml_btn_id'], fname)
+                        else:
+                            self.logger.warning(f"NO XML BUTTON FOUND for Invoice {fatura_num}")
                         
                         if row['boleto_btn_id']:
                              fname = os.path.join(target_dir, f"Boleto_{fatura_num}.pdf")
                              if not os.path.exists(fname): self.download_file(row['boleto_btn_id'], fname)
-                                 
+                                  
                         if row['fatura_btn_id']:
                              fname = os.path.join(target_dir, f"Fatura_{fatura_num}.pdf")
                              if not os.path.exists(fname): self.download_file(row['fatura_btn_id'], fname)
