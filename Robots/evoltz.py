@@ -8,6 +8,7 @@ import time
 import pdfkit
 import logging
 import argparse
+from utils_paths import get_base_download_path, ensure_dir
 
 # Configuração de logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -38,7 +39,7 @@ class EvoltzRobot:
         self.empresa_mae = empresa_mae
         self.cod_ons = cod_ons
         self.nome_ons = nome_ons
-        from utils_paths import get_base_download_path, ensure_dir
+        # from utils_paths import get_base_download_path, ensure_dir
         self.base_dir_default = get_base_download_path("EVOLTZ")
         self.download_root = output_dir or self.base_dir_default
         
@@ -191,8 +192,10 @@ def main():
 
         logging.info(f"=== Processando Grupo: {grupo} ===")
         for cod_ons, nome_ons in mapping.items():
-            if args.agente and str(args.agente) != str(cod_ons):
-                continue
+            if args.agente:
+                agentes_list = [a.strip() for a in args.agente.split(',')]
+                if str(cod_ons) not in agentes_list:
+                    continue
 
             robot = EvoltzRobot(grupo, cod_ons, nome_ons, output_dir=args.output_dir)
             if robot.login():
@@ -211,7 +214,6 @@ def main():
                     # Limpa nome da transmissora para pasta
                     t_pasta = re.sub(r'[^\w\s-]', '', t_nome).strip().replace(' ', '_')
                     path_dest = os.path.join(robot.download_root, grupo, cod_ons, t_pasta, periodo_pasta)
-                    from utils_paths import ensure_dir
                     ensure_dir(path_dest)
                     
                     logging.info(f"    > {t_nome} (Fatura {num})")

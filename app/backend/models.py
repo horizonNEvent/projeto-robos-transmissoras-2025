@@ -82,3 +82,11 @@ class DocumentRegistry(Base):
     is_valid = Column(Boolean, default=True)
     validation_notes = Column(String, nullable=True)
     created_at = Column(String)
+
+class SigetPublicTarget(Base):
+    __tablename__ = 'siget_public_targets'
+    
+    id = Column(Integer, primary_key=True, index=True)
+    codigo_ons = Column(String, unique=True, index=True)
+    nome = Column(String)
+    ativo = Column(Boolean, default=True)

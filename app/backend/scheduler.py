@@ -52,19 +52,43 @@ def process_downloaded_files(execution_id, robot_type, robot_config_id=None):
                     # root exemplo: /app/downloads/TUST/CNT/DE/3748
                     path_parts = root.replace("\\", "/").split("/")
                     # Partes de trás para frente: [..., ROBOT_TYPE, BASE, ONS_CODE]
-                    inferred_ons = path_parts[-1] if len(path_parts) > 0 else None
-                    inferred_base = path_parts[-2] if len(path_parts) > 1 else None
+                    
+                    inferred_ons = None
+                    inferred_base = None
+
+                    # Lógica Específica para WebSigetPublic (Nome do arquivo: TIPO_TRANS_AGENT_DATA...)
+                    if robot_type.lower() == "websigetpublic":
+                        parts = filename.split("_")
+                        if len(parts) >= 3:
+                            # TIPO = parts[0]
+                            # TRANS = parts[1]
+                            # AGENT = parts[2]
+                            inferred_ons = parts[2]
+                            # Base pode vir do RobotConfig se necessário, mas vamos tentar achar no JSON
+                    else:
+                        inferred_ons = path_parts[-1] if len(path_parts) > 0 else None
+                        inferred_base = path_parts[-2] if len(path_parts) > 1 else None
                     
                     # Nome do Agente: Busca no JSON, fallback para DB, ultimo caso string vazia
                     agent_name = "Desconhecido"
                     
                     # 1. Tenta pegar do JSON (Mais rápido e confiável conforme parametrização)
-                    if inferred_base and inferred_ons:
-                        # Varre o JSON pra achar o match
-                        # Estrutura: { "DE": { "3748": "Diamante" } }
+                    found_in_json = False
+                    
+                    # Se temos base, busca direto nela
+                    if inferred_base:
                         base_data = EMPRESAS_DATA.get(inferred_base.upper()) or EMPRESAS_DATA.get(inferred_base)
                         if base_data:
                             agent_name = base_data.get(str(inferred_ons)) or agent_name
+                            if agent_name != "Desconhecido": found_in_json = True
+
+                    # Se não achou (ou não tinha base), busca em TODAS as bases do JSON (Busca Inversa)
+                    if not found_in_json and inferred_ons:
+                        for base_key, agents_dict in EMPRESAS_DATA.items():
+                            if str(inferred_ons) in agents_dict:
+                                agent_name = agents_dict[str(inferred_ons)]
+                                inferred_base = base_key
+                                break
 
                     # 2. Se falhou e ainda é Desconhecido, tenta DB
                     if agent_name == "Desconhecido" and inferred_ons:
@@ -73,7 +97,11 @@ def process_downloaded_files(execution_id, robot_type, robot_config_id=None):
                         if emp:
                             agent_name = emp.nome_empresa
 
-                    final_dir = os.path.join(os.getcwd(), "downloads", "FINAL", comp, cnpj)
+                    # Define a pasta de destino: FINAL/COMPETENCIA/NOME_AGENTE
+                    # Se agente for desconhecido, usa o CNPJ do emissor como fallback para não misturar tudo
+                    folder_name = agent_name if agent_name != "Desconhecido" else f"CNPJ_{cnpj}"
+                    
+                    final_dir = os.path.join(os.getcwd(), "downloads", "FINAL", comp, folder_name)
                     os.makedirs(final_dir, exist_ok=True)
                     
                     final_path = os.path.join(final_dir, filename)
@@ -99,7 +127,7 @@ def process_downloaded_files(execution_id, robot_type, robot_config_id=None):
                     exists = db.query(DocumentRegistry).filter_by(file_hash=data["hash"]).first()
                     if not exists:
                         db.add(doc)
-                        print(f"📦 [VALIDADOR] Arquivo organizado e registrado: {agent_name} ({comp})")
+                        print(f"📦 [VALIDADOR] Arquivo organizado e registrado: {agent_name} ({comp}) -> {folder_name}")
                     else:
                         print(f"⏭️ [VALIDADOR] Arquivo já registrado: {filename}")
                 elif filename.endswith(".xml"):

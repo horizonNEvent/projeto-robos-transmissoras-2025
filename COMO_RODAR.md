@@ -77,3 +77,24 @@ O projeto possui um `Makefile` na raiz para facilitar os comandos:
 ## Resumo das Portas
 *   **Frontend**: `5173` (Local)
 *   **Backend API**: `8000`
+
+---
+
+## Compartilhar Acesso (Tunnel)
+
+Para permitir que outra pessoa acesse seu projeto rodando localmente (via internet), você pode criar um "túnel". Isso expõe seu frontend para a web, permitindo que outros acessem como se estivessem na sua rede.
+
+### Usando Localtunnel (Recomendado - Sem instalação)
+
+Como seu frontend já está configurado para redirecionar as chamadas de API para o backend localmente, você só precisa expor a porta do frontend (**5173**).
+
+1.  Certifique-se de que o **Frontend** (`npm run dev`) e o **Backend** (`uvicorn ...`) estão rodando.
+2.  Abra um **novo terminal** (Terminal 3).
+3.  Execute o seguinte comando:
+    ```powershell
+    npx localtunnel --port 5173
+    ```
+4.  O terminal exibirá uma URL (ex: `https://nome-aleatorio.loca.lt`).
+5.  **Envie essa URL** para a pessoa.
+
+**Atenção**: O `localtunnel` pode solicitar uma confirmação de segurança na primeira vez que a página for acessada. Geralmente, ele pede para digitar o endereço IP público de quem está hospedando (o seu). Você pode obter seu IP acessando [ipv4.icanhazip.com](https://ipv4.icanhazip.com) e passar para a pessoa, ou ela mesma verá instruçoes na tela.

@@ -66,25 +66,37 @@ class SigetPublicRobot:
         ensure_dir(self.output_path)
 
     def processar(self, args_competencia=None):
-        print(f"\n>>> [SIGET] Transmissora: {self.ons_code} ({self.ons_name}) | Agente: {self.agent_code}")
+        print(f"\n>>> [SIGET] Transmissora: {self.ons_code} ({self.ons_name})")
         # Calcular competência (YYYYMM)
         # Se veio via ARGV, usa. Senão calcula next month.
         competencia = ""
         if args_competencia:
             competencia = args_competencia
         else:
+            # Por padrão usar o mês ANTERIOR (Ex: Em Jan/2026 baixa Dez/2025)
             from datetime import timedelta
             today = datetime.now()
-            next_month = (today.replace(day=1) + timedelta(days=32)).replace(day=1)
-            competencia = next_month.strftime("%Y%m")
+            first = today.replace(day=1)
+            prev_month = first - timedelta(days=1)
+            competencia = prev_month.strftime("%Y%m")
+
+        # Split agents
+        agents_list = [x.strip() for x in self.agent_code.split(',') if x.strip()]
+        print(f"    Processando {len(agents_list)} agentes para Competência: {competencia}")
         
+        for agent in agents_list:
+             self.processar_agente(agent, competencia)
+
+    def processar_agente(self, agent, competencia):
         # URL Correta: transmitter/{COD_TRANS}/invoices?agent={COD_AGENTE}&time={COMPETENCIA}&page=1
-        url = f"https://sys.sigetplus.com.br/cobranca/transmitter/{self.ons_code}/invoices?agent={self.agent_code}&time={competencia}&page=1"
+        url = f"https://sys.sigetplus.com.br/cobranca/transmitter/{self.ons_code}/invoices?agent={agent}&time={competencia}&page=1"
         
-        # Tenta também o mês ATUAL se não achar nada?
-        # Vamos tentar primeiro o calculado.
-        
-        print(f"    - URL: {url}")        
+        # Cria subpasta para o agente dentro da pasta da transmissora
+        # Ex: .../WEBSIGETPUBLIC/EMC_1321_MARITUBA/3430/
+        agent_path = os.path.join(self.output_path, str(agent))
+        ensure_dir(agent_path)
+
+        print(f"    > [Agente {agent}] Verificando: {url}")        
         try:
             res = self.session.get(url, headers=self.headers, timeout=30)
             if res.status_code != 200:
@@ -92,7 +104,7 @@ class SigetPublicRobot:
                 return
 
             if "Nenhuma fatura encontrada" in res.text:
-                 print(f"    [AVISO] Nenhuma fatura encontrada.")
+                 print(f"    [AVISO] Agente {agent}: Nenhuma fatura encontrada.")
                  return
 
             soup = BeautifulSoup(res.text, 'html.parser')
@@ -109,8 +121,11 @@ class SigetPublicRobot:
                 if xml_tag or danfe_tag:
                     found_docs = True
                     invoice_id = datetime.now().strftime("%Y%m%d")
-                    if xml_tag: self.baixar(xml_tag['href'], "XML", invoice_id)
-                    if danfe_tag: self.baixar(danfe_tag['href'], "DANFE", invoice_id)
+                    # Append Agent to ID to avoid collisions
+                    invoice_id = f"{agent}_{invoice_id}"
+                    
+                    if xml_tag: self.baixar(xml_tag['href'], "XML", invoice_id, agent_path)
+                    if danfe_tag: self.baixar(danfe_tag['href'], "DANFE", invoice_id, agent_path)
             
             # 2. Tenta achar tabela (página com histórico)
             else:
@@ -136,20 +151,22 @@ class SigetPublicRobot:
                     if xml_link or pdf_link or boleto_link:
                         found_docs = True
                         # Tenta pegar ID da primeira coluna
-                        unique_id = cols[0].get_text(strip=True) if cols else datetime.now().strftime("%Y%m%d_%H%M%S")
-                        unique_id = sanitize_name(unique_id)
+                        unique_id_raw = cols[0].get_text(strip=True) if cols else datetime.now().strftime("%Y%m%d_%H%M%S")
+                        unique_id = sanitize_name(unique_id_raw)
+                        # Append Agent to ID
+                        unique_id = f"{agent}_{unique_id}"
                         
-                        if xml_link: self.baixar(xml_link, "XML", unique_id)
-                        if pdf_link: self.baixar(pdf_link, "DANFE", unique_id)
-                        if boleto_link: self.baixar(boleto_link, "BOLETO", unique_id)
+                        if xml_link: self.baixar(xml_link, "XML", unique_id, agent_path)
+                        if pdf_link: self.baixar(pdf_link, "DANFE", unique_id, agent_path)
+                        if boleto_link: self.baixar(boleto_link, "BOLETO", unique_id, agent_path)
 
             if not found_docs:
-                print(f"    [AVISO] Nenhum link de download identificado.")
+                print(f"    [AVISO] Agente {agent}: Nenhum link de download identificado.")
 
         except Exception as e:
             print(f"    [ERRO] Exceção: {e}")
 
-    def baixar(self, url_suffix, tipo, invoice_id):
+    def baixar(self, url_suffix, tipo, invoice_id, output_folder=None):
         # A URL pode ser relativa ou absoluta
         if not url_suffix.startswith("http"):
              full_url = urljoin("https://sys.sigetplus.com.br", url_suffix)
@@ -157,7 +174,10 @@ class SigetPublicRobot:
              full_url = url_suffix
              
         filename = f"{tipo}_{self.ons_code}_{invoice_id}.{('xml' if tipo == 'XML' else 'pdf')}"
-        path = os.path.join(self.output_path, filename)
+        
+        # Usa pasta específica se fornecida, senão usa a geral (fallback)
+        target_path = output_folder if output_folder else self.output_path
+        path = os.path.join(target_path, filename)
         
         if os.path.exists(path):
             print(f"    [SKIP] {tipo} já existe ({filename}).")

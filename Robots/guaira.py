@@ -6,6 +6,7 @@ from datetime import datetime
 import time
 from bs4 import BeautifulSoup
 import argparse
+from utils_paths import get_base_download_path, ensure_dir
 
 class GuairaDownloader:
     def __init__(self, empresa_mae=None, cod_ons=None, nome_ons=None, output_dir=None):
@@ -15,7 +16,7 @@ class GuairaDownloader:
         self.nome_ons = nome_ons
         self.empresa_mae = empresa_mae
         self.i_cod_emp = "15" # Conforme INSIGHT C#
-        from utils_paths import get_base_download_path, ensure_dir
+        # from utils_paths import get_base_download_path, ensure_dir
         self.base_dir_default = get_base_download_path("GUAIRA")
         
         # Organização de pastas padrão
@@ -134,8 +135,10 @@ def main():
 
         print(f"\n=== GRUPO: {empresa_mae} ===")
         for cod_ons, nome_ons in cod_ons_dict.items():
-            if args.agente and str(args.agente) != str(cod_ons):
-                continue
+            if args.agente:
+                agentes_list = [a.strip() for a in args.agente.split(',')]
+                if str(cod_ons) not in agentes_list:
+                    continue
 
             downloader = GuairaDownloader(empresa_mae, cod_ons, nome_ons, output_dir=args.output_dir)
             if downloader.login():
