@@ -242,10 +242,30 @@ class HarpixRobot(BaseRobot):
             self.logger.error(f"Erro no login: {e}")
             return False
 
+    def check_announcement_popup(self):
+        """Novo método para fechar popups de aviso globais (ex: MEZ 5) que podem bloquear o robô."""
+        try:
+            # O popup geralmente aparece no frame mainsystem ou mainform
+            popups = self.driver.find_elements(By.CSS_SELECTOR, ".swal2-container")
+            if popups and popups[0].is_displayed():
+                self.logger.info("📢 Popup de aviso detectado. Fechando...")
+                confirm_btn = self.driver.find_elements(By.CSS_SELECTOR, ".swal2-confirm")
+                if confirm_btn:
+                    confirm_btn[0].click()
+                    time.sleep(2)
+                    self.logger.info("✅ Popup fechado.")
+                    return True
+        except:
+            pass
+        return False
+
     def acessar_grid(self):
         try:
             self.driver.switch_to.default_content()
             self.switch_frames(["mainsystem", "mainform"])
+
+            # Verificação de popup logo após entrar no grid
+            self.check_announcement_popup()
 
             frames = self.driver.find_elements(By.TAG_NAME, "iframe")
             url_frame = next(
@@ -308,12 +328,10 @@ class HarpixRobot(BaseRobot):
     def clicar_download(self, empresa, tipo):
         try:
             guid = self.icon_guids.get(tipo)
-            if not guid: return
+            if not guid: return False
 
-            # fragmento logic from original
             fragmento = self.sanitize_name(empresa).split("ENERGIA")[0] + "ENERGIA"
             
-            # XPath
             xpath = (
                 f"//div[contains(text(), '{fragmento}')]/"
                 f"ancestor::tr//img[contains(@src, '{guid}')]"
@@ -323,16 +341,36 @@ class HarpixRobot(BaseRobot):
             self.driver.execute_script("arguments[0].scrollIntoView({block:'center'})", btn)
             time.sleep(1)
             btn.click()
-            time.sleep(3) # Wait for swal or download start
+            
+            # Aguarda o indicador de "Aguarde, o PDF está sendo gerado..." sumir
+            # e/ou trata o popup de erro se aparecer
+            start_wait = time.time()
+            while time.time() - start_wait < 15:
+                # 1. Verifica se deu erro (popup SweetAlert)
+                popups = self.driver.find_elements(By.CSS_SELECTOR, ".swal2-container")
+                if popups and popups[0].is_displayed():
+                    msg = popups[0].text
+                    self.logger.warning(f"⚠️ {tipo} indisponível para {fragmento}: {msg}")
+                    confirm_btn = self.driver.find_elements(By.CSS_SELECTOR, ".swal2-confirm")
+                    if confirm_btn: 
+                        confirm_btn[0].click()
+                    return False
 
-            # Check swal alert
-            if self.driver.find_elements(By.CSS_SELECTOR, ".swal2-confirm"):
-                self.logger.warning(f"⚠️ {tipo} indisponível para {fragmento}")
-                self.driver.find_element(By.CSS_SELECTOR, ".swal2-confirm").click()
-            else:
-                self.logger.info(f"✅ {tipo} solicitado para {fragmento}")
+                # 2. Verifica se o toast de "Aguarde" sumiu (se existir)
+                toasts = self.driver.find_elements(By.XPATH, "//*[contains(text(), 'Aguarde, o PDF')]")
+                if not toasts:
+                    # Se não tem toast e não tem popup, assume que o comando foi aceito
+                    self.logger.info(f"✅ {tipo} solicitado para {fragmento}")
+                    return True
+                
+                time.sleep(1)
+            
+            self.logger.warning(f"Timeout aguardando processamento de {tipo} para {fragmento}")
+            return True
+            
         except Exception as e:
             self.logger.error(f"Erro ao clicar download {tipo} para {empresa}: {e}")
+            return False
 
     def run(self):
         # 1. Identificar quais códigos ONS processar
@@ -386,11 +424,21 @@ class HarpixRobot(BaseRobot):
                         for f in faturas:
                             self.logger.info(f"  > Processando: {f['empresa']}")
                             for tipo in ["BOLETO", "XML"]:
-                                self.clicar_download(f["empresa"], tipo)
-                                time.sleep(1)
-                        
-                        self.logger.info("  ⏳ Aguardando downloads...")
-                        time.sleep(15) # Espera técnica para downloads
+                                # Conta arquivos antes do clique
+                                antes = len(os.listdir(self.output_dir))
+                                
+                                if self.clicar_download(f["empresa"], tipo):
+                                    # Aguarda o surgimento de um novo arquivo
+                                    wait_file = time.time()
+                                    while time.time() - wait_file < 20: # 20s de timeout por arquivo
+                                        atual = len(os.listdir(self.output_dir))
+                                        if atual > antes:
+                                            self.logger.info(f"  📦 Download detectado para {tipo}")
+                                            break
+                                        time.sleep(1)
+                                
+                        self.logger.info("  ⏳ Finalizando recepção de downloads...")
+                        time.sleep(5)
                     else:
                         self.logger.warning(f"  ⚠️ Nenhuma fatura encontrada para {ons_code}")
 

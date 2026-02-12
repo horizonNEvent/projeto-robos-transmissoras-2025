@@ -84,17 +84,30 @@ O projeto possui um `Makefile` na raiz para facilitar os comandos:
 
 Para permitir que outra pessoa acesse seu projeto rodando localmente (via internet), você pode criar um "túnel". Isso expõe seu frontend para a web, permitindo que outros acessem como se estivessem na sua rede.
 
-### Usando Localtunnel (Recomendado - Sem instalação)
+### Usando Cloudflare Tunnel (Mais robusto)
 
-Como seu frontend já está configurado para redirecionar as chamadas de API para o backend localmente, você só precisa expor a porta do frontend (**5173**).
+O Cloudflare Tunnel é uma alternativa excelente e gratuita para expor seu serviço. Você já possui o executável `cloudflared.exe` na raiz do projeto.
+
+#### Opção A: Túnel Rápido (URL Temporária)
+Útil para testes rápidos. Toda vez que você reiniciar, a URL mudará.
 
 1.  Certifique-se de que o **Frontend** (`npm run dev`) e o **Backend** (`uvicorn ...`) estão rodando.
-2.  Abra um **novo terminal** (Terminal 3).
+2.  Abra um **novo terminal** na raiz do projeto.
 3.  Execute o seguinte comando:
     ```powershell
-    npx localtunnel --port 5173
+    .\cloudflared.exe tunnel --url http://localhost:5173
     ```
-4.  O terminal exibirá uma URL (ex: `https://nome-aleatorio.loca.lt`).
-5.  **Envie essa URL** para a pessoa.
+4.  Procure por uma linha no log que diga algo como: 
+    `https://algum-nome.trycloudflare.com`
+5.  **Envie essa URL** para a pessoa. O Cloudflare cuidará de encaminhar o tráfego para seu frontend e, através do proxy no `vite.config.js`, para seu backend.
 
-**Atenção**: O `localtunnel` pode solicitar uma confirmação de segurança na primeira vez que a página for acessada. Geralmente, ele pede para digitar o endereço IP público de quem está hospedando (o seu). Você pode obter seu IP acessando [ipv4.icanhazip.com](https://ipv4.icanhazip.com) e passar para a pessoa, ou ela mesma verá instruçoes na tela.
+#### Opção B: Túnel Permanente (Requer conta Cloudflare e Domínio)
+Se você quiser uma URL fixa (ex: `meuprojeto.meudominio.com`), siga estes passos:
+1.  Crie uma conta gratuita em [dash.cloudflare.com](https://dash.cloudflare.com).
+2.  No terminal, faça login: `.\cloudflared.exe tunnel login`.
+3.  Crie um túnel: `.\cloudflared.exe tunnel create meu-projeto`.
+4.  Configure o DNS: `.\cloudflared.exe tunnel route dns meu-projeto meuprojeto.meudominio.com`.
+5.  Rode o túnel apontando para o frontend:
+    ```powershell
+    .\cloudflared.exe tunnel run --url http://localhost:5173 meu-projeto
+    ```

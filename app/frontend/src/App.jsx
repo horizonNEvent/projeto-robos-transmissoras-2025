@@ -13,6 +13,7 @@ import SigetPublicManager from './components/SigetPublicManager'
 import DocumentManager from './components/DocumentManager'
 import LogsPanel from './components/LogsPanel'
 import ScheduleModal from './components/ScheduleModal'
+import ParallelProcessManager from './components/ParallelProcessManager'
 
 const API_URL = "/api"
 
@@ -110,7 +111,7 @@ function App() {
           agente: selectedAgenteFilter || null,
           user: process.username || null,
           password: process.password || null,
-          competencia: ((['websigetpublic', 'webtaesa', 'light', 'glorian', 'cpfl', 'rialmas', 'equatorial', 'copel', 'mge', 'stategrid', 'stn', 'tecp', 'elte', 'etes', 'tme', 'etem', 'etvg', 'tne', 'etc', 'etap', 'tcc', 'tpe', 'tsm', 'etb', 'amazonia', 'tcpe', 'vsb', 'verene', 'ons'].includes(selectedRobotId)) && window.tempCompetencia) ? window.tempCompetencia : null,
+          competencia: ((['websigetpublic', 'webtaesa', 'light', 'glorian', 'cpfl', 'rialmas', 'equatorial', 'copel', 'mge', 'stategrid', 'stn', 'tecp', 'elte', 'etes', 'tme', 'etem', 'etvg', 'tne', 'etc', 'etap', 'tcc', 'tpe', 'tsm', 'etb', 'amazonia', 'tcpe', 'vsb', 'verene', 'ons', 'harpix'].includes(selectedRobotId)) && window.tempCompetencia) ? window.tempCompetencia : null,
           process_id: process.id
         }
         addLog(`Gatilho disparado para: ${process.label} (${process.base})`);
@@ -262,6 +263,13 @@ function App() {
           </div>
 
           <div
+            className={`nav-item ${activeTab === 'processes' ? 'active' : ''}`}
+            onClick={() => setActiveTab('processes')}
+          >
+            🚀 Gerenciador de Processos
+          </div>
+
+          <div
             className={`nav-item ${activeTab === 'documents' ? 'active' : ''}`}
             onClick={() => setActiveTab('documents')}
           >
@@ -321,7 +329,7 @@ function App() {
             </header>
 
             {/* Input Extra para SigetPublic / Taesa / Light e novos robôs: Competência */}
-            {['websigetpublic', 'webtaesa', 'light', 'glorian', 'cpfl', 'rialmas', 'equatorial', 'copel', 'mge', 'stategrid', 'stn', 'tecp', 'elte', 'etes', 'tme', 'etem', 'etvg', 'tne', 'etc', 'etap', 'tcc', 'tpe', 'tsm', 'etb', 'amazonia', 'tcpe', 'vsb', 'verene', 'ons'].includes(selectedRobotId) && (
+            {['websigetpublic', 'webtaesa', 'light', 'glorian', 'cpfl', 'rialmas', 'equatorial', 'copel', 'mge', 'stategrid', 'stn', 'tecp', 'elte', 'etes', 'tme', 'etem', 'etvg', 'tne', 'etc', 'etap', 'tcc', 'tpe', 'tsm', 'etb', 'amazonia', 'tcpe', 'vsb', 'verene', 'ons', 'harpix'].includes(selectedRobotId) && (
               <div style={{ margin: '1rem', padding: '1rem', background: '#334155', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <label style={{ color: '#cbd5e1', fontWeight: 'bold' }}>📅 Competência (YYYYMM):</label>
                 <input
@@ -574,6 +582,14 @@ function App() {
                   />
                 </div>
               </div>
+            </div>
+
+          )}
+
+        {
+          activeTab === 'processes' && (
+            <div className="processes-view">
+              <ParallelProcessManager apiBaseUrl={API_URL} />
             </div>
           )
         }

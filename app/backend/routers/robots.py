@@ -5,7 +5,7 @@ import subprocess
 import os
 import shutil
 from sqlalchemy.orm import Session
-from typing import Optional
+from typing import Optional, List
 import threading
 
 from .. import database
@@ -571,3 +571,233 @@ def run_robot(request: RobotRequest, background_tasks: BackgroundTasks):
     background_tasks.add_task(run_robot_and_organize, robot_name, process_id, competencia, headless, manual_args)
     return {"message": f"{robot_name} (PID {process_id}) iniciado", "status": "running"}
 
+
+from ..process_manager import manager as process_manager
+
+def build_robot_command(robot_name: str, config: dict, db_config: Optional[models.RobotConfig], manual_args: dict, competencia: Optional[str], headless: bool, output_dir: Optional[str] = None) -> List[str]:
+    cmd = ["python", config['script']]
+    
+    if db_config:
+        if db_config.base: cmd.extend(["--empresa", db_config.base])
+        if db_config.username: cmd.extend(["--user", db_config.username])
+        if db_config.password: cmd.extend(["--password", db_config.password])
+        
+        # Recupera target_agents do db_config se existir
+        target_agents = []
+        try:
+             agents_dict = json.loads(db_config.agents_json or '{}')
+             target_agents = list(agents_dict.keys())
+        except: pass
+
+        if target_agents:
+            cmd.extend(["--agente", ",".join(target_agents)])
+            
+    elif manual_args:
+            if manual_args.get("empresa"): cmd.extend(["--empresa", manual_args["empresa"]])
+            if manual_args.get("user"): cmd.extend(["--user", manual_args["user"]])
+            if manual_args.get("password"): cmd.extend(["--password", manual_args["password"]])
+            if manual_args.get("agente"): cmd.extend(["--agente", manual_args["agente"]])
+
+    if competencia:
+        cmd.extend(["--competencia", competencia])
+
+    if headless:
+        cmd.extend(["--headless"])
+
+    # Usa output_dir específico se fornecido, senão usa o padrão do config
+    final_output_dir = output_dir if output_dir else config['download_dir']
+    cmd.extend(["--output_dir", final_output_dir])
+    
+    return cmd
+
+@router.post("/manager/start")
+def start_robot_process_api(request: RobotRequest, db: Session = Depends(get_db)):
+    robot_name = request.robot_name.lower()
+    if robot_name not in ROBOTS_CONFIG:
+        raise HTTPException(status_code=400, detail="Robô inválido")
+    
+    config = ROBOTS_CONFIG[robot_name]
+    
+    # Busca configuração do banco se process_id for passado (usado como config_id aqui)
+    db_config = None
+    if request.process_id:
+         db_config = db.query(models.RobotConfig).filter(models.RobotConfig.id == request.process_id).first()
+    
+    base_name = getattr(db_config, 'base', None) if db_config else None
+    
+    target_agents = []
+    if db_config:
+        try:
+             agents_dict = json.loads(db_config.agents_json or '{}')
+             target_agents = list(agents_dict.keys())
+        except: pass
+
+    # Prepara diretório de saída ISOLADO para este processo
+    # ...
+    import uuid
+    run_uuid = str(uuid.uuid4())
+    run_output_dir = os.path.join(ROOT_DIR, "downloads", "runs", run_uuid)
+    os.makedirs(run_output_dir, exist_ok=True)
+
+    manual_args = {
+        "user": request.user,
+        "password": request.password, 
+        "agente": request.agente,
+        "empresa": request.empresa
+    }
+    
+    # Monta comando
+    cmd = build_robot_command(
+        robot_name, 
+        config, 
+        db_config, 
+        manual_args, 
+        request.competencia, 
+        request.headless,
+        output_dir=run_output_dir
+    )
+    
+    # Inicia processo gerenciado
+    # Passamos run_output_dir para o manager armazenar
+    proc_id = process_manager.start_process(config['name'], cmd, output_dir=run_output_dir, base_name=base_name, agents=target_agents)
+    
+    return {"message": "Processo iniciado", "process_id": proc_id, "status": "running"}
+
+@router.get("/manager/list")
+def list_robot_processes():
+    return process_manager.list_processes()
+
+@router.post("/manager/stop/{proc_id}")
+def stop_robot_process(proc_id: str):
+    if process_manager.stop_process(proc_id):
+        return {"message": "Processo interrompido"}
+    raise HTTPException(status_code=404, detail="Processo não encontrado ou já finalizado")
+
+@router.delete("/manager/clear")
+def clear_finished_processes():
+    count = process_manager.clear_finished()
+    return {"message": f"{count} processos finalizados removidos do histórico"}
+
+@router.get("/manager/logs/{proc_id}")
+def get_process_logs(proc_id: str):
+    logs = process_manager.get_logs(proc_id)
+    return {"logs": logs}
+
+@router.get("/manager/download/{proc_id}")
+def download_process_output(proc_id: str):
+    proc = process_manager.get_process(proc_id)
+    if not proc:
+        raise HTTPException(status_code=404, detail="Processo não encontrado")
+    
+    if not proc.output_dir or not os.path.exists(proc.output_dir):
+        raise HTTPException(status_code=404, detail="Diretório de saída não encontrado ou vazio")
+        
+    # Verifica se há arquivos
+    files = os.listdir(proc.output_dir)
+    if not files:
+        raise HTTPException(status_code=404, detail="Nenhum arquivo gerado pelo processo")
+        
+    # Prepara nome do arquivo ZIP
+    base_prefix = f"{proc.base_name}_" if proc.base_name else ""
+    zip_filename = f"{base_prefix}Resultados_{proc.name}_{proc.id[:8]}.zip"
+    zip_path = os.path.join(proc.output_dir, zip_filename)
+
+    # Se já existir zip criado anteriormente, remove para recriar (caso tenha novos arquivos)
+    if os.path.exists(zip_path):
+        os.remove(zip_path)
+
+    # Cria o ZIP
+    import zipfile
+    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+        for root, dirs, files in os.walk(proc.output_dir):
+            for file in files:
+                if file == zip_filename: continue # Não zipar o próprio zip
+                
+                full_path = os.path.join(root, file)
+                # Calcula caminho relativo para manter estrutura de pastas
+                rel_path = os.path.relpath(full_path, proc.output_dir)
+                
+                # Se o usuário quer o nome da base no arquivo, podemos aplicar ao primeiro nível
+                # ou apenas prefixar se estiver na raiz.
+                # Se preservarmos a estrutura original do robô (que deve separar por agentes se configurado),
+                # então rel_path já deve ser 'AgenteX/arquivo.xml'.
+                
+                # Vamos apenas garantir que a estrutura original seja mantida no ZIP
+                # E se tiver base_name, podemos colocar tudo dentro de uma pasta com esse nome no ZIP?
+                # "seria legal se no nome do arquivo baixado tivesse o nome do processo incluido" -> refere-se ao nome do ZIP
+                # "ele trouxe os xmls tudo na mesma pasta nao separou pelo agentes" -> problema de estrutura interna
+                
+                zipf.write(full_path, rel_path)
+                
+    return FileResponse(
+        zip_path,
+        media_type='application/zip',
+        filename=zip_filename,
+        headers={"Content-Disposition": f"attachment; filename={zip_filename}"}
+    )
+
+@router.get("/manager/download-all")
+def download_all_processes():
+    # Filtra processos finalizados
+    with process_manager.lock:
+        all_procs = list(process_manager.processes.values())
+        finished_procs = [p for p in all_procs if p.status in ["completed", "stopped", "error"]]
+        
+    if not finished_procs:
+        raise HTTPException(status_code=404, detail="Nenhum processo finalizado para baixar")
+    
+    # Prepara ZIP mestre
+    import zipfile
+    import uuid
+    from datetime import datetime
+    
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M')
+    master_zip_name = f"Todos_Resultados_{timestamp}.zip"
+    
+    # Diretório temporário para guardar o ZIP mestre
+    # Pode ser o próprio TUST_DOWNLOADS do backend
+    temp_dir = os.path.join(ROOT_DIR, "downloads", "temp_zips")
+    os.makedirs(temp_dir, exist_ok=True)
+    master_zip_path = os.path.join(temp_dir, f"master_{uuid.uuid4()}.zip")
+    
+    files_added_count = 0
+    
+    with zipfile.ZipFile(master_zip_path, 'w', zipfile.ZIP_DEFLATED) as master_zip:
+        for proc in finished_procs:
+            if not proc.output_dir or not os.path.exists(proc.output_dir):
+                continue
+                
+            # Nome da pasta raiz deste processo dentro do ZIP mestre
+            # Formato: {YYYYMMDD_HHMM}_{NomeRobo}_{Base}_{ID_curto}
+            proc_ts = proc.start_time.strftime("%Y%m%d_%H%M")
+            base_part = f"_{proc.base_name}" if proc.base_name else ""
+            folder_name_in_zip = f"{proc_ts}_{proc.name}{base_part}_{proc.id[:6]}"
+            
+            # Adiciona arquivos do processo recursivamente
+            for root, dirs, files in os.walk(proc.output_dir):
+                for file in files:
+                    # Evita zipar zips intermediários que tenham 'Resultados_' no nome (gerados pelo endpoint individual)
+                    if file.endswith('.zip') and 'Resultados_' in file: continue
+                    
+                    full_path_on_disk = os.path.join(root, file)
+                    
+                    # Caminho relativo dentro da pasta de output do processo
+                    rel_path_in_proc = os.path.relpath(full_path_on_disk, proc.output_dir)
+                    
+                    # Caminho final no ZIP mestre: PastaDoProcesso/CaminhoRelativo
+                    final_zip_path = os.path.join(folder_name_in_zip, rel_path_in_proc)
+                    
+                    master_zip.write(full_path_on_disk, final_zip_path)
+                    files_added_count += 1
+
+    if files_added_count == 0:
+        if os.path.exists(master_zip_path):
+             os.remove(master_zip_path)
+        raise HTTPException(status_code=404, detail="Nenhum arquivo encontrado nos processos finalizados")
+
+    return FileResponse(
+        master_zip_path,
+        media_type='application/zip',
+        filename=master_zip_name,
+        headers={"Content-Disposition": f"attachment; filename={master_zip_name}"}
+    )

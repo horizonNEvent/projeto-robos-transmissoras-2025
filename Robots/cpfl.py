@@ -165,21 +165,21 @@ class CPFLRobot(BaseRobot):
         # Pausa crucial para garantir que a expansão terminou de renderizar os textos
         time.sleep(3)
         
-        # Nome da fatura esperado
+        # Nome da fatura esperado no mapeamento
         nome_fatura = self.get_fatura_name_for_agent(ons_code)
         selector = f"text={nome_fatura} - Fatura" if nome_fatura else "text= - Fatura"
         
-        self.logger.info(f"Buscando faturas visíveis: '{selector}'")
+        self.logger.info(f"Buscando faturas: '{selector}'")
         faturas = page.locator(selector)
         count = faturas.count()
-        self.logger.info(f"Encontrados: {count}")
+        self.logger.info(f"Encontradas {count} faturas.")
 
         for i in range(count):
             try:
                 fatura_item = faturas.nth(i)
                 txt = fatura_item.inner_text()
                 
-                # Numero
+                # Extração do número da NF para nomear arquivos/pastas
                 try:
                     num = txt.split('Nº: ')[1].split(' -')[0].strip().replace('.','').replace('/','').replace('-','')
                 except: num = f"UNK_{i}"
@@ -188,16 +188,21 @@ class CPFLRobot(BaseRobot):
                 final_path = os.path.join(output_dir, f"NF_{num}")
                 os.makedirs(final_path, exist_ok=True)
                 
-                # Clica na Fatura para ver os icones
-                fatura_item.click()
+                # O FLUXO SECRETO: Clicar no TreeNode via ID padronizado para ativar a seleção correta
+                fatura_selector = f'span[class="iceOutTxt"][id="form:tree:n-0-{i}:TreeNode"]'
+                try:
+                    page.click(fatura_selector, timeout=5000)
+                    self.logger.info(f"Clicou no TreeNode {i}. Aguardando ícones...")
+                except:
+                    fatura_item.click()
+                
                 time.sleep(2)
+                ts = datetime.now().strftime("%Y%m%d_%H%M%S")
                 
-                ts = datetime.now().strftime("%Y%m%d")
-                
-                # PDF
+                # PDF - Busca o último ícone que apareceu para garantir que é o do nó ativado
                 try:
                     pdf_ico = page.locator('img[src*="pdf_ico.png"]').last
-                    if pdf_ico.is_visible(timeout=3000):
+                    if pdf_ico.is_visible(timeout=5000):
                         with page.expect_download() as dl_info:
                             pdf_ico.click()
                             dl = dl_info.value
@@ -205,15 +210,15 @@ class CPFLRobot(BaseRobot):
                         self.logger.info(f"PDF Baixado: {num}")
                 except: pass
                 
-                # XML
+                # XML - Clica no link específico (nth) para abrir a seção do XML
                 try:
-                    # Precisa clicar em "Nota Fiscal Modelo" para ver o XML?
-                    nf_link = page.locator('text=Nota Fiscal Modelo').last # Pega o ultimo visivel (do item atual expandido)
-                    if nf_link.is_visible():
+                    nf_link = page.locator('text=Nota Fiscal Modelo').nth(i)
+                    if nf_link.is_visible(timeout=3000):
                         nf_link.click()
                         time.sleep(1)
+                        # Busca o último ícone de XML que apareceu
                         xml_ico = page.locator('img[src*="xml"]').last
-                        if xml_ico.is_visible(timeout=3000):
+                        if xml_ico.is_visible(timeout=5000):
                             with page.expect_download() as dl_info:
                                 xml_ico.click()
                                 dl = dl_info.value
@@ -222,15 +227,117 @@ class CPFLRobot(BaseRobot):
                 except: pass
                 
             except Exception as e:
-                self.logger.error(f"Erro item {i}: {e}")
+                self.logger.error(f"Erro no item {i}: {e}")
+
+    def lookup_cnpj(self, ons_code):
+        """Busca o CNPJ para um código ONS em diversos locais (JSONs e Banco)."""
+        ons_str = str(ons_code)
+        
+        # 1. CPFL Specific JSON
+        try:
+            p = Path(__file__).parent.parent / 'Data' / 'empresas_cpfl.json'
+            if p.exists():
+                with open(p, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    for k, v in data.items():
+                        if k == "mapeamento_empresas": continue
+                        for a in v:
+                            if str(a.get("codigo")) == ons_str and a.get("cnpj"):
+                                return a.get("cnpj")
+        except: pass
+
+        # 2. General TUST JSON (Onde costumam estar os da RE)
+        try:
+            p = Path(__file__).parent.parent / 'Email' / 'tust.json'
+            if p.exists():
+                with open(p, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    for item in data:
+                        if str(item.get("ONS")) == ons_str:
+                            return item.get("CNPJ")
+        except: pass
+
+        # 3. Direct DB Check (Busca literal no banco de dados)
+        try:
+            import sqlite3
+            db_path = Path(__file__).parent.parent / 'app' / 'backend' / 'database.db'
+            if db_path.exists():
+                conn = sqlite3.connect(str(db_path))
+                cursor = conn.cursor()
+                cursor.execute("SELECT cnpj FROM transmissora WHERE codigo_ons = ?", (ons_str,))
+                row = cursor.fetchone()
+                conn.close()
+                if row: return row[0]
+        except: pass
+        
+        return None
+
+    def process_agent(self, cnpj, senha, ons, data_site, out_dir):
+        """Executa o download para um único agente/CNPJ."""
+        max_retries = 2
+        for attempt in range(max_retries + 1):
+            if attempt > 0: self.logger.info(f"Tentativa {attempt+1} para {ons}...")
+            
+            with sync_playwright() as p:
+                # Usa a config de headless do robô
+                browser = p.firefox.launch(headless=self.args.headless, args=["--start-maximized"])
+                context = browser.new_context(accept_downloads=True)
+                page = context.new_page()
+                state_403 = self.monitor_respostas_403(page)
+                
+                try:
+                    self.logger.info(f"Acessando CPFL p/ Agente {ons} (Login CNPJ: {cnpj})...")
+                    page.goto('https://getweb.cpfl.com.br/getweb/getweb.jsf', timeout=90000)
+                    
+                    # Login
+                    if page.locator('#form\\:documento').is_visible():
+                        page.fill('#form\\:documento', cnpj)
+                        page.fill('#form\\:senha', senha)
+                        page.click('#form\\:j_idt22')
+                    
+                    # Wait Arvore
+                    try:
+                        page.wait_for_selector('.iceTree', timeout=30000)
+                    except:
+                        if "inválido" in page.content().lower():
+                            self.logger.error(f"Credenciais inválidas para CNPJ {cnpj}.")
+                            return False
+                        raise Exception("Timeout login")
+
+                    if self.pagina_interrompida(page) or state_403['had_403']:
+                        raise Exception("Conexão interrompida/403")
+
+                    # Navegação
+                    success = self.navegar_para_mes(page, data_site)
+                    if not success:
+                        self.logger.error(f"Mês {data_site} não encontrado para {ons}.")
+                        return False
+
+                    # Download
+                    self.baixar_documentos(page, ons, out_dir)
+                    return True # Sucesso
+
+                except Exception as e:
+                    self.logger.error(f"Erro no agente {ons}: {e}")
+                    if attempt == max_retries:
+                        self.logger.error(f"Max tentativas excedido para {ons}.")
+                    time.sleep(5)
+                finally:
+                    browser.close()
+        return False
 
     def run(self):
-        # Args
-        cnpj = self.args.user
+        # 1. Recupera Lista de Agentes vinculados
+        agents = self.get_agents()
+        if not agents:
+            self.logger.error("Nenhum agente fornecido via --agente.")
+            return
+
+        # 2. Argumentos Globais
+        global_cnpj = self.args.user
         senha = self.args.password
-        ons = str(self.args.agente)
         
-        # Competencia
+        # 3. Competencia
         if self.args.competencia:
             c = self.args.competencia
             try:
@@ -248,61 +355,28 @@ class CPFLRobot(BaseRobot):
         
         data_site = f"{mes:02d}/{ano}"
         
-        # Output
-        out_dir = self.get_output_path()
-        if ons: out_dir = os.path.join(out_dir, ons)
+        # 4. Pasta de Saída Base
+        base_out_dir = self.get_output_path()
 
-        # Retry Loop
-        max_retries = 2
-        
-        for attempt in range(max_retries + 1):
-            if attempt > 0: self.logger.info(f"Tentativa {attempt+1}...")
+        # 5. Iteração sobre Agentes
+        for ons in agents:
+            self.logger.info(f"--- AGENTE: {ons} ---")
             
-            with sync_playwright() as p:
-                browser = p.firefox.launch(headless=True, args=["--start-maximized"])
-                context = browser.new_context(accept_downloads=True)
-                page = context.new_page()
-                state_403 = self.monitor_respostas_403(page)
-                
-                try:
-                    self.logger.info("Acessando CPFL...")
-                    page.goto('https://getweb.cpfl.com.br/getweb/getweb.jsf', timeout=90000)
-                    
-                    # Login
-                    if page.locator('#form\\:documento').is_visible():
-                        page.fill('#form\\:documento', cnpj)
-                        page.fill('#form\\:senha', senha)
-                        page.click('#form\\:j_idt22')
-                    
-                    # Wait Arvore
-                    try:
-                        page.wait_for_selector('.iceTree', timeout=30000)
-                    except:
-                        if "inválido" in page.content().lower():
-                            self.logger.error("Credenciais inválidas.")
-                            return
-                        raise Exception("Timeout login")
+            # Determina o CNPJ (Login)
+            cnpj = global_cnpj
+            if not cnpj:
+                cnpj = self.lookup_cnpj(ons)
+            
+            if not cnpj:
+                self.logger.warning(f"CNPJ não encontrado p/ agente {ons}. Usando o código ONS como login.")
+                cnpj = ons
+            
+            # Subpasta para este agente
+            agent_out_dir = os.path.join(base_out_dir, ons)
+            
+            # Executa o login e download
+            self.process_agent(cnpj, senha, ons, data_site, agent_out_dir)
 
-                    if self.pagina_interrompida(page) or state_403['had_403']:
-                        raise Exception("Conexão interrompida/403")
-
-                    # Navegação
-                    success = self.navegar_para_mes(page, data_site)
-                    if not success:
-                        self.logger.error("Mês não encontrado.")
-                        return
-
-                    # Download
-                    self.baixar_documentos(page, ons, out_dir)
-                    break # Sucesso
-
-                except Exception as e:
-                    self.logger.error(f"Erro: {e}")
-                    if attempt == max_retries:
-                        self.logger.error("Max tentativas excedido.")
-                    time.sleep(5)
-                finally:
-                    browser.close()
 
 if __name__ == "__main__":
     robot = CPFLRobot()
