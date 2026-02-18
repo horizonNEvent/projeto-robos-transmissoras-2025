@@ -253,6 +253,26 @@ ROBOTS_CONFIG = {
         "download_dir": get_download_path("RIALMAS"),
         "name": "WebRialmas"
     },
+    "rialmav": {
+        "script": os.path.join(ROOT_DIR, "Robots", "rialmaV.py"),
+        "download_dir": get_download_path("RIALMAV"),
+        "name": "WebRialmaV"
+    },
+    "rialmaiv": {
+        "script": os.path.join(ROOT_DIR, "Robots", "rialmaIV.py"),
+        "download_dir": get_download_path("RIALMAIV"),
+        "name": "WebRialmaIV"
+    },
+    "aete": {
+        "script": os.path.join(ROOT_DIR, "Robots", "aete.py"),
+        "download_dir": get_download_path("AETE"),
+        "name": "WebAETE"
+    },
+    "transnorte": {
+        "script": os.path.join(ROOT_DIR, "Robots", "transnorte.py"),
+        "download_dir": get_download_path("TRANSNORTE"),
+        "name": "WebTransnorte"
+    },
     "cpfl": {
         "script": os.path.join(ROOT_DIR, "Robots", "cpfl.py"),
         "download_dir": get_download_path("CPFL"),

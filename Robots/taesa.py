@@ -78,10 +78,14 @@ class TaesaRobot(BaseRobot):
             self.logger.error(f"Erro download {os.path.basename(path)}: {e}")
 
     def run(self):
-        agente_ons = self.args.agente
-        if not agente_ons:
+        agente_ons_arg = self.args.agente
+        if not agente_ons_arg:
             self.logger.error("Agente ONS obrigatório (--agente).")
             return
+
+        # Split multiple agents if provided
+        agentes_raw = str(agente_ons_arg).strip()
+        lista_agentes = [a.strip() for a in agentes_raw.split(',') if a.strip()]
 
         competencia_str = self.args.competencia
         if not competencia_str:
@@ -91,69 +95,72 @@ class TaesaRobot(BaseRobot):
             competencia_str = f"{y}{m:02d}"
             self.logger.info(f"Competência não informada. Usando mês anterior: {competencia_str}")
         
-        # Cria output dir
         base_path = self.get_output_path()
-        out_dir = os.path.join(base_path, str(agente_ons))
-        os.makedirs(out_dir, exist_ok=True)
-        
-        self.logger.info(f"Processando Taesa (Co 30) - Agente: {agente_ons} - Competência: {competencia_str}")
-        
-        pagina = 1
-        total_baixado = 0
-        
-        while True:
-            self.logger.info(f"Lendo página {pagina}...")
-            html = self.get_faturas_pagina(agente_ons, competencia_str, pagina)
-            if not html: break
+
+        for agente_ons in lista_agentes:
+            self.logger.info(f"--- Processando Taesa (Co 30) - Agente: {agente_ons} - Competência: {competencia_str} ---")
             
-            soup = BeautifulSoup(html, 'html.parser')
-            linhas = soup.select('table tbody tr')
-            if not linhas: break # Sem dados
+            # Subdir do Agente
+            out_dir = os.path.join(base_path, str(agente_ons))
+            os.makedirs(out_dir, exist_ok=True)
             
-            faturas_na_pag = 0
-            for linha in linhas:
-                cols = linha.find_all('td')
-                if len(cols) < 8: continue
-                
-                transmissora = self.sanitize_filename(cols[0].text)
-                num_fatura = self.sanitize_filename(cols[1].text)
-                
-                # Subpasta Transmissora
-                t_dir = os.path.join(out_dir, transmissora)
-                os.makedirs(t_dir, exist_ok=True)
-                
-                nome_base = f"{num_fatura}_{competencia_str}"
-                
-                # XML
-                xml_btn = cols[7].find('a', class_='btn-primary')
-                if xml_btn:
-                    url = xml_btn['href']
-                    self.baixar_arquivo(url, os.path.join(t_dir, f"{nome_base}.xml"))
-                
-                # DANFE
-                danfe_btn = cols[7].find('a', class_='btn-info')
-                if danfe_btn:
-                    url = danfe_btn['href']
-                    self.baixar_arquivo(url, os.path.join(t_dir, f"{nome_base}_DANFE.pdf"))
-                
-                # Boleto
-                if cols[4].find('a'):
-                    url = cols[4].find('a')['href']
-                    self.baixar_arquivo(url, os.path.join(t_dir, f"{nome_base}_BOLETO.pdf"), is_boleto=True)
-                
-                faturas_na_pag += 1
-                total_baixado += 1
+            pagina = 1
+            total_baixado_agente = 0
             
-            if faturas_na_pag == 0: break
+            while True:
+                self.logger.info(f"Lendo página {pagina} para Agente {agente_ons}...")
+                html = self.get_faturas_pagina(agente_ons, competencia_str, pagina)
+                if not html: break
+                
+                soup = BeautifulSoup(html, 'html.parser')
+                linhas = soup.select('table tbody tr')
+                if not linhas: break # Sem dados
+                
+                faturas_na_pag = 0
+                for linha in linhas:
+                    cols = linha.find_all('td')
+                    if len(cols) < 8: continue
+                    
+                    transmissora = self.sanitize_filename(cols[0].text)
+                    num_fatura = self.sanitize_filename(cols[1].text)
+                    
+                    # Subpasta Transmissora
+                    t_dir = os.path.join(out_dir, transmissora)
+                    os.makedirs(t_dir, exist_ok=True)
+                    
+                    nome_base = f"{num_fatura}_{competencia_str}"
+                    
+                    # XML
+                    xml_btn = cols[7].find('a', class_='btn-primary')
+                    if xml_btn:
+                        url = xml_btn['href']
+                        self.baixar_arquivo(url, os.path.join(t_dir, f"{nome_base}.xml"))
+                    
+                    # DANFE
+                    danfe_btn = cols[7].find('a', class_='btn-info')
+                    if danfe_btn:
+                        url = danfe_btn['href']
+                        self.baixar_arquivo(url, os.path.join(t_dir, f"{nome_base}_DANFE.pdf"))
+                    
+                    # Boleto
+                    if cols[4].find('a'):
+                        url = cols[4].find('a')['href']
+                        self.baixar_arquivo(url, os.path.join(t_dir, f"{nome_base}_BOLETO.pdf"), is_boleto=True)
+                    
+                    faturas_na_pag += 1
+                    total_baixado_agente += 1
+                
+                if faturas_na_pag == 0: break
+                
+                # Verifica paginação
+                prox = soup.select('ul.pagination li a[rel="next"]')
+                if not prox: break
+                
+                pagina += 1
+                time.sleep(1)
             
-            # Verifica paginação
-            prox = soup.select('ul.pagination li a[rel="next"]')
-            if not prox: break
-            
-            pagina += 1
-            time.sleep(1)
-            
-        self.logger.info(f"Finalizado. Total de faturas baixadas: {total_baixado}")
+            self.logger.info(f"Finalizado Agente {agente_ons}. Total baixado: {total_baixado_agente}")
+
 
 if __name__ == "__main__":
     robot = TaesaRobot()
