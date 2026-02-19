@@ -186,7 +186,8 @@ class CopelRobot(BaseRobot):
             }
             
             self.logger.info(f"Filtrando ONS {cod_ons}...")
-            resp = self.session.post(self.url_boletos, data=data, headers=headers, timeout=(10, 60))
+            # Aumentado timeout para evitar RemoteDisconnected prematuro
+            resp = self.session.post(self.url_boletos, data=data, headers=headers, timeout=(15, 90))
             
             if resp.status_code == 200:
                 self.extrair_view_state(resp.text)
@@ -194,7 +195,13 @@ class CopelRobot(BaseRobot):
                     match = re.search(r'id="formMsg:resultado"><!\[CDATA\[(.*?)]]>', resp.text, re.DOTALL)
                     if match: return match.group(1)
                 return resp.text
+            elif resp.status_code == 302 or "login" in resp.url.lower():
+                self.logger.warning("Sessão expirada detectada.")
+                return "SESSAO_EXPIRADA"
             return ""
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            self.logger.error(f"Erro de conexão filtro ONS: {e}")
+            return "ERRO_CONEXAO"
         except Exception as e:
             self.logger.error(f"Erro filtro ONS: {e}")
             return ""
@@ -216,11 +223,11 @@ class CopelRobot(BaseRobot):
             }
             
             time.sleep(1.0)
-            resp = self.session.post(self.url_boletos, files=payload, headers=headers, timeout=60)
+            resp = self.session.post(self.url_boletos, files=payload, headers=headers, timeout=90)
             
             if resp.status_code == 200 and len(resp.content) > 500:
                 if b"<!DOCTYPE html" in resp.content[:100]:
-                    self.logger.warning("Download retornou HTML de erro.")
+                    self.logger.warning(f"Download retornou HTML (provável erro): {nome_arquivo}")
                     return False
                 
                 os.makedirs(output_dir, exist_ok=True)
@@ -229,10 +236,16 @@ class CopelRobot(BaseRobot):
                     f.write(resp.content)
                 self.logger.info(f"Salvo: {nome_arquivo}")
                 return True
+            elif resp.status_code == 302:
+                self.logger.warning("Redirecionamento durante download (sessão expirada?)")
+                return "RELOGIN"
                 
             self.logger.warning(f"Falha download {nome_arquivo}: Status {resp.status_code}")
             return False
             
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            self.logger.error(f"Erro de conexão download: {e}")
+            return "RELOGIN"
         except Exception as e:
             self.logger.error(f"Erro download: {e}")
             return False
@@ -241,29 +254,33 @@ class CopelRobot(BaseRobot):
         if not self.login():
             return
 
-        # Lista de ONS para processar
-        # Se passado --agente via args, usa ele. Senão, tenta carregar do JSON ou usa lista hardcoded.
         agentes_para_processar = []
-        
         if self.args.agente:
-            agentes_para_processar.append({"cod": self.args.agente, "nome": "Agente Solicitado"})
+            for ag in [a.strip() for a in str(self.args.agente).split(',') if a.strip()]:
+                agentes_para_processar.append({"cod": ag, "nome": f"Agente {ag}"})
         else:
-            # Lista padrão do script original ou carregamento do JSON de empresas se existir
-            # Para simplificar agora, se não passar agente, vamos assumir que o usuário deve passar.
-            # Ou podemos tentar carregar Data/empresas_copel.json se quisermos.
-            # Vamos deixar um aviso.
-            try:
-                 with open(os.path.join(os.path.dirname(__file__), '..', 'Data', 'empresas_copel.json'), 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                    # Estrutura esperada: {"Grupo": {"COD": "Nome"}}
-                    for grp, items in data.items():
-                        if grp != "config":
-                            for k, v in items.items():
-                                agentes_para_processar.append({"cod": k, "nome": v})
-            except:
-                self.logger.warning("Não foi possível carregar lista de agentes padrão. Passe --agente ou configure Data/empresas_copel.json")
+            transmissoras_fixas = [
+                {"cod": "1008", "nome": "COPEL"},
+                {"cod": "1155", "nome": "COPEL (F. DO CHOPIM-S. OSORIO)"},
+                {"cod": "1203", "nome": "COPEL (LT ARARAQUARA 2-TAUBATÉ)"},
+                {"cod": "1176", "nome": "COPEL (LT BATEIAS-CTBA NORTE)"},
+                {"cod": "1219", "nome": "COPEL (LT CTBA LESTE-BLUMENAU)"},
+                {"cod": "1091", "nome": "COPEL (LT FOZ - CASCAVEL OESTE)"},
+                {"cod": "1140", "nome": "COPEL (SE CERQUILHO III)"},
+                {"cod": "1193", "nome": "COPEL (LT ASSIS - LONDRINA C2)"},
+                {"cod": "1168", "nome": "COPEL (LT ASSIS-P. PAULISTA II)"},
+                {"cod": "1024", "nome": "COPEL (LT BATEIAS-JAGUARIAÍVA)"},
+                {"cod": "1063", "nome": "COPEL (LT BATEIAS-PILARZINHO)"},
+                {"cod": "1187", "nome": "COPEL (LT FOZ DO CHOPIM-REALEZA)"},
+                {"cod": "1144", "nome": "COSTA OESTE"},
+                {"cod": "1158", "nome": "MARUMBI"},
+                {"cod": "1043", "nome": "UIRAPURU"},
+                {"cod": "1218", "nome": "MSGT"}
+            ]
+            agentes_para_processar.extend(transmissoras_fixas)
+            self.logger.info(f"Usando lista fixa de {len(transmissoras_fixas)} transmissoras.")
 
-        if not agentes_para_processar and not self.args.agente:
+        if not agentes_para_processar:
             self.logger.error("Nenhum agente ONS definido para busca.")
             return
 
@@ -275,18 +292,33 @@ class CopelRobot(BaseRobot):
             
             self.logger.info(f"Processando agente: {nome_ons} ({cod_ons})")
             
-            html = self.buscar_faturas_por_ons(cod_ons)
-            if not html: continue
+            # Tentar filtrar faturas com re-login se necessário
+            tentativas_relogin = 0
+            while tentativas_relogin < 2:
+                html = self.buscar_faturas_por_ons(cod_ons)
+                
+                if html in ["SESSAO_EXPIRADA", "ERRO_CONEXAO"]:
+                    self.logger.info("Tentando re-login automático...")
+                    time.sleep(5)
+                    if self.login():
+                        tentativas_relogin += 1
+                        continue
+                    else:
+                        break
+                break
+
+            if not html or html in ["SESSAO_EXPIRADA", "ERRO_CONEXAO"]:
+                self.logger.warning(f"Não foi possível processar agente {cod_ons} após tentativa de re-login.")
+                continue
             
             soup = BeautifulSoup(html, 'html.parser')
             rows = soup.find_all('tr', class_='ui-widget-content')
-            if not rows: rows = soup.find_all('tr')[1:] # Fallback
+            if not rows: rows = soup.find_all('tr')[1:]
             
             if not rows:
                 self.logger.info("Nenhuma fatura encontrada.")
                 continue
 
-            # Agrupar por Pedido
             faturas_por_pedido = {}
             for row in rows:
                 cols = row.find_all('td')
@@ -295,30 +327,16 @@ class CopelRobot(BaseRobot):
                     if pedido not in faturas_por_pedido: faturas_por_pedido[pedido] = []
                     faturas_por_pedido[pedido].append(row)
             
-            # Processar cada pedido (Pegando o mais recente ou filtrando pela competencia se implementado)
             for pedido, lista_rows in faturas_por_pedido.items():
-                # Lógica original: Pega o mais recente
-                # Se quisermos usar self.args.competencia, podemos filtrar aqui.
-                # Ex: se self.args.competencia == "202511", filtra referencias de nov/2025.
-                
                 rows_to_process = []
-                
                 if self.args.competencia:
-                    # Filtra pela competencia desejada
                     target_ano = int(self.args.competencia[:4])
                     target_mes = int(self.args.competencia[4:6])
-                    
                     for r in lista_rows:
                         ano_r, mes_r = parse_referencia(r.find_all('td')[0].text.strip())
                         if ano_r == target_ano and mes_r == target_mes:
                             rows_to_process.append(r)
-                            
-                    if not rows_to_process:
-                        # Se não achou da competência exata, pula (ou avisa)
-                        # self.logger.info(f"Pedido {pedido}: Sem faturas para competência {self.args.competencia}")
-                        pass
                 else:
-                    # Comportamento padrão: Mais recente
                     if lista_rows:
                         ref_mais_recente = max(lista_rows, key=lambda r: parse_referencia(r.find_all('td')[0].text.strip()))
                         texto_ref_recente = ref_mais_recente.find_all('td')[0].text.strip()
@@ -326,42 +344,31 @@ class CopelRobot(BaseRobot):
 
                 if not rows_to_process: continue
                 
-                # Define pasta de saída: TUST/COPEL/{Agente}/{Pedido}
-                # Ou TUST/COPEL/{Agente}/NF_{Numero}
-                # Vamos seguir o padrão de pasta por NF e Agente
-                
-                # No script original ele cria subpasta por Pedido. Podemos manter.
-                # Mas para padronizar com os outros, talvez melhor por NF?
-                # Vamos manter Pedido por segurança por enquanto ou jogar tudo na pasta do Agente.
-                
-                current_output = os.path.join(base_output_dir, cod_ons) # Pasta do agente
+                current_output = os.path.join(base_output_dir, cod_ons)
                 
                 for row in rows_to_process:
                     cols = row.find_all('td')
                     ref_slug = cols[0].text.strip().replace("/", "-")
-                    doc_num = cols[2].text.strip() # Boleto num?
-                    nf_num = cols[3].text.strip() # NF num?
-                    valor = cols[6].text.strip().replace(".", "").replace(",", ".")
+                    nf_num = cols[3].text.strip()
                     
-                    # Nome do arquivo
-                    # prefixo = f"NF_{nf_num}_ref_{ref_slug}_R${valor}"
                     prefixo = f"PED_{pedido}_NF_{nf_num}_{ref_slug}"
                     prefixo = re.sub(r'[\\/*?:"<>|]', "", prefixo)
 
-                    # Links
-                    a_xml = cols[7].find('a')
-                    a_danfe = cols[8].find('a')
-                    a_boleto = cols[9].find('a')
+                    links = [
+                        (cols[7].find('a'), f"{prefixo}.xml"),
+                        (cols[8].find('a'), f"{prefixo}_DANFE.pdf"),
+                        (cols[9].find('a'), f"{prefixo}_BOLETO.pdf")
+                    ]
                     
-                    # Cria subpasta para a NF para organizar melhor
                     nf_folder = os.path.join(current_output, f"NF_{nf_num}")
                     
-                    if a_xml and a_xml.get('id'):
-                        self.baixar_documento(a_xml.get('id'), f"{prefixo}.xml", cod_ons, nf_folder)
-                    if a_danfe and a_danfe.get('id'):
-                        self.baixar_documento(a_danfe.get('id'), f"{prefixo}_DANFE.pdf", cod_ons, nf_folder)
-                    if a_boleto and a_boleto.get('id'):
-                        self.baixar_documento(a_boleto.get('id'), f"{prefixo}_BOLETO.pdf", cod_ons, nf_folder)
+                    for link_tag, fname in links:
+                        if link_tag and link_tag.get('id'):
+                            res = self.baixar_documento(link_tag.get('id'), fname, cod_ons, nf_folder)
+                            if res == "RELOGIN":
+                                self.logger.info("Erro no download, tentando re-login e repetindo...")
+                                if self.login():
+                                    self.baixar_documento(link_tag.get('id'), fname, cod_ons, nf_folder)
 
 if __name__ == "__main__":
     robot = CopelRobot()
