@@ -372,6 +372,16 @@ ROBOTS_CONFIG = {
         "script": os.path.join(ROOT_DIR, "Robots", "etene.py"),
         "download_dir": get_download_path("ETENE"),
         "name": "WebEtene"
+    },
+    "lnt": {
+        "script": os.path.join(ROOT_DIR, "Robots", "lnt.py"),
+        "download_dir": get_download_path("LNT"),
+        "name": "WebLNT"
+    },
+    "sigetplusv2": {
+        "script": os.path.join(ROOT_DIR, "Robots", "sigetplus_v2.py"),
+        "download_dir": get_download_path("SIGETPLUSV2"),
+        "name": "WebSigetPlusV2"
     }
 }
 

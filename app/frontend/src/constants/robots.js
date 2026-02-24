@@ -78,4 +78,6 @@ export const ROBOTS = [
     { id: 'rio_largo', name: 'WebRioLargo' },
     { id: 'etepa', name: 'WebEtepa' },
     { id: 'etene', name: 'WebEtene' },
+    { id: 'lnt', name: 'WebLNT' },
+    { id: 'sigetplusv2', name: 'WebSigetPlusV2' },
 ]

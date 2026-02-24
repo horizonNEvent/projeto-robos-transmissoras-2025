@@ -82,6 +82,8 @@ const ParallelProcessManager = ({ apiBaseUrl }) => {
         { value: "webengie", label: "WebEngie" },
         { value: "webettm", label: "WebETTM" },
         { value: "websigetpublic", label: "WebSigetPublic" },
+        { value: "lnt", label: "WebLNT" },
+        { value: "sigetplusv2", label: "WebSigetPlusV2" },
         { value: "web_ie", label: "WebIE (Genérico)" }
     ].sort((a, b) => {
         if (a.value === 'custom') return -1;
