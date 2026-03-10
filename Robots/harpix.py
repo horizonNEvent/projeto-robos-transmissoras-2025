@@ -17,7 +17,6 @@ try:
     from selenium.webdriver.common.by import By
     from webdriver_manager.chrome import ChromeDriverManager
 except ImportError:
-    # Fallback to avoid crash on import if deps are missing
     pass
 
 try:
@@ -27,6 +26,7 @@ except ImportError:
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+# ================= HARPIX ROBOT =================
 class HarpixRobot(BaseRobot):
     def __init__(self):
         super().__init__("harpix")
@@ -47,7 +47,7 @@ class HarpixRobot(BaseRobot):
 
     def setup_driver(self):
         options = Options()
-        # Forçado modo headless conforme solicitado
+        # Headless mode active by default
         options.add_argument("--headless=new")
         options.add_argument("--window-size=1920,1080")
         options.add_argument("--disable-gpu")
@@ -81,14 +81,7 @@ class HarpixRobot(BaseRobot):
         for f in frames:
             self.wait.until(EC.frame_to_be_available_and_switch_to_it(f))
 
-    def move_mouse_away(self):
-        try:
-             action = webdriver.ActionChains(self.driver)
-             action.move_by_offset(0, 0).perform()
-        except: pass
-
     # ================= ORGANIZE FILES HELPER =================
-
     def normalizar_valor(self, valor):
         if not valor: return None
         return valor.replace(".", "").replace(",", ".").strip()
@@ -123,14 +116,11 @@ class HarpixRobot(BaseRobot):
             path = os.path.join(self.output_dir, nome)
             texto = self.extrair_texto_pdf(path)
 
-            # -------- DANFE --------
             chave = re.search(r'\d{44}', texto)
             if "DANFE" in texto and chave:
                 danfes.append({"path": path, "chave": chave.group(0)})
                 continue
 
-            # -------- BOLETO --------
-            # O script original buscava "ITAÚ" ou "PAGÁVEL". Adaptado.
             nf = re.search(r'(\d{3,6})\s*/\s*001', texto)
             valor = re.search(r'\d+,\d{2}', texto)
             datas = re.findall(r'\d{2}/\d{2}/\d{4}', texto)
@@ -182,7 +172,6 @@ class HarpixRobot(BaseRobot):
             if not dados["chave"]:
                 continue
 
-            # Hierarquia: OUTPUT_DIR / ONS_CODE / CHAVE / ARQUIVOS
             pasta_nf = os.path.join(self.output_dir, str(ons_code), dados["chave"])
             os.makedirs(pasta_nf, exist_ok=True)
 
@@ -192,7 +181,6 @@ class HarpixRobot(BaseRobot):
             except Exception as e:
                 self.logger.error(f"Erro movendo XML: {e}")
 
-            # DANFE
             for d in danfes:
                 if d["path"] and d["chave"] == dados["chave"]:
                     try:
@@ -202,12 +190,9 @@ class HarpixRobot(BaseRobot):
                     except Exception as e:
                         self.logger.error(f"Erro movendo DANFE: {e}")
 
-            # BOLETO
             for b in boletos:
                 if b["path"] is None:
                     continue
-                
-                # Check match strictness
                 if b["nf"] and b["nf"] != dados["nf"]:
                     continue
 
@@ -223,29 +208,23 @@ class HarpixRobot(BaseRobot):
                         self.logger.error(f"Erro movendo Boleto: {e}")
 
     # ================= LOGIC =================
-
     def login(self, ons_code):
         self.logger.info(f"Acessando Harpix para código: {ons_code}")
         self.driver.get("https://harpixfat.mezenergia.com/FAT/open.do?sys=FAT")
-        
         try:
             self.switch_frames(["mainform"])
-            
             inp = self.wait.until(EC.presence_of_element_located((By.ID, "WFRInput1051800")))
             inp.clear()
             inp.send_keys(ons_code)
-
             self.driver.find_element(By.XPATH, "//button[contains(., 'Entrar')]").click()
-            time.sleep(8) # Login wait
+            time.sleep(8)
             return True
         except Exception as e:
             self.logger.error(f"Erro no login: {e}")
             return False
 
     def check_announcement_popup(self):
-        """Novo método para fechar popups de aviso globais (ex: MEZ 5) que podem bloquear o robô."""
         try:
-            # O popup geralmente aparece no frame mainsystem ou mainform
             popups = self.driver.find_elements(By.CSS_SELECTOR, ".swal2-container")
             if popups and popups[0].is_displayed():
                 self.logger.info("📢 Popup de aviso detectado. Fechando...")
@@ -263,17 +242,9 @@ class HarpixRobot(BaseRobot):
         try:
             self.driver.switch_to.default_content()
             self.switch_frames(["mainsystem", "mainform"])
-
-            # Verificação de popup logo após entrar no grid
             self.check_announcement_popup()
-
             frames = self.driver.find_elements(By.TAG_NAME, "iframe")
-            url_frame = next(
-                f.get_attribute("name")
-                for f in frames
-                if f.get_attribute("name").startswith("URLFrame")
-            )
-
+            url_frame = next(f.get_attribute("name") for f in frames if f.get_attribute("name").startswith("URLFrame"))
             self.switch_frames(["mainsystem", "mainform", url_frame, "mainform"])
             return url_frame
         except Exception as e:
@@ -282,44 +253,22 @@ class HarpixRobot(BaseRobot):
 
     def extrair_grid(self):
         try:
-            raw = self.driver.execute_script(
-                "return typeof data_1051940 !== 'undefined' ? data_1051940 : []"
-            )
-
+            raw = self.driver.execute_script("return typeof data_1051940 !== 'undefined' ? data_1051940 : []")
             faturas = []
             for it in raw:
                 try:
                     nome = it["field1051937"]
                     data_str = it["field1051902"]
                     data = datetime.datetime.strptime(data_str, "%d/%m/%Y")
-
-                    if not any(m in nome for m in self.mez_validas):
-                        continue
-
-                    faturas.append({
-                        "raw": it,
-                        "empresa": nome,
-                        "data": data
-                    })
-                except:
-                    continue
-
+                    if not any(m in nome for m in self.mez_validas): continue
+                    faturas.append({"raw": it, "empresa": nome, "data": data})
+                except: continue
             if not faturas:
                 self.logger.info("Nenhuma fatura encontrada no JS.")
                 return []
-
             maior = max(f["data"] for f in faturas)
-            
-            # Se a competencia for passada via args, usar ela?
-            # O script original usa AUTOMATICO (maior data). Vou manter automático mas logar.
-            
-            alvo = [
-                f for f in faturas
-                if f["data"].month == maior.month and f["data"].year == maior.year
-            ]
-
-            comp_str = maior.strftime('%m/%Y')
-            self.logger.info(f"Competência detectada: {comp_str} | {len(alvo)} faturas para baixar.")
+            alvo = [f for f in faturas if f["data"].month == maior.month and f["data"].year == maior.year]
+            self.logger.info(f"Competência detectada: {maior.strftime('%m/%Y')} | {len(alvo)} faturas.")
             return alvo
         except Exception as e:
             self.logger.error(f"Erro ao extrair grid: {e}")
@@ -329,144 +278,77 @@ class HarpixRobot(BaseRobot):
         try:
             guid = self.icon_guids.get(tipo)
             if not guid: return False
-
             fragmento = self.sanitize_name(empresa).split("ENERGIA")[0] + "ENERGIA"
-            
-            xpath = (
-                f"//div[contains(text(), '{fragmento}')]/"
-                f"ancestor::tr//img[contains(@src, '{guid}')]"
-            )
-
+            xpath = f"//div[contains(text(), '{fragmento}')]/ancestor::tr//img[contains(@src, '{guid}')]"
             btn = self.wait.until(EC.element_to_be_clickable((By.XPATH, xpath)))
             self.driver.execute_script("arguments[0].scrollIntoView({block:'center'})", btn)
             time.sleep(1)
             btn.click()
             
-            # Aguarda o indicador de "Aguarde, o PDF está sendo gerado..." sumir
-            # e/ou trata o popup de erro se aparecer
             start_wait = time.time()
             while time.time() - start_wait < 15:
-                # 1. Verifica se deu erro (popup SweetAlert)
                 popups = self.driver.find_elements(By.CSS_SELECTOR, ".swal2-container")
                 if popups and popups[0].is_displayed():
                     msg = popups[0].text
                     self.logger.warning(f"⚠️ {tipo} indisponível para {fragmento}: {msg}")
                     confirm_btn = self.driver.find_elements(By.CSS_SELECTOR, ".swal2-confirm")
-                    if confirm_btn: 
-                        confirm_btn[0].click()
+                    if confirm_btn: confirm_btn[0].click()
                     return False
-
-                # 2. Verifica se o toast de "Aguarde" sumiu (se existir)
                 toasts = self.driver.find_elements(By.XPATH, "//*[contains(text(), 'Aguarde, o PDF')]")
                 if not toasts:
-                    # Se não tem toast e não tem popup, assume que o comando foi aceito
                     self.logger.info(f"✅ {tipo} solicitado para {fragmento}")
                     return True
-                
                 time.sleep(1)
-            
-            self.logger.warning(f"Timeout aguardando processamento de {tipo} para {fragmento}")
             return True
-            
         except Exception as e:
             self.logger.error(f"Erro ao clicar download {tipo} para {empresa}: {e}")
             return False
 
     def run(self):
-        # 1. Identificar quais códigos ONS processar
-        # O argumento --agente traz a lista vinculada. O --user traz o campo "Usuário".
-        # Prioridade: Lista de Agentes. Se vazia, tenta usar o user como um único código.
         target_codes = self.get_agents()
-
         if not target_codes and self.args.user:
             target_codes = [self.args.user]
-
         if not target_codes:
-            self.logger.error("Nenhum código ONS informado! Vincule agentes na lista ou preencha o campo Usuário.")
+            self.logger.error("Nenhum código ONS informado!")
             return
 
-        self.logger.info(f"Iniciando fila de processamento: {len(target_codes)} códigos ONS.")
-        self.logger.info(f"Lista: {target_codes}")
-
-        # 2. Loop por Agente (ONS CODE)
         for ons_code in target_codes:
             ons_code = str(ons_code).strip()
             if not ons_code: continue
-
-            self.logger.info(f"{'='*40}")
             self.logger.info(f"🚀 Iniciando Agente: {ons_code}")
-            
             success = False
-            max_retries = 3
-
-            # 3. Retry Loop por Agente
-            for attempt in range(1, max_retries + 1):
-                self.logger.info(f"🔄 Tentativa {attempt}/{max_retries} para {ons_code}...")
-
-                # Garante ambiente limpo (fecha navegador anterior)
+            for attempt in range(1, 4):
                 if self.driver:
                     try: self.driver.quit()
                     except: pass
                     self.driver = None
-
                 try:
-                    self.setup_driver() # Abre novo navegador
-                    
-                    if not self.login(ons_code):
-                        raise Exception(f"Login rejeitado para {ons_code}")
-                    
-                    if not self.acessar_grid():
-                        raise Exception("Falha ao carregar grid de faturas")
-
+                    self.setup_driver()
+                    if not self.login(ons_code): raise Exception("Login falhou")
+                    if not self.acessar_grid(): raise Exception("Grid falhou")
                     faturas = self.extrair_grid()
-                    
                     if faturas:
                         for f in faturas:
-                            self.logger.info(f"  > Processando: {f['empresa']}")
                             for tipo in ["BOLETO", "XML"]:
-                                # Conta arquivos antes do clique
                                 antes = len(os.listdir(self.output_dir))
-                                
                                 if self.clicar_download(f["empresa"], tipo):
-                                    # Aguarda o surgimento de um novo arquivo
                                     wait_file = time.time()
-                                    while time.time() - wait_file < 20: # 20s de timeout por arquivo
-                                        atual = len(os.listdir(self.output_dir))
-                                        if atual > antes:
+                                    while time.time() - wait_file < 20:
+                                        if len(os.listdir(self.output_dir)) > antes:
                                             self.logger.info(f"  📦 Download detectado para {tipo}")
                                             break
                                         time.sleep(1)
-                                
-                        self.logger.info("  ⏳ Finalizando recepção de downloads...")
                         time.sleep(5)
-                    else:
-                        self.logger.warning(f"  ⚠️ Nenhuma fatura encontrada para {ons_code}")
-
-                    # Organiza arquivos baixados
                     self.organizar_pasta(ons_code)
-
                     self.logger.info(f"✅ Sucesso para {ons_code}!")
                     success = True
-                    break # Sai do loop de tentativas e vai para o próximo agente
-
+                    break
                 except Exception as e:
-                    self.logger.error(f"❌ Erro na tentativa {attempt} ({ons_code}): {e}")
-                    if attempt < max_retries:
-                        self.logger.info("⏳ Aguardando 15s para retry...")
-                        time.sleep(15)
+                    self.logger.error(f"❌ Erro na tentativa {attempt}: {e}")
+                    time.sleep(10)
                 finally:
-                    # Fecha navegador ao fim de cada tentativa (sucesso ou erro)
-                    # O requisito é "terminando um codigo ons ele fecha e recomeça"
-                    if self.driver:
-                        try: self.driver.quit()
-                        except: pass
-                        self.driver = None
-            
-            if not success:
-                self.logger.error(f"🚫 Falha total para o agente {ons_code} após {max_retries} tentativas.")
-        
-        self.logger.info(f"{'='*40}")
-        self.logger.info("🏁 Execução de todos os agentes finalizada.")
+                    if self.driver: self.driver.quit()
+                    self.driver = None
 
 if __name__ == "__main__":
     robot = HarpixRobot()

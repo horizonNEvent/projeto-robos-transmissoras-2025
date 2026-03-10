@@ -179,16 +179,16 @@ class GlorianRobot(BaseRobot):
             time.sleep(2)
 
             # Mês (COMENTADO A PEDIDO)
-            # xpath_mes = "/html/body/div[1]/div/div/div/div[2]/div/div[2]/div/div[2]/div/div[3]/div/div[2]/div/div[3]/div/div/div/div[2]/div/div/div/div/div/div/div/div/div[2]/div/div/div/div/div/div/div[2]/div[3]/div/div/div/div[2]/div/table/tbody/tr[28]/td[2]/div/table/tbody/tr/td[2]/div/table/tbody/tr/td[1]/input"
-            # try:
-            #     self._fill(xpath_mes, str(mes))
-            #     self.driver.switch_to.active_element.send_keys(Keys.TAB)
-            # except:
-            #     self.logger.warning("Falha ao preencher Mês com XPath absoluto. Tentando genérico...")
-            #     # Fallback se o xpath absoluto falhar (ele é bem frágil)
-            #     # Tentar achar inputs visiveis na area de pesquisa
-            #     self._fill("//input[contains(@title, 'Mês') or contains(@id, 'mes')]", str(mes)) # Tentativa
-            # time.sleep(2)
+            xpath_mes = "/html/body/div[1]/div/div/div/div[2]/div/div[2]/div/div[2]/div/div[3]/div/div[2]/div/div[3]/div/div/div/div[2]/div/div/div/div/div/div/div/div/div[2]/div/div/div/div/div/div/div[2]/div[3]/div/div/div/div[2]/div/table/tbody/tr[28]/td[2]/div/table/tbody/tr/td[2]/div/table/tbody/tr/td[1]/input"
+            try:
+                self._fill(xpath_mes, str(mes))
+                self.driver.switch_to.active_element.send_keys(Keys.TAB)
+            except:
+                self.logger.warning("Falha ao preencher Mês com XPath absoluto. Tentando genérico...")
+                # Fallback se o xpath absoluto falhar (ele é bem frágil)
+                # Tentar achar inputs visiveis na area de pesquisa
+                self._fill("//input[contains(@title, 'Mês') or contains(@id, 'mes')]", str(mes)) # Tentativa
+            time.sleep(2)
 
             # Executar
             self.logger.info("Executando consulta...")

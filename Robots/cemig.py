@@ -21,13 +21,13 @@ class CemigRobot(BaseRobot):
     """
     def __init__(self):
         super().__init__("cemig")
-        self.url = "https://novoportal.cemig.com.br/wp-json/consulta-ons/v1/dados"
+        self.url = "https://www.cemig.com.br/wp-json/consulta-ons/v1/dados"
         
         # Mapeamento de Empresas (Código -> Nome da Pasta)
         self.EMPRESAS_MAP = {
-            "510": "1004 - CEMIG",
-            "720": "1071 - CENTROESTE DE MINAS",
-            "740": "1139 - SLTE"
+            "Cemig GT": "1004 - CEMIG",
+            "Centroeste": "1071 - CENTROESTE DE MINAS",
+            "Sete Lagoas": "1139 - SLTE"
         }
 
     def process_agent(self, cod_ons, mes, ano, base_output_dir):
@@ -38,8 +38,8 @@ class CemigRobot(BaseRobot):
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36",
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
             "X-Requested-With": "XMLHttpRequest",
-            "Origin": "https://novoportal.cemig.com.br",
-            "Referer": "https://novoportal.cemig.com.br/faturas/consulta-para-usuarios-da-fatura-da-rede-basica-de-transmissao/",
+            "Origin": "https://www.cemig.com.br",
+            "Referer": "https://www.cemig.com.br/faturas/consulta-para-usuarios-da-fatura-da-rede-basica-de-transmissao/",
         }
 
         payload = {
