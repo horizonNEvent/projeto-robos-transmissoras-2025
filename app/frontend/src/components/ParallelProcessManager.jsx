@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import './ParallelProcessManager.css';
 
+import { ROBOTS } from '../constants/robots';
+
 const ParallelProcessManager = ({ apiBaseUrl }) => {
     const [processes, setProcesses] = useState([]);
     const [showModal, setShowModal] = useState(false);
@@ -13,7 +15,7 @@ const ParallelProcessManager = ({ apiBaseUrl }) => {
 
     // Estado do formulário de novo robô
     const [newRobot, setNewRobot] = useState({
-        robot_name: 'glorian',
+        robot_name: 'siget',
         user: '',
         password: '',
         competencia: '',
@@ -22,74 +24,11 @@ const ParallelProcessManager = ({ apiBaseUrl }) => {
         headless: true
     });
 
-    const ROBOT_OPTIONS = [
-        { value: "glorian", label: "WebGlorian" },
-        { value: "siget", label: "WebSiget" },
-        { value: "ons", label: "WebOns" },
-        { value: "cemig", label: "WebCemig" },
-        { value: "light", label: "WebLight" },
-        { value: "equatorial", label: "WebEquatorial" },
-        { value: "equatorial_v2", label: "WebEquatorial V2" },
-        { value: "cpfl", label: "WebCPFL" },
-        { value: "copel", label: "WebCopel" },
-        { value: "stategrid", label: "WebStateGrid" },
-        { value: "eletrobras", label: "WebEletrobras" },
-        { value: "cnt", label: "WebCnt" },
-        { value: "pantanal", label: "WebPantanal" },
-        { value: "assu", label: "WebAssu" },
-        { value: "tropicalia", label: "WebTropicalia" },
-        { value: "firminopolis", label: "WebFirminopolis" },
-        { value: "evoltz", label: "WebEvoltz" },
-        { value: "guaira", label: "WebGuaira" },
-        { value: "itamaraca", label: "WebItamaraca" },
-        { value: "colinas", label: "WebColinas" },
-        { value: "simoes", label: "WebSimoes" },
-        { value: "fs", label: "WebFS" },
-        { value: "vineyards", label: "WebVineyards" },
-        { value: "agua_vermelha", label: "WebAguaVermelha" },
-        { value: "celeo", label: "WebCeleo" },
-        { value: "arteon", label: "WebArteon" },
-        { value: "rialmas", label: "WebRialmas" },
-        { value: "rialmav", label: "WebRialmaV" },
-        { value: "rialmaiv", label: "WebRialmaIV" },
-        { value: "aete", label: "WebAETE" },
-        { value: "transnorte", label: "WebTransnorte" },
-        { value: "mge", label: "WebMGE" },
-        { value: "stn", label: "WebSTN" },
-        { value: "tecp", label: "WebTECP" },
-        { value: "elte", label: "WebELTE" },
-        { value: "etes", label: "WebETES" },
-        { value: "tme", label: "WebTME" },
-        { value: "etem", label: "WebETEM" },
-        { value: "etvg", label: "WebETVG" },
-        { value: "tne", label: "WebTNE" },
-        { value: "etc", label: "WebETC" },
-        { value: "etap", label: "WebETAP" },
-        { value: "tcc", label: "WebTCC" },
-        { value: "tpe", label: "WebTPE" },
-        { value: "tsm", label: "WebTSM" },
-        { value: "etb", label: "WebETB" },
-        { value: "amazonia", label: "WebAmazonia" },
-        { value: "tcpe", label: "WebTCPE" },
-        { value: "vsb", label: "WebVSB" },
-        { value: "verene", label: "WebVerene" },
-        { value: "tbe", label: "WebTBE" },
-        { value: "rio_largo", label: "WebRioLargo" },
-        { value: "etepa", label: "WebEtepa" },
-        { value: "etene", label: "WebEtene" },
-        { value: "harpix", label: "WebHarpix" },
-        { value: "webtaesa", label: "WebTaesa" },
-        { value: "webengie", label: "WebEngie" },
-        { value: "webettm", label: "WebETTM" },
-        { value: "websigetpublic", label: "WebSigetPublic" },
-        { value: "lnt", label: "WebLNT" },
-        { value: "sigetplusv2", label: "WebSigetPlusV2" },
-        { value: "web_ie", label: "WebIE (Genérico)" }
-    ].sort((a, b) => {
-        if (a.value === 'custom') return -1;
-        if (b.value === 'custom') return 1;
-        return a.label.localeCompare(b.label);
-    });
+    const ROBOT_OPTIONS = ROBOTS.map(r => ({
+        value: r.id,
+        label: r.name
+    })).sort((a, b) => a.label.localeCompare(b.label));
+
 
     const fetchProcesses = async () => {
         try {

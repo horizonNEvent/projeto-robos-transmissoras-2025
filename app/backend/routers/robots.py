@@ -303,7 +303,7 @@ ROBOTS_CONFIG = {
         "download_dir": get_download_path("STN"),
         "name": "WebSTN"
     },
-    "webtaesa": {
+    "taesa": {
         "script": os.path.join(ROOT_DIR, "Robots", "taesa.py"),
         "download_dir": get_download_path("TAESA"),
         "name": "WebTaesa"
