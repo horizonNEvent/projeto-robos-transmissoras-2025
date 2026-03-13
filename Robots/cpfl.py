@@ -32,23 +32,49 @@ class CPFLRobot(BaseRobot):
         except: pass
 
     def get_fatura_name_for_agent(self, ons_code):
+        ons_str = str(ons_code)
+        found_name = None
+        
+        # 1. Try JSON first
         try:
             p = Path(__file__).parent.parent / 'Data' / 'empresas_cpfl.json'
             if p.exists():
                 with open(p, 'r', encoding='utf-8') as f:
                     data = json.load(f)
-                    found_name = None
                     for empresa, agents in data.items():
                         if empresa == "mapeamento_empresas": continue
                         for a in agents:
-                            if str(a.get("codigo")) == str(ons_code):
+                            if str(a.get("codigo")) == ons_str:
                                 found_name = a.get("nome")
                                 break
                         if found_name: break
-                    if found_name:
-                        return self.mapeamento.get(found_name, self.mapeamento.get("*", found_name))
         except: pass
-        return self.mapeamento.get("*", "")
+
+        # 2. Try DB if not found in JSON
+        if not found_name:
+            try:
+                import sqlite3
+                db_path = Path(__file__).parent.parent / 'sql_app.db'
+                if db_path.exists():
+                    conn = sqlite3.connect(str(db_path))
+                    cursor = conn.cursor()
+                    # Tenta na tabela empresas (campo nome_empresa)
+                    cursor.execute("SELECT nome_empresa FROM empresas WHERE codigo_ons = ?", (ons_str,))
+                    row = cursor.fetchone()
+                    if row: found_name = row[0]
+                    
+                    if not found_name:
+                        # Tenta na tabela transmissora (campo nome ou sigla)
+                        cursor.execute("SELECT nome FROM transmissora WHERE codigo_ons = ?", (ons_str,))
+                        row = cursor.fetchone()
+                        if row: found_name = row[0]
+                    conn.close()
+            except: pass
+
+        if found_name:
+            return self.mapeamento.get(found_name, self.mapeamento.get("*", found_name))
+            
+        return self.mapeamento.get("*", "CEEE T")
 
     def monitor_respostas_403(self, page):
         state = {"had_403": False}
@@ -257,18 +283,29 @@ class CPFLRobot(BaseRobot):
                             return item.get("CNPJ")
         except: pass
 
-        # 3. Direct DB Check (Busca literal no banco de dados)
+        # 3. Direct DB Check (Busca literal no banco de dados sql_app.db)
         try:
             import sqlite3
-            db_path = Path(__file__).parent.parent / 'app' / 'backend' / 'database.db'
+            # O banco oficial agora é sql_app.db na raiz
+            db_path = Path(__file__).parent.parent / 'sql_app.db'
             if db_path.exists():
                 conn = sqlite3.connect(str(db_path))
                 cursor = conn.cursor()
+                
+                # Tenta na tabela 'empresas' (Padrão para AE/DE/AETE)
+                cursor.execute("SELECT cnpj FROM empresas WHERE codigo_ons = ?", (ons_str,))
+                row = cursor.fetchone()
+                if row and row[0]:
+                    conn.close()
+                    return row[0]
+                
+                # Tenta na tabela 'transmissora' (Backup)
                 cursor.execute("SELECT cnpj FROM transmissora WHERE codigo_ons = ?", (ons_str,))
                 row = cursor.fetchone()
                 conn.close()
-                if row: return row[0]
-        except: pass
+                if row and row[0]: return row[0]
+        except Exception as e:
+            self.logger.error(f"Erro ao consultar banco p/ CNPJ: {e}")
         
         return None
 
