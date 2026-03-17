@@ -15,6 +15,7 @@ import LogsPanel from './components/LogsPanel'
 import ScheduleModal from './components/ScheduleModal'
 import ParallelProcessManager from './components/ParallelProcessManager'
 import GruposTransmissorasManager from './components/GruposTransmissorasManager'
+import BackupManager from './components/BackupManager'
 
 const API_URL = "/api"
 
@@ -587,6 +588,9 @@ function App() {
                     editingId={editingId}
                     setEditingId={setEditingId}
                   />
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <BackupManager onLog={addLog} />
                 </div>
               </div>
             </div>
