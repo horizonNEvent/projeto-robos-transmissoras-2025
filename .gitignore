@@ -14,3 +14,5 @@ package-lock.json
 yarn.lock
 RioEnergy.Tust/
 *.exe
+
+bk_banco/
