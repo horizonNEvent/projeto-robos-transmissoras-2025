@@ -161,10 +161,46 @@ body {
   letter-spacing: -1px;
 }
 
+.dashboard-view {
+  position: relative;
+  min-height: 100%;
+}
+
+.spline-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: auto; /* Habilita o mouse para o robô reagir */
+}
+
+/* Garante que os cards ficam acima do robô 3D */
+.content-header, .dashboard-grid {
+  position: relative;
+  z-index: 1;
+}
+
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
   gap: 2rem;
+}
+
+/* Visão Geral: cards em coluna vertical à esquerda */
+.dashboard-view .dashboard-grid {
+  display: flex !important;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 350px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Hover lateral nos cards do dashboard (não sobrepõe o robô) */
+.dashboard-view .card:hover {
+  transform: translateX(10px);
 }
 
 .card {

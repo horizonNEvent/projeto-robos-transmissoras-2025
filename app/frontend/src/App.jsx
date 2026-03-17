@@ -16,6 +16,7 @@ import ScheduleModal from './components/ScheduleModal'
 import ParallelProcessManager from './components/ParallelProcessManager'
 import GruposTransmissorasManager from './components/GruposTransmissorasManager'
 import BackupManager from './components/BackupManager'
+import Spline from '@splinetool/react-spline'
 
 const API_URL = "/api"
 
@@ -290,6 +291,9 @@ function App() {
       <main className="main-content">
         {activeTab === 'dashboard' && (
           <div className="dashboard-view">
+            <div className="spline-container">
+              <Spline scene="https://prod.spline.design/ErWHAHiYDiXO9dy4/scene.splinecode" />
+            </div>
             <header className="content-header">
               <h2>Visão Geral</h2>
             </header>
