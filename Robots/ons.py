@@ -148,12 +148,13 @@ class OnsRobot(BaseRobot):
             self.logger.error(f"Erro ao obter digest: {e}")
             return None
 
-    def download_boletos(self):
+    def download_product(self, product_title, file_prefix, agents, dest_dir):
+        """Busca e baixa itens da API do ONS (Sintegre)."""
         digest = self.get_context_digest()
         if not digest: return
 
         target_period = self.get_target_period()
-        self.logger.info(f"Buscando 'Boletos do EUST' para competência: {target_period}")
+        self.logger.info(f"Buscando '{product_title}' para competência: {target_period}")
 
         # URL e Query convertida do script original
         api_url = "https://sintegre.ons.org.br/sites/1/18/_api/web/lists/GetByTitle('Produtos')/GetItems?$select=Id,Title,Produto,DataProdutos,FileRef,Periodicidade,PublicarEm,File_x0020_Type,FileLeafRef,Modified,UniqueId,File&$expand=File"
@@ -161,12 +162,12 @@ class OnsRobot(BaseRobot):
         query_payload = {
             "query": {
                 "__metadata": {"type": "SP.CamlQuery"},
-                "ViewXml": """
+                "ViewXml": f"""
                     <View Scope='RecursiveAll'>
                         <Query>
                               <Where>
                                 <And>
-                                    <Eq><FieldRef Name='Title'/><Value Type='Text'>Boletos do EUST</Value></Eq>
+                                    <Eq><FieldRef Name='Title'/><Value Type='Text'>{product_title}</Value></Eq>
                                     <And>
                                         <Gt><FieldRef Name='ID'/><Value Type='Counter'>0</Value></Gt>
                                         <Eq><FieldRef Name='Pasta'/><Value Type='Boolean'>0</Value></Eq>
@@ -179,7 +180,7 @@ class OnsRobot(BaseRobot):
                                 <FieldRef Name='ID' Ascending='True' />
                               </OrderBy>
                         </Query>
-                        <RowLimit>50</RowLimit>
+                        <RowLimit>100</RowLimit>
                     </View>
                 """
             }
@@ -194,44 +195,35 @@ class OnsRobot(BaseRobot):
         try:
             api_response = self.session.post(api_url, json=query_payload, headers=headers_api, verify=False)
             if api_response.status_code != 200:
-                self.logger.error(f"Erro na API de Produtos: {api_response.status_code}")
-                self.logger.debug(api_response.text[:500])
+                self.logger.error(f"Erro na API de Produtos ({product_title}): {api_response.status_code}")
                 return
 
             results = api_response.json().get('d', {}).get('results', [])
-            self.logger.info(f"Itens retornados pela API: {len(results)}")
+            self.logger.info(f"Itens encontrados para {product_title}: {len(results)}")
 
             count = 0
-            # Definir pasta de destino: output_dir/ONS/[competencia ou geral]
-            # O padrão usual é separar por empresa, mas aqui o script original usa 'Boletos'.
-            # Vou usar self.output_dir/Boletos_EUST para manter organização
-            dest_dir = os.path.join(self.output_dir, "Boletos_EUST")
-            if self.args.empresa:
-                 dest_dir = os.path.join(self.output_dir, self.args.empresa)
-            
-            os.makedirs(dest_dir, exist_ok=True)
-
             for item in results:
                 file_ref = item.get('FileRef')
-                # Periodicidade costuma vir YYYY-MM...
-                date_ref = item.get('Periodicidade', item.get('Created', ''))
+                # Periodicidade ou DataProdutos
+                date_ref = item.get('Periodicidade') or item.get('DataProdutos') or item.get('Created', '')
+                
+                # Log de depuração
+                file_name = file_ref.split('/')[-1] if file_ref else "Unknown"
                 
                 # Check period match
                 if str(date_ref).startswith(target_period):
                     if file_ref:
-                        file_name = file_ref.split('/')[-1]
                         download_url = f"https://sintegre.ons.org.br{file_ref}"
-                        
                         safe_date = str(date_ref)[:10].replace('-', '')
                         file_name_clean = "".join([c for c in file_name if c.isalnum() or c in ('._- ')])
                         
-                        local_path = os.path.join(dest_dir, f"BOLETO_{safe_date}_{file_name_clean}")
+                        local_path = os.path.join(dest_dir, f"{file_prefix}_{safe_date}_{file_name_clean}")
                         
                         if os.path.exists(local_path):
                             self.logger.info(f"Arquivo já existe, pulando: {file_name_clean}")
                             continue
 
-                        self.logger.info(f"Baixando: {file_name_clean}")
+                        self.logger.info(f"Baixando {product_title}: {file_name_clean}")
                         try:
                             f_resp = self.session.get(download_url, stream=True, verify=False)
                             f_resp.raise_for_status()
@@ -241,11 +233,13 @@ class OnsRobot(BaseRobot):
                             count += 1
                         except Exception as dl_err:
                             self.logger.error(f"Falha no download de {file_name}: {dl_err}")
+                else:
+                    self.logger.info(f"   -> Ignorado: Periodicidade {date_ref} não bate com {target_period}")
             
-            self.logger.info(f"Total de boletos baixados: {count}")
+            self.logger.info(f"Total baixado para {product_title}: {count}")
 
         except Exception as e:
-            self.logger.error(f"Erro ao consultar/baixar boletos: {e}")
+            self.logger.error(f"Erro ao consultar/baixar {product_title}: {e}")
 
     def run(self):
         user = self.args.user
@@ -256,7 +250,17 @@ class OnsRobot(BaseRobot):
             return
 
         if self.login(user, password):
-            self.download_boletos()
+            agents = self.get_agents()
+            
+            # Pasta de destino unificada
+            dest_dir = self.output_dir
+            if self.args.empresa:
+                dest_dir = os.path.join(self.output_dir, self.args.empresa)
+            os.makedirs(dest_dir, exist_ok=True)
+
+            # Baixa boletos e notas fiscais na mesma pasta
+            self.download_product("Boletos do EUST", "BOLETO", agents, dest_dir)
+            self.download_product("Notas Fiscais EUST", "NF", agents, dest_dir)
 
 if __name__ == "__main__":
     robot = OnsRobot()

@@ -316,15 +316,35 @@ class CPFLRobot(BaseRobot):
             if attempt > 0: self.logger.info(f"Tentativa {attempt+1} para {ons}...")
             
             with sync_playwright() as p:
-                # Usa a config de headless do robô
-                browser = p.firefox.launch(headless=self.args.headless, args=["--start-maximized"])
-                context = browser.new_context(accept_downloads=True)
+                # Mudamos para Chromium e desativamos flags de automação
+                browser = p.chromium.launch(
+                    headless=self.args.headless, 
+                    args=[
+                        "--disable-blink-features=AutomationControlled",
+                        "--start-maximized"
+                    ],
+                    slow_mo=1000 # 1 segundo entre ações para ser super conservador
+                )
+                
+                user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+                
+                context = browser.new_context(
+                    accept_downloads=True,
+                    user_agent=user_agent,
+                    viewport=None # Usa o tamanho nativo do browser maximizado
+                )
                 page = context.new_page()
+                
+                # Script extra para remover o rastro de "WebDriver"
+                page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+                
                 state_403 = self.monitor_respostas_403(page)
                 
                 try:
+                    import random
                     self.logger.info(f"Acessando CPFL p/ Agente {ons} (Login CNPJ: {cnpj})...")
-                    page.goto('https://getweb.cpfl.com.br/getweb/getweb.jsf', timeout=90000)
+                    time.sleep(random.uniform(3, 6)) # Espera aleatória entre 3 e 6 segundos
+                    page.goto('https://getweb.cpfl.com.br/getweb/getweb.jsf', timeout=90000, wait_until="domcontentloaded")
                     
                     # Login
                     if page.locator('#form\\:documento').is_visible():
