@@ -16,3 +16,4 @@ RioEnergy.Tust/
 *.exe
 
 bk_banco/
+.db
