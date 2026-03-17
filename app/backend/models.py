@@ -83,6 +83,16 @@ class DocumentRegistry(Base):
     validation_notes = Column(String, nullable=True)
     created_at = Column(String)
 
+class GrupoTransmissora(Base):
+    __tablename__ = 'grupos_transmissoras'
+    
+    id = Column(Integer, primary_key=True, index=True)
+    grupo = Column(String, index=True)           # Ex: 'SigetPlus', 'Glorian', 'TBE'
+    portal_url = Column(String, nullable=True)   # URL do portal de faturamento
+    codigo_ons = Column(String, index=True)      # Código ONS da transmissora
+    nome_transmissora = Column(String, nullable=True)
+    cnpj = Column(String, nullable=True)
+
 class SigetPublicTarget(Base):
     __tablename__ = 'siget_public_targets'
     

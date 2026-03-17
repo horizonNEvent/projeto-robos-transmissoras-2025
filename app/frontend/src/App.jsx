@@ -14,6 +14,7 @@ import DocumentManager from './components/DocumentManager'
 import LogsPanel from './components/LogsPanel'
 import ScheduleModal from './components/ScheduleModal'
 import ParallelProcessManager from './components/ParallelProcessManager'
+import GruposTransmissorasManager from './components/GruposTransmissorasManager'
 
 const API_URL = "/api"
 
@@ -274,6 +275,12 @@ function App() {
             onClick={() => setActiveTab('documents')}
           >
             📦 Documentos Validados
+          </div>
+          <div
+            className={`nav-item ${activeTab === 'grupos' ? 'active' : ''}`}
+            onClick={() => setActiveTab('grupos')}
+          >
+            🏢 Grupos de Transmissoras
           </div>
         </div>
       </aside>
@@ -600,6 +607,12 @@ function App() {
               <h2>Repositório de Documentos</h2>
             </header>
             <DocumentManager />
+          </div>
+        )}
+
+        {activeTab === 'grupos' && (
+          <div style={{ padding: '1.5rem' }}>
+            <GruposTransmissorasManager onLog={addLog} />
           </div>
         )}
       </main >
