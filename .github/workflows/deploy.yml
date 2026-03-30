@@ -1,25 +1,32 @@
-name: Deploy to Server
+name: Deploy to Production
 
 on:
   push:
     branches:
-      - main  # Ou sua branch principal
+      - feature/robot-ui-final
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+        with:
+          ref: feature/robot-ui-final
 
       - name: Deploy to Server via SSH
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.SERVER_HOST }}     # Adicione no GitHub Settings > Secrets
-          username: ${{ secrets.SERVER_USER }} # Adicione no GitHub Settings > Secrets
-          key: ${{ secrets.SSH_PRIVATE_KEY }}  # Adicione no GitHub Settings > Secrets
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            cd /caminho/para/seu/projeto/Tust-AETE
-            git pull origin main
-            chmod +x deploy.sh
-            ./deploy.sh
+            cd "C:\Workspace -lab\projeto-robos-transmissoras-2025"
+            powershell -ExecutionPolicy Bypass -File ./deploy.ps1
+
+      - name: Deployment Notification
+        if: always()
+        run: |
+          echo "✅ Deploy completed to feature/robot-ui-final"
+          echo "Server: 192.168.0.105"
+          echo "Path: C:\Workspace -lab\projeto-robos-transmissoras-2025"
