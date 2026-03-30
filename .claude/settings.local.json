@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ssh dibu7@192.168.0.105 \"powershell -Command ''Get-ChildItem -Path D:, C:\\\\Users\\\\dibu7\\\\Desktop, C:\\\\Users\\\\dibu7\\\\Documents -Filter Tust-AETE -Directory -ErrorAction SilentlyContinue | Select-Object -First 5 FullName''\")",
+      "Bash(ssh dibu7@192.168.0.105 \"dir D:\\\\ && echo --- && dir C:\\\\Users\\\\dibu7\\\\Desktop\")",
+      "Bash(ssh -v dibu7@192.168.0.105 \"whoami\")",
+      "Bash(ssh dibu7@192.168.0.105 \"cd /d D:\\\\ && dir\")",
+      "Bash(ssh dibu7@192.168.0.105 \"cd /c/Users/dibu7 && dir\")",
+      "Bash(ssh dibu7@192.168.0.105 powershell -Command \"Get-Location; Get-ChildItem\")",
+      "Bash(ssh dibu7@192.168.0.105 powershell -Command \"Get-ChildItem -Path C:\\\\Users\\\\dibu7\\\\Desktop, C:\\\\Users\\\\dibu7\\\\Documents, C:\\\\Users\\\\dibu7\\\\Downloads -Directory -Filter ''*AETE*'' -ErrorAction SilentlyContinue 2>&1\")",
+      "Bash(ssh dibu7@192.168.0.105 powershell -Command \"Get-ChildItem -Path C:\\\\Users\\\\dibu7 -Directory | Where-Object {$_Name -match ''Work|Tust|git''} | Select-Object Name, FullName\")",
+      "Bash(ssh dibu7@192.168.0.105 powershell -Command \"ls C:\\\\Users\\\\dibu7\\\\Desktop\")",
+      "Bash(ssh dibu7@192.168.0.105 powershell -Command \"cd ''C:\\\\Workspace -lab\\\\projeto-robos-transmissoras-2025''; pwd; ls\")",
+      "Bash(ssh dibu7@192.168.0.105 powershell -Command \"cd ''C:\\\\Workspace -lab\\\\projeto-robos-transmissoras-2025''; git status\")",
+      "Bash(ssh dibu7@192.168.0.105 powershell -Command \"cd ''C:\\\\Workspace -lab\\\\projeto-robos-transmissoras-2025''; git log --oneline -5\")",
+      "Bash(ssh dibu7@192.168.0.105 powershell -Command \"docker ps\")",
+      "Bash(ssh dibu7@192.168.0.105 powershell -Command \"cd ''C:\\\\Workspace -lab\\\\projeto-robos-transmissoras-2025''; docker-compose ps\")"
+    ]
+  }
+}
