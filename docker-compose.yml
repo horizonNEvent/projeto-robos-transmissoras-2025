@@ -4,6 +4,8 @@ services:
       context: .
       dockerfile: Dockerfile.backend
     restart: always
+    ports:
+      - "8000:8000"
     volumes:
       - .:/app
       - ./downloads:/app/downloads
@@ -16,6 +18,8 @@ services:
       context: .
       dockerfile: Dockerfile.frontend
     restart: always
+    ports:
+      - "5173:5173"
     volumes:
       - ./app/frontend:/app
       - /app/node_modules
