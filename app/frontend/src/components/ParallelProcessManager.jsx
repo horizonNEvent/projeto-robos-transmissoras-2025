@@ -58,16 +58,33 @@ const ParallelProcessManager = ({ apiBaseUrl }) => {
         return () => clearInterval(interval);
     }, []);
 
-    // Filtra configs do robô selecionado
-    const availableConfigs = robotConfigs.filter(c =>
-        (c.robot_type || '').toLowerCase() === newRobot.robot_name.toLowerCase() ||
-        (c.robot_type === 'WEBIE' && ['webie', 'stategrid', 'copel', 'cpfl', 'equatorial', 'light', 'cemig', 'ons'].includes(newRobot.robot_name.toLowerCase()) === false)
-    ).filter(c => c.robot_type.toLowerCase().replace('web', '') === newRobot.robot_name.toLowerCase().replace('web', '')
-        || c.robot_type.toLowerCase() === newRobot.robot_name.toLowerCase()
-        || (newRobot.robot_name.startsWith('webie') && c.robot_type === 'WEBIE')
-        // Fix para web_ie genérico matching configs de WEBIE
-        || (newRobot.robot_name === 'web_ie' && c.robot_type === 'WEBIE')
-    );
+    // Filtra configs do robô selecionado de forma flexível (por tipo, rótulo ou base)
+    const availableConfigs = robotConfigs.filter(c => {
+        const search = (newRobot.robot_name || '').toLowerCase();
+        if (!search) return false;
+
+        const type = (c.robot_type || '').toLowerCase();
+        const label = (c.label || '').toLowerCase();
+        const base = (c.base || '').toLowerCase();
+
+        // 1. Match exato pelo tipo do robô selecionado
+        if (type === search) return true;
+
+        // 2. Match parcial pelo rótulo amigável (ex: você digita "cnt" e o rótulo é "CNT AETE")
+        if (label.includes(search)) return true;
+
+        // 3. Match pela base (ex: você digita "AETE" e o perfil é da base AETE)
+        if (base === search) return true;
+
+        // 4. Lógica especial para WebIE / StateGrid / etc
+        if (search.startsWith('webie') && type === 'WEBIE') return true;
+        if (search === 'web_ie' && type === 'WEBIE') return true;
+
+        // 5. Match pelo tipo sem o prefixo "web" (ex: você digita "siget" e o tipo é "WebSiget")
+        if (type.replace('web', '') === search.replace('web', '')) return true;
+
+        return false;
+    });
 
     const handleStartRobot = async () => {
         setLoading(true);
