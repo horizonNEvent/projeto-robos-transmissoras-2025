@@ -58,30 +58,35 @@ const ParallelProcessManager = ({ apiBaseUrl }) => {
         return () => clearInterval(interval);
     }, []);
 
+    // Recarrega as configurações quando abre a modal pra garantir que estão atualizadas
+    useEffect(() => {
+        if (showModal) {
+            fetchConfigs();
+        }
+    }, [showModal]);
+
     // Filtra configs do robô selecionado de forma flexível (por tipo, rótulo ou base)
     const availableConfigs = robotConfigs.filter(c => {
-        const search = (newRobot.robot_name || '').toLowerCase();
+        const search = (newRobot.robot_name || '').trim().toLowerCase();
         if (!search) return false;
 
-        const type = (c.robot_type || '').toLowerCase();
-        const label = (c.label || '').toLowerCase();
-        const base = (c.base || '').toLowerCase();
+        const type = (c.robot_type || '').trim().toLowerCase();
+        const label = (c.label || '').trim().toLowerCase();
+        const base = (c.base || '').trim().toLowerCase();
 
-        // 1. Match exato pelo tipo do robô selecionado
+        // 1. Match pelo tipo do robô (id)
         if (type === search) return true;
+        if (type.replace('web', '') === search.replace('web', '')) return true;
 
-        // 2. Match parcial pelo rótulo amigável (ex: você digita "cnt" e o rótulo é "CNT AETE")
-        if (label.includes(search)) return true;
+        // 2. Match pelo rótulo amigável (Label)
+        if (label === search || label.includes(search)) return true;
 
-        // 3. Match pela base (ex: você digita "AETE" e o perfil é da base AETE)
+        // 3. Match pela base (AETE, RE, etc)
         if (base === search) return true;
 
-        // 4. Lógica especial para WebIE / StateGrid / etc
+        // 4. Lógica especial para WebIE
         if (search.startsWith('webie') && type === 'WEBIE') return true;
         if (search === 'web_ie' && type === 'WEBIE') return true;
-
-        // 5. Match pelo tipo sem o prefixo "web" (ex: você digita "siget" e o tipo é "WebSiget")
-        if (type.replace('web', '') === search.replace('web', '')) return true;
 
         return false;
     });
@@ -314,9 +319,9 @@ const ParallelProcessManager = ({ apiBaseUrl }) => {
 
                         {/* SELETOR DE PERFIS / EMPRESAS */}
                         {availableConfigs.length > 0 && (
-                            <div className="form-group profiles-section">
-                                <label>Selecione os Perfis de Execução:</label>
-                                <div className="profiles-grid">
+                            <div className="form-group profiles-section" style={{ marginTop: '15px' }}>
+                                <label style={{ color: '#84cc16', fontWeight: 'bold', fontSize: '1.1em' }}>✅ Perfis encontrados para "{newRobot.robot_name}":</label>
+                                <div className="profiles-grid" style={{ marginTop: '10px' }}>
                                     {availableConfigs.map(config => (
                                         <div
                                             key={config.id}
