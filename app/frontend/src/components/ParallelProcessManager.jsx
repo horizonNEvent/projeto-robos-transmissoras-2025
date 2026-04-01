@@ -155,8 +155,8 @@ const ParallelProcessManager = ({ apiBaseUrl }) => {
 
     const showLogs = async (proc) => {
         try {
-            const res = await fetch(`${apiBaseUrl}/manager/logs/${proc.id}`);
-            const data = await res.json();
+            const res = await axios.get(`${apiBaseUrl}/manager/logs/${proc.id}`);
+            const data = res.data;
             setLogModal({ show: true, content: data.logs, title: `${proc.name} Logs` });
         } catch (e) {
             alert("Erro ao buscar logs");
