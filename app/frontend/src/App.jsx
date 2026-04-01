@@ -3,6 +3,9 @@ import axios from 'axios'
 import './index.css'
 import { API_URL } from './apiConfig'
 
+// Pula o aviso do Ngrok para permitir conexões de API
+axios.defaults.headers.common['ngrok-skip-browser-warning'] = 'true';
+
 // Constants
 import { ROBOTS } from './constants/robots'
 
