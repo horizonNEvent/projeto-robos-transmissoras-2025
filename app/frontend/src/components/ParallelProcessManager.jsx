@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import './ParallelProcessManager.css';
 
 import { ROBOTS } from '../constants/robots';
@@ -32,11 +33,8 @@ const ParallelProcessManager = ({ apiBaseUrl }) => {
 
     const fetchProcesses = async () => {
         try {
-            const response = await fetch(`${apiBaseUrl}/manager/list`);
-            if (response.ok) {
-                const data = await response.json();
-                setProcesses(data);
-            }
+            const response = await axios.get(`${apiBaseUrl}/manager/list`);
+            setProcesses(response.data);
         } catch (error) {
             console.error("Erro ao buscar processos:", error);
         }
@@ -44,10 +42,8 @@ const ParallelProcessManager = ({ apiBaseUrl }) => {
 
     const fetchConfigs = async () => {
         try {
-            const res = await fetch(`${apiBaseUrl}/config/robots`);
-            if (res.ok) {
-                setRobotConfigs(await res.json());
-            }
+            const res = await axios.get(`${apiBaseUrl}/config/robots`);
+            setRobotConfigs(res.data);
         } catch (e) { console.error(e); }
     };
 
@@ -96,15 +92,11 @@ const ParallelProcessManager = ({ apiBaseUrl }) => {
         try {
             if (selectedConfigIds.length > 0) {
                 const updatedRequest = selectedConfigIds.map(id => {
-                    return fetch(`${apiBaseUrl}/manager/start`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            robot_name: newRobot.robot_name,
-                            process_id: id,
-                            competencia: newRobot.competencia || undefined, // Competencia global para todos
-                            headless: newRobot.headless
-                        })
+                    return axios.post(`${apiBaseUrl}/manager/start`, {
+                        robot_name: newRobot.robot_name,
+                        process_id: id,
+                        competencia: newRobot.competencia || undefined,
+                        headless: newRobot.headless
                     });
                 });
 
@@ -121,16 +113,12 @@ const ParallelProcessManager = ({ apiBaseUrl }) => {
                     headless: newRobot.headless
                 };
 
-                await fetch(`${apiBaseUrl}/manager/start`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
+                await axios.post(`${apiBaseUrl}/manager/start`, payload);
             }
 
             await fetchProcesses();
             setShowModal(false);
-            setSelectedConfigIds([]); // Reset selection
+            setSelectedConfigIds([]);
         } catch (e) {
             alert("Erro ao iniciar robô(s)");
         } finally {
@@ -141,7 +129,7 @@ const ParallelProcessManager = ({ apiBaseUrl }) => {
     const handleStop = async (id) => {
         if (!window.confirm("Deseja realmente parar este robô?")) return;
         try {
-            await fetch(`${apiBaseUrl}/manager/stop/${id}`, { method: 'POST' });
+            await axios.post(`${apiBaseUrl}/manager/stop/${id}`);
             await fetchProcesses();
         } catch (e) {
             console.error(e);
@@ -150,7 +138,7 @@ const ParallelProcessManager = ({ apiBaseUrl }) => {
 
     const handleClear = async () => {
         try {
-            await fetch(`${apiBaseUrl}/manager/clear`, { method: 'DELETE' });
+            await axios.delete(`${apiBaseUrl}/manager/clear`);
             await fetchProcesses();
         } catch (e) {
             console.error(e);
