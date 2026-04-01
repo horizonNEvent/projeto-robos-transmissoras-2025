@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
+import { API_URL } from '../apiConfig'
 
-const API_URL = '/api'
+
 
 // Paleta de cores por grupo (fixada para poucos; resto usa hash)
 const GROUP_COLORS = {

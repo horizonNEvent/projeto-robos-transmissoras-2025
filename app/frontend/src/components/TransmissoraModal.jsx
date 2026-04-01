@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
+import { API_URL } from '../apiConfig'
 
-const API_URL = "/api"
+
 
 function TransmissoraModal({ show, onClose, onLog }) {
     const [transmissoras, setTransmissoras] = useState([])

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_URL as API_URL_BASE } from '../apiConfig';
 
-const API_URL = '/api/backup';
+const API_URL = `${API_URL_BASE}/api/backup`;
 
 export default function BackupManager({ onLog }) {
     const [backups, setBackups] = useState([]);

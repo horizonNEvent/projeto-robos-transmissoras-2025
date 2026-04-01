@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
 import './index.css'
+import { API_URL } from './apiConfig'
 
 // Constants
 import { ROBOTS } from './constants/robots'
@@ -18,7 +19,7 @@ import GruposTransmissorasManager from './components/GruposTransmissorasManager'
 import BackupManager from './components/BackupManager'
 import Spline from '@splinetool/react-spline'
 
-const API_URL = "/api"
+
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard') // dashboard, robot_id, transmissoras, config, documents
