@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import './ParallelProcessManager.css';
 
 import { ROBOTS } from '../constants/robots';
@@ -32,11 +33,8 @@ const ParallelProcessManager = ({ apiBaseUrl }) => {
 
     const fetchProcesses = async () => {
         try {
-            const response = await fetch(`${apiBaseUrl}/manager/list`);
-            if (response.ok) {
-                const data = await response.json();
-                setProcesses(data);
-            }
+            const response = await axios.get(`${apiBaseUrl}/manager/list`);
+            setProcesses(response.data);
         } catch (error) {
             console.error("Erro ao buscar processos:", error);
         }
@@ -44,10 +42,8 @@ const ParallelProcessManager = ({ apiBaseUrl }) => {
 
     const fetchConfigs = async () => {
         try {
-            const res = await fetch(`${apiBaseUrl}/config/robots`);
-            if (res.ok) {
-                setRobotConfigs(await res.json());
-            }
+            const res = await axios.get(`${apiBaseUrl}/config/robots`);
+            setRobotConfigs(res.data);
         } catch (e) { console.error(e); }
     };
 
@@ -58,31 +54,49 @@ const ParallelProcessManager = ({ apiBaseUrl }) => {
         return () => clearInterval(interval);
     }, []);
 
-    // Filtra configs do robô selecionado
-    const availableConfigs = robotConfigs.filter(c =>
-        (c.robot_type || '').toLowerCase() === newRobot.robot_name.toLowerCase() ||
-        (c.robot_type === 'WEBIE' && ['webie', 'stategrid', 'copel', 'cpfl', 'equatorial', 'light', 'cemig', 'ons'].includes(newRobot.robot_name.toLowerCase()) === false)
-    ).filter(c => c.robot_type.toLowerCase().replace('web', '') === newRobot.robot_name.toLowerCase().replace('web', '')
-        || c.robot_type.toLowerCase() === newRobot.robot_name.toLowerCase()
-        || (newRobot.robot_name.startsWith('webie') && c.robot_type === 'WEBIE')
-        // Fix para web_ie genérico matching configs de WEBIE
-        || (newRobot.robot_name === 'web_ie' && c.robot_type === 'WEBIE')
-    );
+    // Recarrega as configurações quando abre a modal pra garantir que estão atualizadas
+    useEffect(() => {
+        if (showModal) {
+            fetchConfigs();
+        }
+    }, [showModal]);
+
+    // Filtra configs do robô selecionado de forma flexível (por tipo, rótulo ou base)
+    const availableConfigs = robotConfigs.filter(c => {
+        const search = (newRobot.robot_name || '').trim().toLowerCase();
+        if (!search) return false;
+
+        const type = (c.robot_type || '').trim().toLowerCase();
+        const label = (c.label || '').trim().toLowerCase();
+        const base = (c.base || '').trim().toLowerCase();
+
+        // 1. Match pelo tipo do robô (id)
+        if (type === search) return true;
+        if (type.replace('web', '') === search.replace('web', '')) return true;
+
+        // 2. Match pelo rótulo amigável (Label)
+        if (label === search || label.includes(search)) return true;
+
+        // 3. Match pela base (AETE, RE, etc)
+        if (base === search) return true;
+
+        // 4. Lógica especial para WebIE
+        if (search.startsWith('webie') && type === 'WEBIE') return true;
+        if (search === 'web_ie' && type === 'WEBIE') return true;
+
+        return false;
+    });
 
     const handleStartRobot = async () => {
         setLoading(true);
         try {
             if (selectedConfigIds.length > 0) {
                 const updatedRequest = selectedConfigIds.map(id => {
-                    return fetch(`${apiBaseUrl}/manager/start`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            robot_name: newRobot.robot_name,
-                            process_id: id,
-                            competencia: newRobot.competencia || undefined, // Competencia global para todos
-                            headless: newRobot.headless
-                        })
+                    return axios.post(`${apiBaseUrl}/manager/start`, {
+                        robot_name: newRobot.robot_name,
+                        process_id: id,
+                        competencia: newRobot.competencia || undefined,
+                        headless: newRobot.headless
                     });
                 });
 
@@ -99,16 +113,12 @@ const ParallelProcessManager = ({ apiBaseUrl }) => {
                     headless: newRobot.headless
                 };
 
-                await fetch(`${apiBaseUrl}/manager/start`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
+                await axios.post(`${apiBaseUrl}/manager/start`, payload);
             }
 
             await fetchProcesses();
             setShowModal(false);
-            setSelectedConfigIds([]); // Reset selection
+            setSelectedConfigIds([]);
         } catch (e) {
             alert("Erro ao iniciar robô(s)");
         } finally {
@@ -119,7 +129,7 @@ const ParallelProcessManager = ({ apiBaseUrl }) => {
     const handleStop = async (id) => {
         if (!window.confirm("Deseja realmente parar este robô?")) return;
         try {
-            await fetch(`${apiBaseUrl}/manager/stop/${id}`, { method: 'POST' });
+            await axios.post(`${apiBaseUrl}/manager/stop/${id}`);
             await fetchProcesses();
         } catch (e) {
             console.error(e);
@@ -128,7 +138,7 @@ const ParallelProcessManager = ({ apiBaseUrl }) => {
 
     const handleClear = async () => {
         try {
-            await fetch(`${apiBaseUrl}/manager/clear`, { method: 'DELETE' });
+            await axios.delete(`${apiBaseUrl}/manager/clear`);
             await fetchProcesses();
         } catch (e) {
             console.error(e);
@@ -145,8 +155,8 @@ const ParallelProcessManager = ({ apiBaseUrl }) => {
 
     const showLogs = async (proc) => {
         try {
-            const res = await fetch(`${apiBaseUrl}/manager/logs/${proc.id}`);
-            const data = await res.json();
+            const res = await axios.get(`${apiBaseUrl}/manager/logs/${proc.id}`);
+            const data = res.data;
             setLogModal({ show: true, content: data.logs, title: `${proc.name} Logs` });
         } catch (e) {
             alert("Erro ao buscar logs");
@@ -297,9 +307,9 @@ const ParallelProcessManager = ({ apiBaseUrl }) => {
 
                         {/* SELETOR DE PERFIS / EMPRESAS */}
                         {availableConfigs.length > 0 && (
-                            <div className="form-group profiles-section">
-                                <label>Selecione os Perfis de Execução:</label>
-                                <div className="profiles-grid">
+                            <div className="form-group profiles-section" style={{ marginTop: '15px' }}>
+                                <label style={{ color: '#84cc16', fontWeight: 'bold', fontSize: '1.1em' }}>✅ Perfis encontrados para "{newRobot.robot_name}":</label>
+                                <div className="profiles-grid" style={{ marginTop: '10px' }}>
                                     {availableConfigs.map(config => (
                                         <div
                                             key={config.id}
