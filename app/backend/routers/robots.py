@@ -382,7 +382,12 @@ ROBOTS_CONFIG = {
         "script": os.path.join(ROOT_DIR, "Robots", "sigetplus_v2.py"),
         "download_dir": get_download_path("SIGETPLUSV2"),
         "name": "WebSigetPlusV2"
-    }
+    },
+    "dpii": {
+        "script": os.path.join(ROOT_DIR, "Robots", "dpii.py"),
+        "download_dir": get_download_path("DPII"),
+        "name": "WebDPII"
+    },
 }
 
 # Estado global: { robot_name: { set_of_active_process_ids } }
