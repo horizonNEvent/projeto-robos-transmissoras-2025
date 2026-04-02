@@ -82,5 +82,4 @@ export const ROBOTS = [
     { id: 'etene', name: 'WebEtene' },
     { id: 'lnt', name: 'WebLNT' },
     { id: 'sigetplusv2', name: 'WebSigetPlusV2' },
-    { id: 'dpii', name: 'WebDPII' },
 ]
