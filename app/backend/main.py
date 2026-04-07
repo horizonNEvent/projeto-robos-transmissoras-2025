@@ -1,5 +1,12 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+import os
+
+# Carrega variáveis do .env na raiz do projeto (ex: ROBOT_PYTHON)
+_root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+load_dotenv(os.path.join(_root_dir, ".env"))
+
 from . import models, database
 from .routers import robots, empresas, transmissoras, siget, ie, config, migrate, siget_public, documents, grupos, backup
 
