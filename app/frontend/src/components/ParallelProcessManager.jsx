@@ -145,12 +145,41 @@ const ParallelProcessManager = ({ apiBaseUrl }) => {
         }
     };
 
-    const handleDownload = (proc) => {
-        window.open(`${apiBaseUrl}/manager/download/${proc.id}`, '_blank');
+
+    const handleDownload = async (proc) => {
+        try {
+            const res = await axios.get(`${apiBaseUrl}/manager/download/${proc.id}`, {
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `${proc.name}_${proc.id.slice(0, 8)}.zip`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (e) {
+            alert('Erro ao baixar arquivo');
+        }
     };
 
-    const handleDownloadAll = () => {
-        window.open(`${apiBaseUrl}/manager/download-all`, '_blank');
+    const handleDownloadAll = async () => {
+        try {
+            const res = await axios.get(`${apiBaseUrl}/manager/download-all`, {
+                responseType: 'blob'
+            });
+            const url = window.URL.createObjectURL(new Blob([res.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `todos_robos.zip`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (e) {
+            alert('Erro ao baixar todos os arquivos');
+        }
     };
 
     const showLogs = async (proc) => {
