@@ -20,6 +20,10 @@ router = APIRouter(tags=["robots"])
 # Caminhos
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
+# Executável Python para rodar os robôs.
+# No .env do outro PC, define: ROBOT_PYTHON=C:\Python311\python.exe
+ROBOT_PYTHON = os.environ.get("ROBOT_PYTHON", "python")
+
 def get_download_path(robot_key: str):
     """Retorna o caminho de download baseado no ROOT_DIR para garantir compatibilidade Docker/Linux/Windows"""
     # Se houver uma variável de ambiente TUST_DOWNLOADS_BASE, usamos ela como base.
@@ -520,7 +524,7 @@ def run_robot_logic(robot_name: str, process_id: int, competencia: Optional[str]
         # -----------------------------------
 
         # Comando simplificado
-        cmd = ["python", config['script']]
+        cmd = [ROBOT_PYTHON, config['script']]
         
         if db_config:
             if db_config.base: cmd.extend(["--empresa", db_config.base])
@@ -610,7 +614,7 @@ def run_robot(request: RobotRequest, background_tasks: BackgroundTasks):
 from ..process_manager import manager as process_manager
 
 def build_robot_command(robot_name: str, config: dict, db_config: Optional[models.RobotConfig], manual_args: dict, competencia: Optional[str], headless: bool, output_dir: Optional[str] = None) -> List[str]:
-    cmd = ["python", config['script']]
+    cmd = [ROBOT_PYTHON, config['script']]
     
     if db_config:
         if db_config.base: cmd.extend(["--empresa", db_config.base])

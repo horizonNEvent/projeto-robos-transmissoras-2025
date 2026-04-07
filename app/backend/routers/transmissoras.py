@@ -142,6 +142,7 @@ async def upload_transmissoras(file: UploadFile = File(...), db: Session = Depen
 
 from pydantic import BaseModel
 import subprocess
+from .robots import ROBOT_PYTHON
 
 class AmseCredentials(BaseModel):
     user: str
@@ -160,7 +161,7 @@ def update_transmissoras_amse(creds: AmseCredentials, db: Session = Depends(get_
         if not os.path.exists(script_path):
             raise HTTPException(status_code=500, detail="Script do robô AMSE não encontrado.")
 
-        cmd = ["python", script_path, "--user", creds.user, "--password", creds.password, "--update-db"]
+        cmd = [ROBOT_PYTHON, script_path, "--user", creds.user, "--password", creds.password, "--update-db"]
         
         # Executa
         process = subprocess.Popen(

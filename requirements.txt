@@ -7,3 +7,7 @@ python-dotenv
 pandas
 xlrd
 openpyxl
+# Robô Light - OCR para resolver CAPTCHA
+opencv-python
+paddlepaddle
+paddleocr
