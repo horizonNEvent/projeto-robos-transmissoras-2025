@@ -56,14 +56,35 @@ class LightRobot(BaseRobot):
         ev = eventvalidation.get('value', '') if eventvalidation else ''
         return vs, ev
     
+    def _get_ocr_instance(self):
+        """Retorna instância única do PaddleOCR otimizada para captchas simples."""
+        if not hasattr(self, '_ocr_instance') or self._ocr_instance is None:
+            self.logger.warning("⏳ Inicializando PaddleOCR (primeira vez = LENTA: 2-5 min, próximas = rápido)...")
+            # Suprime logs verbosos via logging
+            import logging as _logging
+            for logger_name in ['ppocr', 'paddle', 'paddleocr', 'paddlex']:
+                _logging.getLogger(logger_name).setLevel(_logging.ERROR)
+            # Configuração mínima: sem modelos de layout/orientação pesados
+            # Adequada para captchas simples (imagens pequenas, texto direto)
+            try:
+                self._ocr_instance = PaddleOCR(
+                    use_doc_orientation_classify=False,
+                    use_doc_unwarping=False,
+                    use_textline_orientation=False,
+                    lang='en'
+                )
+                self.logger.info("✓ PaddleOCR inicializado com sucesso!")
+            except Exception as e:
+                self.logger.error(f"Erro fatal ao inicializar PaddleOCR: {e}")
+                raise
+        return self._ocr_instance
+
     def processar_captcha(self, imagem_bytes):
         self.logger.info("Iniciando processamento de CAPTCHA...")
         try:
             with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp:
                 tmp.write(imagem_bytes)
                 tmp_path = tmp.name
-            
-            self.logger.info(f"Imagem temporária salva: {tmp_path}")
 
             # Pré-processamento com OpenCV
             try:
@@ -78,35 +99,55 @@ class LightRobot(BaseRobot):
                 
                 processed_path = tmp_path.replace('.png', '_processed.png')
                 cv2.imwrite(processed_path, binary_bgr)
-                self.logger.info(f"Pré-processamento OpenCV concluído: {processed_path}")
             except Exception as cv_err:
-                 self.logger.error(f"Erro no OpenCV: {cv_err}")
-                 return None
+                self.logger.error(f"Erro no OpenCV: {cv_err}")
+                return None
 
-            # Inicializa OCR Localmente (Isolamento total)
-            self.logger.info("Inicializando PaddleOCR localmente...")
-            ocr_local = PaddleOCR(use_textline_orientation=True, lang='en')
+            # Usa instância única do OCR
+            ocr_local = self._get_ocr_instance()
             
-            # OCR no arquivo processado
             self.logger.info("Executando OCR...")
-            resultado = ocr_local.ocr(processed_path)
-            self.logger.info(f"Resultado OCR Bruto: {resultado}")
+            resultado = ocr_local.predict(processed_path)
             
             texto = None
-            if resultado and len(resultado) > 0:
-                if isinstance(resultado[0], list):
-                    for line in resultado[0]:
-                        if isinstance(line, list) and len(line) >= 2:
-                            txt_info = line[1]
-                            if isinstance(txt_info, tuple):
-                                texto = txt_info[0]
-                                break
-                elif isinstance(resultado[0], dict):
-                    if 'rec_texts' in resultado[0] and resultado[0]['rec_texts']:
-                        texto = resultado[0]['rec_texts'][0]
+            
+            # API predict() retorna list de OCRResult (cada um com rec_texts)
+            try:
+                itens = list(resultado) if not isinstance(resultado, list) else resultado
+                # Log seguro: só extrai rec_texts sem converter arrays numpy
+                textos_encontrados = []
+                for item in itens:
+                    if hasattr(item, 'rec_texts'):
+                        textos_encontrados.extend(item.rec_texts or [])
+                    elif isinstance(item, dict) and item.get('rec_texts'):
+                        textos_encontrados.extend(item['rec_texts'])
+                self.logger.info(f"OCR detectou {len(textos_encontrados)} texto(s): {textos_encontrados}")
+
+                for item in itens:
+                    # Formato novo: OCRResult com atributo rec_texts
+                    if hasattr(item, 'rec_texts') and item.rec_texts:
+                        texto = item.rec_texts[0]
+                        break
+                    # Formato dict-like
+                    elif isinstance(item, dict) and item.get('rec_texts'):
+                        texto = item['rec_texts'][0]
+                        break
+                    # Formato antigo: lista de listas [[bbox, (text, conf)], ...]
+                    elif isinstance(item, list):
+                        for line in item:
+                            if isinstance(line, list) and len(line) >= 2:
+                                txt_info = line[1]
+                                if isinstance(txt_info, (tuple, list)) and txt_info:
+                                    texto = txt_info[0]
+                                    break
+                        if texto:
+                            break
+            except Exception as parse_err:
+                self.logger.error(f"Erro ao parsear resultado OCR: {parse_err}")
+                import traceback; traceback.print_exc()
 
             # Limpeza
-            try: 
+            try:
                 os.unlink(tmp_path)
                 if os.path.exists(processed_path): os.unlink(processed_path)
             except: pass
@@ -140,7 +181,8 @@ class LightRobot(BaseRobot):
             try:
                 r_cap = self.session.get(url_cap, headers=self.headers)
                 captcha_code = self.processar_captcha(r_cap.content)
-            except:
+            except Exception as cap_err:
+                self.logger.error(f"Erro ao processar captcha: {cap_err}")
                 captcha_code = None
             
             # Se falhou OCR, tentar mais uma vez sem gastar tentativa de login
@@ -149,7 +191,7 @@ class LightRobot(BaseRobot):
                 time.sleep(1)
                 continue
 
-            self.logger.info(f"Tentando login com captcha: {captcha_code}")
+            self.logger.info(f"Tentando login (CAPTCHA: {captcha_code})")
             
             payload = {
                 "__EVENTTARGET": "",
@@ -188,12 +230,6 @@ class LightRobot(BaseRobot):
 
         self.logger.error("Falha no login após todas tentativas")
         return False, None, None
-
-    def buscar_notas(self, u, id_, ano, mes):
-        url_busca = f"{self.base_url}/Web/wfmBuscaNotas.aspx"
-        params_get = {'u': u, 'id': id_}
-        
-        self.logger.info(f"Buscando notas para {mes}/{ano}...")
 
     def buscar_notas(self, u, id_, ano, mes):
         url_busca = f"{self.base_url}/Web/wfmBuscaNotas.aspx"
@@ -285,13 +321,13 @@ class LightRobot(BaseRobot):
 
     def baixar_arquivo(self, u, id_, nota_info, html_anterior, save_dir):
         url_busca = f"{self.base_url}/Web/wfmBuscaNotas.aspx"
-        
+
         self.logger.info(f"Baixando {nota_info['tipo']}: {nota_info['nome_arquivo']}...")
-        
+
         # Tokens do HTML da busca (que contém o resultado)
         vs, ev = self.extrair_tokens_aspnet(html_anterior)
         soup = BeautifulSoup(html_anterior, 'html.parser')
-        
+
         def get_val(name, default):
             el = soup.find('select', {'name': name})
             if el:
@@ -327,15 +363,26 @@ class LightRobot(BaseRobot):
         }
 
         r_down = self.session.post(f"{url_busca}?u={u}&id={id_}", data=payload, headers=headers_post)
-        
+
+        self.logger.debug(f"Status Code: {r_down.status_code}, Content-Type: {r_down.headers.get('Content-Type', 'N/A')}")
+
         if r_down.status_code == 200:
             ctype = r_down.headers.get('Content-Type', '').lower()
-            
+
             # Helper para detectar tipo real pelo conteudo
             content_start = r_down.content[:10]
             is_pdf = b'%PDF' in content_start
             is_xml = b'<?xml' in content_start or b'<nfeProc' in content_start
-            
+            is_html = b'<!DOCTYPE' in content_start or b'<html' in content_start
+
+            # Log do que foi detectado
+            self.logger.debug(f"Detecção: PDF={is_pdf}, XML={is_xml}, HTML={is_html}, Content-Type={ctype}")
+
+            # Se for HTML, pode ser erro do servidor
+            if is_html:
+                self.logger.warning(f"Resposta é HTML (possível erro). Primeiras 500 chars: {r_down.text[:500]}")
+                return False
+
             # Se for PDF/XML ou tiver header de arquivo, salva
             if is_pdf or is_xml or any(x in ctype for x in ['xml', 'pdf', 'octet-stream', 'application', 'image/jpeg']):
                 filename = nota_info['nome_arquivo']
@@ -343,7 +390,7 @@ class LightRobot(BaseRobot):
                 if 'filename=' in cd:
                     m = re.search(r'filename[^;=\n]*=(([\'"]).*?\2|[^;\n]*)', cd)
                     if m: filename = m.group(1).strip('"\'')
-                
+
                 # Se detectou PDF mas a ext está errada, corrige
                 if is_pdf and not filename.lower().endswith('.pdf'):
                     filename += '.pdf'
@@ -353,15 +400,17 @@ class LightRobot(BaseRobot):
                 filename = re.sub(r'[\\/*?:"<>|]', "", filename)
                 os.makedirs(save_dir, exist_ok=True)
                 full_path = os.path.join(save_dir, filename)
-                
+
                 with open(full_path, 'wb') as f:
                     f.write(r_down.content)
-                self.logger.info(f"Salvo: {filename}")
+                self.logger.info(f"Salvo: {filename} ({len(r_down.content)} bytes)")
                 return True
             else:
-                self.logger.warning(f"Tipo de arquivo desconhecido: {ctype}")
-        
-        return False
+                self.logger.warning(f"Tipo de arquivo desconhecido: {ctype}, Tamanho: {len(r_down.content)} bytes")
+                return False
+        else:
+            self.logger.error(f"Erro no download: Status {r_down.status_code}. Headers: {dict(r_down.headers)}")
+            return False
 
     def run(self):
         # Lógica de Competência

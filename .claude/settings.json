@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python Robots/light.py --user \"29481536000158\" --agente \"4284\" -v)",
+      "Bash(python Robots/light.py --user \"29481536000158\" --agente \"4284\")",
+      "Bash(python \"d:/Workspace/Tust-AETE/Robots/light.py\" --user \"29481536000158\" --agente \"4284\")",
+      "Bash(python -c ':*)",
+      "Bash(python test_light_simple.py)",
+      "Bash(timeout 300 python \"d:/Workspace/Tust-AETE/Robots/light.py\" --user \"27093977000238\" --agente \"3748\")",
+      "Bash(timeout 120 python \"d:/Workspace/Tust-AETE/Robots/light.py\" --user \"27093977000238\" --agente \"3748\")"
+    ]
+  }
+}
