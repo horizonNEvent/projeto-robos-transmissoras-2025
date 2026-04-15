@@ -166,12 +166,21 @@ class LightRobot(BaseRobot):
 
     def fazer_login(self, cnpj, codigo_ons, tentativas=5):
         url_login = f"{self.base_url}/Web/wfmAutenticar.aspx"
-        
-        try:
-            resp = self.session.get(url_login, headers=self.headers, timeout=30)
-        except Exception as e:
-            self.logger.error(f"Erro conexão inicial: {e}")
-            return False, None, None
+
+        # Retry com backoff para timeout de conexão
+        max_tentativas_conexao = 3
+        for tentativa_conexao in range(1, max_tentativas_conexao + 1):
+            try:
+                resp = self.session.get(url_login, headers=self.headers, timeout=30)
+                break
+            except Exception as e:
+                if tentativa_conexao < max_tentativas_conexao:
+                    espera = 5 * tentativa_conexao  # 5s, 10s, 15s
+                    self.logger.warning(f"Timeout conexão (tentativa {tentativa_conexao}/{max_tentativas_conexao}). Aguardando {espera}s...")
+                    time.sleep(espera)
+                else:
+                    self.logger.error(f"Erro conexão inicial (após {max_tentativas_conexao} tentativas): {e}")
+                    return False, None, None
 
         vs, ev = self.extrair_tokens_aspnet(resp.text)
         
@@ -499,15 +508,15 @@ class LightRobot(BaseRobot):
             else:
                 lista_empresas = itens
 
-            for dados in lista_empresas:
+            for idx, dados in enumerate(lista_empresas):
                 ons = str(dados.get('ons') or dados.get('codigo_ons', ''))
-                
+
                 if target_agents and ons not in target_agents:
                     continue
 
                 cnpj = dados.get('cnpj')
                 nome_pasta = dados.get('pasta') or dados.get('nome') or f"ONS_{ons}"
-                
+
                 self.logger.info(f"Processando {grupo} - {nome_pasta} ({ons}) | CNPJ: {cnpj}")
 
                 save_dir = os.path.join(base_output_dir, grupo, str(ons))
@@ -526,6 +535,10 @@ class LightRobot(BaseRobot):
                         self.logger.info(f"Nenhuma nota encontrada para {nome_pasta}.")
                 else:
                     self.logger.error(f"Falha Login para {nome_pasta} (CNPJ: {cnpj}).")
+
+                # Delay entre agentes para não sobrecarregar servidor
+                if idx < len(lista_empresas) - 1:
+                    time.sleep(3)
 
 if __name__ == "__main__":
     bot = LightRobot()
