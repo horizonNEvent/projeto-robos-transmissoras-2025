@@ -18,9 +18,14 @@ REM set ROBOT_PYTHON=C:\Python311\python.exe
 REM Se a variavel nao for definida, o backend usa "python" como padrao.
 REM --------------------------------------------
 
-echo [2/3] Iniciando Ngrok em segundo plano...
-start "NGROK TUNNEL" ngrok http 8000
-timeout /t 3 /nobreak > nul
+
+echo [2/3] Iniciando Cloudflare Tunnel...
+echo.
+echo AGUARDE O LINK APARECER ABAIXO (ex: https://xxx.trycloudflare.com)
+echo Copie o link e mande para o chat!
+echo.
+start "CLOUDFLARE TUNNEL" .\cloudflared.exe tunnel --protocol http2 --url http://localhost:8000
+timeout /t 5 /nobreak > nul
 
 echo [3/3] Iniciando Backend Python...
 echo.

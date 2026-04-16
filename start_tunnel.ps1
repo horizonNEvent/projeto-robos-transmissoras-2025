@@ -44,7 +44,15 @@ Set-Content -Path "app\frontend\src\apiConfig.js" -Value $apiConfig -Encoding UT
 Write-Host "      Fazendo build e deploy no Vercel..." -ForegroundColor Yellow
 Push-Location app\frontend
 npm run build --silent
-npx vercel --prod --yes 2>&1 | Select-String -Pattern "Aliased:|error" | Write-Host
+
+# Usando --token se necessário ou apenas garantindo que o output não quebre o PS
+$deploy = npx vercel --prod --yes
+if ($deploy -match "Aliased: (https://\S+)") {
+    Write-Host "      Deploy concluido: $matches[1]" -ForegroundColor Green
+} else {
+    Write-Host "      Deploy enviado para o Vercel (verifique no painel se houver erro)." -ForegroundColor Cyan
+}
+
 Pop-Location
 
 Write-Host "      Deploy concluido!" -ForegroundColor Green
