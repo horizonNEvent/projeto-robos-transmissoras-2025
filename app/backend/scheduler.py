@@ -196,7 +196,7 @@ def init_scheduler():
     if not scheduler.running:
         scheduler.start()
         reload_schedules()
-        print("🚀 Scheduler iniciado e agendas carregadas.")
+        print("[+] Scheduler iniciado e agendas carregadas.")
 
 def reload_schedules():
     """

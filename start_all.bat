@@ -25,7 +25,7 @@ echo AGUARDE O LINK APARECER ABAIXO (ex: https://xxx.trycloudflare.com)
 echo Copie o link e mande para o chat!
 echo.
 start "CLOUDFLARE TUNNEL" .\cloudflared.exe tunnel --protocol http2 --url http://localhost:8000
-timeout /t 5 /nobreak > nul
+ping -n 6 127.0.0.1 > nul
 
 echo [3/3] Iniciando Backend Python...
 echo.

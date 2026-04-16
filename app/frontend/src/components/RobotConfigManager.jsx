@@ -292,7 +292,7 @@ function RobotConfigManager({ transmissoras = [], empresasMapping = {}, configs 
                     <div>
                         <label style={{ fontSize: '0.7em', color: '#888' }}>Base</label>
                         <select value={newConfig.base} onChange={e => setNewConfig({ ...newConfig, base: e.target.value })} style={{ width: '100%', background: '#333', color: '#fff', padding: '5px' }}>
-                            {['AETE', 'RE', 'AE', 'DE'].map(b => <option key={b} value={b}>{b}</option>)}
+                            {['AETE', 'RE', 'AE', 'DE', 'ATLAS'].map(b => <option key={b} value={b}>{b}</option>)}
                         </select>
                     </div>
                     <div>

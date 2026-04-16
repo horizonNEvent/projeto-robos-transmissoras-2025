@@ -1,12 +1,4 @@
 {
-    "AETE": {
-        "4284": "Anemus_I",
-        "4292": "Anemus_II",
-        "4319": "Anemus_III"
-    },
-    "DE": {
-        "3748": "Diamante"
-    },
     "RE": {
         "4313": "BRJA",
         "4314": "BRJB",
@@ -37,5 +29,63 @@
         "3741": "COR2",
         "3750": "COR3",
         "8011": "LIBRA"
+    },
+    "DE": {
+        "3748": "DE"
+    },
+    "AETE": {
+        "4284": "Anemus_I",
+        "4292": "Anemus_II",
+        "4319": "Anemus_III"
+    },
+    "ATLAS": {
+        "4052": "UFV JUAZEIRO SOLAR V",
+        "4050": "UFV JUAZEIRO SOLAR VI",
+        "4053": "UFV JUAZEIRO SOLAR VII",
+        "4051": "UFV JUAZEIRO SOLAR VIII",
+        "4187": "UFV LAR DO SOL 1",
+        "4188": "UFV LAR DO SOL 2",
+        "4189": "UFV LAR DO SOL 7",
+        "4190": "UFV LAR DO SOL 8",
+        "4191": "UFV LAR DO SOL 9",
+        "4192": "UFV LAR DO SOL 10",
+        "4770": "UFV VISTA ALEGRE 3",
+        "4771": "UFV VISTA ALEGRE 4",
+        "4783": "UFV VISTA ALEGRE 5",
+        "4772": "UFV VISTA ALEGRE 6",
+        "4773": "UFV VISTA ALEGRE 7",
+        "4774": "UFV VISTA ALEGRE 8",
+        "4775": "UFV VISTA ALEGRE 1",
+        "4776": "UFV VISTA ALEGRE 9",
+        "4777": "UFV VISTA ALEGRE 10",
+        "4784": "UFV VISTA ALEGRE 11",
+        "4785": "UFV VISTA ALEGRE 12",
+        "4778": "UFV VISTA ALEGRE 13",
+        "4786": "UFV VISTA ALEGRE 14",
+        "4779": "UFV VISTA ALEGRE 15",
+        "4780": "UFV VISTA ALEGRE 2",
+        "4446": "SÃO FRANCISCO I",
+        "4447": "SÃO FRANCISCO II",
+        "4448": "SÃO FRANCISCO III",
+        "4895": "BOA SORTE 9",
+        "4896": "BOA SORTE 10",
+        "4894": "BOA SORTE 11",
+        "4897": "BOA SORTE 12",
+        "4898": "BOA SORTE 13",
+        "4918": "BOA SORTE 14",
+        "4919": "BOA SORTE 15",
+        "4920": "BOA SORTE 16",
+        "4921": "BOA SORTE 17",
+        "4947": "DRACO 1",
+        "4948": "DRACO 2",
+        "4957": "DRACO 3",
+        "4979": "DRACO 4",
+        "4949": "DRACO 5",
+        "4950": "DRACO 6",
+        "4958": "DRACO 7",
+        "4959": "DRACO 8",
+        "4960": "DRACO 9",
+        "4961": "DRACO 10",
+        "4980": "DRACO 11"
     }
 }

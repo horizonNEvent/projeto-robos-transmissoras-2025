@@ -34,10 +34,7 @@ def update_json_file(db: Session):
     for emp in empresas:
         if emp.base not in data:
             data[emp.base] = {}
-        data[emp.base][emp.codigo_ons] = {
-            "nome": emp.nome_empresa,
-            "cnpj": emp.cnpj
-        }
+        data[emp.base][emp.codigo_ons] = emp.nome_empresa
         
     os.makedirs(os.path.dirname(EMPRESAS_JSON_PATH), exist_ok=True)
     with open(EMPRESAS_JSON_PATH, 'w', encoding='utf-8') as f:
@@ -128,11 +125,11 @@ def sync_empresas(db: Session = Depends(get_db)):
     return {"status": "file not found"}
 
 @router.get("/mapping")
-def get_mapping():
-    if os.path.exists(EMPRESAS_JSON_PATH):
-        try:
-            with open(EMPRESAS_JSON_PATH, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
-    return {}
+def get_mapping(db: Session = Depends(get_db)):
+    empresas = db.query(models.Empresa).all()
+    data = {}
+    for emp in empresas:
+        if emp.base not in data:
+            data[emp.base] = {}
+        data[emp.base][emp.codigo_ons] = emp.nome_empresa
+    return data
