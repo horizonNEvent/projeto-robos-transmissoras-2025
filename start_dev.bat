@@ -6,7 +6,7 @@ echo   ROBO RUNNER - Iniciando Sistema...
 echo   PC: Bruno Dev (D:\Workspace\Tust-AETE)
 echo ========================================
 
-cd /d D:\Workspace\Tust-AETE
+cd /d "%~dp0"
 
 echo.
 echo [1/3] Atualizando codigo (git pull)...

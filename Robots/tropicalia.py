@@ -56,7 +56,7 @@ class TropicaliaRobot(BaseRobot):
             dt = primeiro_dia - timedelta(days=1)
 
         meses_pt = {
-            1: "JANEIRO", 2: "FEVEREIRO", 3: "MARÇO", 4: "ABRIL",
+            1: "JANEIRO", 2: "FEVEREIRO", 3: "MARCO", 4: "ABRIL",
             5: "MAIO", 6: "JUNHO", 7: "JULHO", 8: "AGOSTO",
             9: "SETEMBRO", 10: "OUTUBRO", 11: "NOVEMBRO", 12: "DEZEMBRO"
         }
@@ -109,12 +109,22 @@ class TropicaliaRobot(BaseRobot):
                     base_name = f"{ons_name}_{periodo.replace('-', '_')}"
 
                     # Baixar arquivos disponíveis
-                    if item.get('linkDanfe'):
-                        self.download_file(item['linkDanfe'], os.path.join(path_final, f"DANFE_{base_name}.pdf"))
-                    if item.get('linkXml'):
-                        self.download_file(item['linkXml'], os.path.join(path_final, f"XML_{base_name}.xml"))
-                    if item.get('linkBoleto'):
-                        self.download_file(item['linkBoleto'], os.path.join(path_final, f"BOLETO_{base_name}.pdf"))
+                    def ensure_list(val):
+                        if not val:
+                            return []
+                        return val if isinstance(val, list) else [val]
+
+                    for idx, url in enumerate(ensure_list(item.get('linkDanfe'))):
+                        suffix = f"_{idx+1}" if len(ensure_list(item.get('linkDanfe'))) > 1 else ""
+                        self.download_file(url, os.path.join(path_final, f"DANFE_{base_name}{suffix}.pdf"))
+
+                    for idx, url in enumerate(ensure_list(item.get('linkXml'))):
+                        suffix = f"_{idx+1}" if len(ensure_list(item.get('linkXml'))) > 1 else ""
+                        self.download_file(url, os.path.join(path_final, f"XML_{base_name}{suffix}.xml"))
+
+                    for idx, url in enumerate(ensure_list(item.get('linkBoleto'))):
+                        suffix = f"_{idx+1}" if len(ensure_list(item.get('linkBoleto'))) > 1 else ""
+                        self.download_file(url, os.path.join(path_final, f"BOLETO_{base_name}{suffix}.pdf"))
 
             if not found:
                 self.logger.warning(f"    Nenhuma fatura encontrada para competência {competencia_alvo}")

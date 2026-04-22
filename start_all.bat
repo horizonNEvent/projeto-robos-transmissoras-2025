@@ -5,7 +5,7 @@ echo ========================================
 echo   ROBO RUNNER - Iniciando Sistema...
 echo ========================================
 
-cd /d C:\Workspace-lab\projeto-robos-transmissoras-2025
+cd /d "%~dp0"
 
 echo.
 echo [1/3] Atualizando codigo (git pull)...
@@ -24,8 +24,8 @@ echo.
 echo AGUARDE O LINK APARECER ABAIXO (ex: https://xxx.trycloudflare.com)
 echo Copie o link e mande para o chat!
 echo.
-start "CLOUDFLARE TUNNEL" .\cloudflared.exe tunnel --protocol http2 --url http://localhost:8000
-ping -n 6 127.0.0.1 > nul
+start "CLOUDFLARE TUNNEL" cmd /c ".\cloudflared.exe tunnel --protocol http2 --url http://localhost:8000 > tunnel.log 2>&1"
+ping -n 10 127.0.0.1 > nul
 
 echo [3/3] Iniciando Backend Python...
 echo.

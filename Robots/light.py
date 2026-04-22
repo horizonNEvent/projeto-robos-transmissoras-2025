@@ -3,6 +3,7 @@ import requests
 import re
 import time
 import json
+import sqlite3
 import logging
 import tempfile
 import cv2
@@ -46,6 +47,28 @@ class LightRobot(BaseRobot):
         except Exception as e:
             self.logger.error(f"Erro ao carregar empresas.light.json: {e}")
             return {}
+
+    def carregar_atlas_do_banco(self):
+        """Carrega agentes ATLAS (cnpj + codigo_ons) diretamente do banco sql_app.db."""
+        db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'sql_app.db')
+        try:
+            conn = sqlite3.connect(db_path)
+            cur = conn.cursor()
+            cur.execute(
+                "SELECT codigo_ons, nome_empresa, cnpj FROM empresas "
+                "WHERE base='ATLAS' AND ativo=1 ORDER BY id"
+            )
+            rows = cur.fetchall()
+            conn.close()
+            agentes = [
+                {'ons': r[0], 'nome': r[1], 'cnpj': r[2], 'pasta': r[1]}
+                for r in rows if r[2]  # garante que tem CNPJ
+            ]
+            self.logger.info(f"[DB] {len(agentes)} agente(s) ATLAS carregado(s) do banco.")
+            return agentes
+        except Exception as e:
+            self.logger.error(f"Erro ao carregar ATLAS do banco: {e}")
+            return []
 
     def extrair_tokens_aspnet(self, html):
         soup = BeautifulSoup(html, 'html.parser')
@@ -481,33 +504,42 @@ class LightRobot(BaseRobot):
             
             return # Encerra após processar o alvo direto
 
-        # MODO VARREDURA (JSON): Se não foi passado user/agente específicos
-        empresas = self.carregar_referencia_empresas_light()
-        
-        # Iterar sobre (Categoria -> Lista ou Dict)
-        # Validação extra ANTES do loop
-        if target_empresa and target_empresa.upper() != "LIGHT":
-            found = any(g.upper() == target_empresa.upper() for g in empresas.keys())
-            if not found:
-                self.logger.error(f"A empresa '{target_empresa}' não foi encontrada em Data/empresas.light.json. Adicione os CNPJs neste arquivo.")
+        # MODO VARREDURA: Se não foi passado user/agente específicos
+        # Monta dicionário de grupos a processar
+        # ATLAS vem sempre do banco; outros grupos vêm do JSON
+        grupos_para_processar = {}  # {grupo_nome: [lista de dicts com ons/cnpj/nome/pasta]}
+
+        # Carrega ATLAS do banco se o filtro for ATLAS ou sem filtro
+        if not target_empresa or target_empresa.upper() == 'ATLAS':
+            atlas_agentes = self.carregar_atlas_do_banco()
+            if atlas_agentes:
+                grupos_para_processar['ATLAS'] = atlas_agentes
+            elif target_empresa and target_empresa.upper() == 'ATLAS':
+                self.logger.error("Nenhum agente ATLAS ativo encontrado no banco.")
                 return
 
-        # Iterar sobre (Categoria -> Lista ou Dict)
-        for grupo, itens in empresas.items():
-            # Filtro de Grupo (AETE, DE, etc)
-            if target_empresa and target_empresa.upper() not in [grupo.upper(), "LIGHT"]:
-                continue
+        # Carrega outros grupos do JSON (não-ATLAS)
+        if not target_empresa or target_empresa.upper() != 'ATLAS':
+            empresas_json = self.carregar_referencia_empresas_light()
+            for grupo, itens in empresas_json.items():
+                if target_empresa and target_empresa.upper() not in [grupo.upper(), 'LIGHT']:
+                    continue
+                # Unificar estrutura: Se for dict (ONS->Dados), transforma em lista
+                if isinstance(itens, dict):
+                    lista = []
+                    for k, v in itens.items():
+                        v['ons'] = k
+                        v['pasta'] = v['nome']
+                        lista.append(v)
+                else:
+                    lista = itens
+                grupos_para_processar[grupo] = lista
 
-            # Unificar estrutura: Se for dict (ONS->Dados), transforma em lista para iterar igual
-            if isinstance(itens, dict):
-                lista_empresas = []
-                for k, v in itens.items():
-                    v['ons'] = k 
-                    v['pasta'] = v['nome']
-                    lista_empresas.append(v)
-            else:
-                lista_empresas = itens
+        if not grupos_para_processar:
+            self.logger.error(f"Nenhum grupo encontrado para processar. Verifique o banco ou empresas.light.json.")
+            return
 
+        for grupo, lista_empresas in grupos_para_processar.items():
             for idx, dados in enumerate(lista_empresas):
                 ons = str(dados.get('ons') or dados.get('codigo_ons', ''))
 
