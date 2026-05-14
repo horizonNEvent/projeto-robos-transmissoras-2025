@@ -37,6 +37,7 @@ export const ROBOTS = [
     { id: 'webengie', name: 'WebEngie' },
     { id: 'webettm', name: 'WebETTM' },
     { id: 'websigetpublic', name: 'WebSigetPublic' },
+    { id: 'webiepublic', name: 'WebIEPublic' },
     { id: 'webtaesa', name: 'WebTaesa (V1)' },
     { id: 'taesa', name: 'WebTaesa (V2)' },
     { id: 'celeo', name: 'WebCeleo' },

@@ -217,6 +217,11 @@ ROBOTS_CONFIG = {
         "download_dir": get_download_path("WebSigetPublic"),
         "name": "WebSigetPublic"
     },
+    "webiepublic": {
+        "script": os.path.join(ROOT_DIR, "Robots", "WebIEPublic.py"),
+        "download_dir": get_download_path("WebIEPublic"),
+        "name": "WebIEPublic"
+    },
     "webtaesa": {
         "script": os.path.join(ROOT_DIR, "Robots", "WebTaesa.py"),
         "download_dir": get_download_path("WebTaesa"),

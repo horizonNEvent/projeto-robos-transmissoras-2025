@@ -80,8 +80,8 @@ const ParallelProcessManager = ({ apiBaseUrl }) => {
         // 3. Match pela base (AETE, RE, etc)
         if (base === search) return true;
 
-        // 4. Lógica especial para WebIE
-        if (search.startsWith('webie') && type === 'WEBIE') return true;
+        // 4. Lógica especial para WebIE (não confundir com WebIEPublic)
+        if (search !== 'webiepublic' && search.startsWith('webie') && type === 'WEBIE') return true;
         if (search === 'web_ie' && type === 'WEBIE') return true;
 
         return false;
