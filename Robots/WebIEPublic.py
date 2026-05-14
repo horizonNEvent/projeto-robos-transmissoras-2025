@@ -28,43 +28,64 @@ def sanitize_name(name):
 
 
 def carregar_targets():
-    """Carrega lista de transmissoras do Banco de Dados (SQLite)."""
+    """Carrega transmissoras ativas de ie_public_targets (lista parametrizada na UI).
+
+    Se a tabela ie_public_targets ainda não existir no SQLite, usa fallback legado
+    em siget_public_targets (mesmo critério do Siget Public).
+    """
     targets = {}
+    if not os.path.exists(DB_PATH):
+        print(f"[AVISO] Banco de dados não encontrado: {DB_PATH}")
+        return {}
+
+    conn = sqlite3.connect(DB_PATH)
     try:
-        if not os.path.exists(DB_PATH):
-            print(f"[AVISO] Banco de dados não encontrado: {DB_PATH}")
-            return {}
-
-        conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        # Tenta carregar de tabela específica se existir
         try:
-            cursor.execute("SELECT codigo_ons, nome FROM ie_public_targets WHERE ativo = 1")
-            rows = cursor.fetchall()
-            if rows:
-                for row in rows:
-                    targets[str(row[0])] = row[1]
-                conn.close()
-                print(f"Carregados {len(targets)} alvos da tabela ie_public_targets.")
-                return targets
-        except:
-            pass
-
-        # Fallback: tenta tabela siget_public_targets (se compartilharem)
-        try:
-            cursor.execute("SELECT codigo_ons, nome FROM siget_public_targets WHERE ativo = 1")
+            cursor.execute(
+                "SELECT codigo_ons, nome FROM ie_public_targets WHERE ativo = 1"
+            )
             rows = cursor.fetchall()
             for row in rows:
                 targets[str(row[0])] = row[1]
-        except:
-            pass
-
-        conn.close()
-        if targets:
-            print(f"Carregados {len(targets)} alvos do banco de dados.")
+            if targets:
+                print(
+                    f"Carregados {len(targets)} alvos ativos da tabela ie_public_targets."
+                )
+            else:
+                print(
+                    "[AVISO] ie_public_targets sem alvos ativos. "
+                    "Parametrize alvos no app (WebIEPublic — botão Alvos)."
+                )
+            return targets
+        except sqlite3.OperationalError as oe:
+            err = str(oe).lower()
+            if "no such table" not in err:
+                print(f"Erro ao ler ie_public_targets: {oe}")
+                return {}
+            try:
+                cursor.execute(
+                    "SELECT codigo_ons, nome FROM siget_public_targets WHERE ativo = 1"
+                )
+                rows = cursor.fetchall()
+                for row in rows:
+                    targets[str(row[0])] = row[1]
+                if targets:
+                    print(
+                        f"Fallback: {len(targets)} alvos de siget_public_targets "
+                        "(crie ie_public_targets pela UI para lista dedicada WebIE)."
+                    )
+                return targets
+            except sqlite3.OperationalError as oe2:
+                print(
+                    f"[AVISO] Sem tabela ie_public_targets nem siget_public_targets: {oe2}"
+                )
+                return {}
     except Exception as e:
         print(f"Erro ao ler banco de dados: {e}")
-    return targets
+        return {}
+    finally:
+        conn.close()
 
 
 class WebIEPublicRobot(BaseRobot):
@@ -73,21 +94,27 @@ class WebIEPublicRobot(BaseRobot):
     Parametrizado por ons_code e ons_name para iteração em lote.
     """
 
-    def __init__(self, ons_code, ons_name, email=None, password=None, output_dir=None):
+    def __init__(self, ons_code, ons_name, email=None, password=None, output_dir=None, empresa_ons=None):
         super().__init__("WebIEPublic")
         self.ons_code = ons_code
         self.ons_name = ons_name
         self.email = email
         self.password = password
+        self.empresa_ons = (str(empresa_ons).strip() if empresa_ons is not None else "") or ""
 
         # Portal WebIE
         self.portal_base = "https://faturamento2.isaenergiabrasil.com.br"
         self.api_base = f"{self.portal_base}/api"
         self.portal_referer = f"{self.portal_base}/cteep/invoices"
 
-        # Pasta de saída parametrizada
+        # Pasta: ONS transmissora e ONS empresa (credencial), separados por "-"
         safe_ons_name = sanitize_name(self.ons_name)
-        folder_name = f"EMC_{self.ons_code}_{safe_ons_name}"
+        ons_t = str(self.ons_code).strip()
+        ons_e = self.empresa_ons
+        if ons_e:
+            folder_name = f"EMC_{ons_t}-{ons_e}_{safe_ons_name}"
+        else:
+            folder_name = f"EMC_{ons_t}_{safe_ons_name}"
 
         if output_dir:
             self.output_path = os.path.join(output_dir, folder_name)
@@ -179,6 +206,40 @@ class WebIEPublicRobot(BaseRobot):
 
         return data["accessToken"]
 
+    @staticmethod
+    def _ons_from_invoice_row(fatura: dict) -> set:
+        """Códigos ONS citados no item da API (nomes de campo variam por versão do portal)."""
+        out = set()
+        for key in (
+            "onsCode",
+            "agentOnsCode",
+            "transmitterOnsCode",
+            "companyOnsCode",
+            "agentCode",
+            "codigoOns",
+            "codigo_ons",
+            "contract",
+            "contractId",
+            "contractCode",
+        ):
+            val = fatura.get(key)
+            if val is None:
+                continue
+            if isinstance(val, (list, tuple)):
+                for x in val:
+                    if x is not None and str(x).strip():
+                        out.add(str(x).strip())
+            elif str(val).strip():
+                out.add(str(val).strip())
+        for nested_key in ("agent", "transmitter", "company", "transmissora"):
+            nested = fatura.get(nested_key)
+            if isinstance(nested, dict):
+                for key in ("onsCode", "codigoOns", "code", "id", "agentCode"):
+                    v = nested.get(key)
+                    if v is not None and str(v).strip():
+                        out.add(str(v).strip())
+        return out
+
     def fetch_and_download(self, session: requests.Session, token: str, date_start_str: str, date_end_str: str, date_start_obj: datetime) -> int:
         """Busca e baixa faturas para a transmissora configurada."""
         faturas_url = f"{self.api_base}/Invoice/search"
@@ -191,9 +252,14 @@ class WebIEPublicRobot(BaseRobot):
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         }
 
+        target_ons = str(self.ons_code).strip() if self.ons_code is not None else ""
+        # No portal WebIE/ISA o filtro da transmissora vai em "contract" (ex.: ["1362"]);
+        # "onsCode" costuma ir vazio na UI real — ver rede do navegador.
+        contract_filter = [target_ons] if target_ons else []
+
         payload = {
             "currentPage": 1,
-            "pageSize": 14,
+            "pageSize": 12,
             "term": "",
             "dateStart": date_start_str,
             "dateEnd": date_end_str,
@@ -201,10 +267,12 @@ class WebIEPublicRobot(BaseRobot):
             "companyName": [],
             "onsCode": [],
             "isaCompany": [],
-            "contract": [],
+            "contract": contract_filter,
             "sortBy": "date",
             "sortDesc": False,
         }
+        if contract_filter:
+            self.logger.info(f"Busca de faturas com contract (ONS transmissora) = {contract_filter}.")
 
         try:
             resp = session.post(faturas_url, json=payload, headers=headers_common, timeout=30)
@@ -231,6 +299,7 @@ class WebIEPublicRobot(BaseRobot):
         cookies = {"isa-fe-token": token}
 
         baixadas = 0
+        seen_invoice_ids = set()
         for page in range(1, total_pages + 1):
             payload["currentPage"] = page
             try:
@@ -248,10 +317,18 @@ class WebIEPublicRobot(BaseRobot):
                 invoice_id = fatura.get("invoiceId")
                 if not invoice_id:
                     continue
+                if invoice_id in seen_invoice_ids:
+                    continue
                 # Só baixa faturas do mês correto
                 if not fatura.get("date", "").startswith(date_start_obj.strftime("%Y-%m")):
                     continue
+                # Garante que a linha é da transmissora deste robô (defesa se o filtro contract falhar)
+                if target_ons:
+                    row_ons = self._ons_from_invoice_row(fatura if isinstance(fatura, dict) else {})
+                    if row_ons and target_ons not in row_ons:
+                        continue
 
+                seen_invoice_ids.add(invoice_id)
                 url = f"{download_url_base}{invoice_id}"
                 self.logger.info(f"Baixando fatura ID: {invoice_id}...")
 
@@ -338,7 +415,7 @@ class WebIEPublicRobot(BaseRobot):
         import argparse
         parser = argparse.ArgumentParser(description="WebIEPublic Robot - Múltiplas Transmissoras")
         parser.add_argument("--empresa", type=str, help="Compatível com gerenciador / RobotConfig (ignorado)")
-        parser.add_argument("--agente", type=str, help="Compatível com gerenciador / RobotConfig (ignorado)")
+        parser.add_argument("--agente", type=str, help="Código ONS da empresa (credencial); entra no nome da pasta como transmissora-empresa")
         parser.add_argument("--user", type=str, help="Email para autenticação WebIE")
         parser.add_argument("--password", type=str, help="Senha para autenticação WebIE")
         parser.add_argument("--competencia", type=str, help="Competência YYYYMM (Opcional)")
@@ -361,9 +438,20 @@ class WebIEPublicRobot(BaseRobot):
 
         self.logger.info(f"Iniciando WebIEPublic para {len(targets)} transmissoras (Email: {email}, Comp: {args.competencia or 'AUTO'})...")
 
+        empresa_ons = ""
+        if args.agente:
+            empresa_ons = args.agente.split(",")[0].strip()
+
         total_baixadas = 0
         for trans_code, trans_name in targets.items():
-            bot = WebIEPublicRobot(trans_code, trans_name, email, password, output_dir=args.output_dir)
+            bot = WebIEPublicRobot(
+                trans_code,
+                trans_name,
+                email,
+                password,
+                output_dir=args.output_dir,
+                empresa_ons=empresa_ons or None,
+            )
             baixadas = bot.processar(email, password, args.competencia)
             total_baixadas += baixadas
 

@@ -14,6 +14,7 @@ import RobotConfigManager from './components/RobotConfigManager'
 import TransmissoraModal from './components/TransmissoraModal'
 import EmpresaManager from './components/EmpresaManager'
 import SigetPublicManager from './components/SigetPublicManager'
+import IePublicManager from './components/IePublicManager'
 import DocumentManager from './components/DocumentManager'
 import LogsPanel from './components/LogsPanel'
 import ScheduleModal from './components/ScheduleModal'
@@ -41,6 +42,7 @@ function App() {
   const [transmissoras, setTransmissoras] = useState([])
   const [showTransmissorasModal, setShowTransmissorasModal] = useState(false)
   const [showSigetPublicModal, setShowSigetPublicModal] = useState(false)
+  const [showIePublicModal, setShowIePublicModal] = useState(false)
 
   // Filtros de Consulta Transmissoras
   const [tFilterCNPJ, setTFilterCNPJ] = useState('')
@@ -336,6 +338,11 @@ function App() {
                 {selectedRobotId === 'websigetpublic' && (
                   <button onClick={() => setShowSigetPublicModal(true)} style={{ background: '#8b5cf6' }}>
                     🎯 Parametrizar Alvos
+                  </button>
+                )}
+                {selectedRobotId === 'webiepublic' && (
+                  <button onClick={() => setShowIePublicModal(true)} style={{ background: '#8b5cf6' }}>
+                    🎯 Parametrizar Alvos (WebIE)
                   </button>
                 )}
                 <button onClick={handleRunRobot} disabled={status === 'running'}>
@@ -655,6 +662,26 @@ function App() {
             </button>
             <div style={{ marginTop: '1rem' }}>
               <SigetPublicManager onLog={addLog} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showIePublicModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+          background: 'rgba(0,0,0,0.7)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
+        }}>
+          <div className="card" style={{ width: '90%', maxWidth: '900px', maxHeight: '90vh', overflowY: 'auto', position: 'relative' }}>
+            <button
+              onClick={() => setShowIePublicModal(false)}
+              style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: 'white' }}
+            >
+              &times;
+            </button>
+            <div style={{ marginTop: '1rem' }}>
+              <IePublicManager onLog={addLog} />
             </div>
           </div>
         </div>

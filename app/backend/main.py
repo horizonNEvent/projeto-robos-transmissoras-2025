@@ -8,7 +8,7 @@ _root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 load_dotenv(os.path.join(_root_dir, ".env"))
 
 from . import models, database
-from .routers import robots, empresas, transmissoras, siget, ie, config, migrate, siget_public, documents, grupos, backup
+from .routers import robots, empresas, transmissoras, siget, ie, config, migrate, siget_public, ie_public, documents, grupos, backup
 
 # Criação das tabelas
 models.Base.metadata.create_all(bind=database.engine)
@@ -43,6 +43,7 @@ app.include_router(ie.router)
 app.include_router(config.router)
 app.include_router(migrate.router)
 app.include_router(siget_public.router)
+app.include_router(ie_public.router)
 app.include_router(documents.router)
 app.include_router(grupos.router)
 app.include_router(backup.router)

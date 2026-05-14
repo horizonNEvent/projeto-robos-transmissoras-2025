@@ -100,3 +100,13 @@ class SigetPublicTarget(Base):
     codigo_ons = Column(String, unique=True, index=True)
     nome = Column(String)
     ativo = Column(Boolean, default=True)
+
+
+class IePublicTarget(Base):
+    """Alvos do robô WebIEPublic (portal ISA/WebIE — lista independente do Siget Public)."""
+    __tablename__ = 'ie_public_targets'
+
+    id = Column(Integer, primary_key=True, index=True)
+    codigo_ons = Column(String, unique=True, index=True)
+    nome = Column(String)
+    ativo = Column(Boolean, default=True)
