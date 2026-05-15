@@ -13,6 +13,7 @@ const ParallelProcessManager = ({ apiBaseUrl }) => {
     const [robotConfigs, setRobotConfigs] = useState([]);
     const [selectedConfigIds, setSelectedConfigIds] = useState([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
+    const [finishedBaseFilter, setFinishedBaseFilter] = useState('all');
 
     // Estado do formulário de novo robô
     const [newRobot, setNewRobot] = useState({
@@ -195,6 +196,63 @@ const ParallelProcessManager = ({ apiBaseUrl }) => {
     const runningProcesses = processes.filter(p => p.status === 'running');
     const finishedProcesses = processes.filter(p => p.status !== 'running');
 
+    const getProcessBaseKey = (p) => {
+        const base = (p.base_name || '').trim();
+        return base || 'Geral';
+    };
+
+    const finishedByBase = finishedProcesses.reduce((acc, p) => {
+        const key = getProcessBaseKey(p);
+        if (!acc[key]) acc[key] = [];
+        acc[key].push(p);
+        return acc;
+    }, {});
+
+    const finishedBaseKeys = Object.keys(finishedByBase).sort((a, b) =>
+        a.localeCompare(b, 'pt-BR', { sensitivity: 'base' })
+    );
+
+    useEffect(() => {
+        if (finishedBaseFilter !== 'all' && !finishedBaseKeys.includes(finishedBaseFilter)) {
+            setFinishedBaseFilter('all');
+        }
+    }, [finishedBaseKeys, finishedBaseFilter]);
+
+    const visibleBaseKeys =
+        finishedBaseFilter === 'all'
+            ? finishedBaseKeys
+            : finishedBaseKeys.filter((key) => key === finishedBaseFilter);
+
+    const visibleFinishedCount =
+        finishedBaseFilter === 'all'
+            ? finishedProcesses.length
+            : (finishedByBase[finishedBaseFilter]?.length ?? 0);
+
+    const renderProcessTitle = (p) =>
+        p.base_name ? `${p.name} - ${p.base_name}` : p.name;
+
+    const renderFinishedCard = (p) => (
+        <div key={p.id} className={`process-card ${p.status}`}>
+            <div className="pc-header">
+                <strong>{renderProcessTitle(p)}</strong>
+                <span className={`status-badge ${p.status}`}>{p.status.toUpperCase()}</span>
+            </div>
+            <div className="pc-details">
+                <small>Duração: {p.end_time ? ((new Date(p.end_time) - new Date(p.start_time)) / 1000).toFixed(1) + 's' : '-'}</small>
+                {p.agents && p.agents.length > 0 && (
+                    <small title={p.agents.join(', ')}>
+                        Agentes: {p.agents.slice(0, 3).join(', ')}{p.agents.length > 3 ? '...' : ''}
+                    </small>
+                )}
+                <small>Retorno: {p.return_code}</small>
+            </div>
+            <div className="pc-actions">
+                <button onClick={() => showLogs(p)}>📜 Logs</button>
+                <button className="btn-secondary" onClick={() => handleDownload(p)}>💾 Download</button>
+            </div>
+        </div>
+    );
+
     return (
         <div className="process-manager-container">
             <div className="pm-header">
@@ -209,7 +267,7 @@ const ParallelProcessManager = ({ apiBaseUrl }) => {
                     {runningProcesses.map(p => (
                         <div key={p.id} className="process-card running">
                             <div className="pc-header">
-                                <strong>{p.base_name ? `${p.name} - ${p.base_name}` : p.name}</strong>
+                                <strong>{renderProcessTitle(p)}</strong>
                                 <span className="status-badge running">RUNNING</span>
                             </div>
                             <div className="pc-details">
@@ -230,9 +288,15 @@ const ParallelProcessManager = ({ apiBaseUrl }) => {
                 </div>
             </div>
 
-            <div className="pm-section">
+            <div className="pm-section pm-finished-root">
                 <div className="pm-section-header">
-                    <h3>Histórico / Finalizados ({finishedProcesses.length})</h3>
+                    <h3>
+                        Histórico por Empresa ({visibleFinishedCount}
+                        {finishedBaseFilter !== 'all' && finishedProcesses.length > visibleFinishedCount
+                            ? ` de ${finishedProcesses.length}`
+                            : ''}
+                        {finishedBaseFilter !== 'all' ? ` · ${finishedBaseFilter}` : ''})
+                    </h3>
                     {finishedProcesses.length > 0 && (
                         <div>
                             <button className="btn-secondary" onClick={handleDownloadAll} style={{ marginRight: 10 }}>💾 Baixar Todos</button>
@@ -240,30 +304,47 @@ const ParallelProcessManager = ({ apiBaseUrl }) => {
                         </div>
                     )}
                 </div>
-                <div className="process-list">
-                    {finishedProcesses.length === 0 && <p className="empty-msg">Histórico vazio.</p>}
-                    {finishedProcesses.map(p => (
-                        <div key={p.id} className={`process-card ${p.status}`}>
-                            <div className="pc-header">
-                                <strong>{p.base_name ? `${p.name} - ${p.base_name}` : p.name}</strong>
-                                <span className={`status-badge ${p.status}`}>{p.status.toUpperCase()}</span>
-                            </div>
-                            <div className="pc-details">
-                                <small>Duração: {p.end_time ? ((new Date(p.end_time) - new Date(p.start_time)) / 1000).toFixed(1) + 's' : '-'}</small>
-                                {p.agents && p.agents.length > 0 && (
-                                    <small title={p.agents.join(', ')}>
-                                        Agentes: {p.agents.slice(0, 3).join(', ')}{p.agents.length > 3 ? '...' : ''}
-                                    </small>
-                                )}
-                                <small>Retorno: {p.return_code}</small>
-                            </div>
-                            <div className="pc-actions">
-                                <button onClick={() => showLogs(p)}>📜 Logs</button>
-                                <button className="btn-secondary" onClick={() => handleDownload(p)}>💾 Download</button>
-                            </div>
+
+                {finishedProcesses.length > 0 && finishedBaseKeys.length > 0 && (
+                    <div className="pm-base-filter">
+                        <label htmlFor="pm-base-filter-select">Filtrar empresa:</label>
+                        <select
+                            id="pm-base-filter-select"
+                            className="pm-base-filter-select"
+                            value={finishedBaseFilter}
+                            onChange={(e) => setFinishedBaseFilter(e.target.value)}
+                        >
+                            <option value="all">Todas ({finishedProcesses.length})</option>
+                            {finishedBaseKeys.map((key) => (
+                                <option key={key} value={key}>
+                                    {key} ({finishedByBase[key].length})
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
+
+                {finishedProcesses.length === 0 && (
+                    <p className="empty-msg">Histórico vazio.</p>
+                )}
+
+                {finishedProcesses.length > 0 && visibleBaseKeys.length === 0 && (
+                    <p className="empty-msg">Nenhum robô finalizado para esta empresa.</p>
+                )}
+
+                {visibleBaseKeys.map(baseKey => (
+                    <div key={baseKey} className="pm-base-module">
+                        <h4 className="pm-base-module-title">
+                            Finalizados {baseKey}
+                            <span className="pm-base-module-count">({finishedByBase[baseKey].length})</span>
+                        </h4>
+                        <div className="process-list">
+                            {finishedByBase[baseKey].map(renderFinishedCard)}
                         </div>
-                    ))}
-                </div>
+                    </div>
+                ))}
+
+
             </div>
 
             {/* MODAL DE NOVO ROBÔ */}
