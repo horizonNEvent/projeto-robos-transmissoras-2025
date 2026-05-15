@@ -74,6 +74,7 @@ export const ROBOTS = [
     { id: 'tcpe', name: 'WebTCPE' },
     { id: 'vsb', name: 'WebVSB' },
     { id: 'verene', name: 'WebVerene' },
+    { id: 'grupo_argo', name: 'WebGrupoArgo' },
     { id: 'tbe', name: 'WebTBE' },
     { id: 'ons', name: 'WebOns' },
     { id: 'harpix', name: 'WebHarpix' },

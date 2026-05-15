@@ -282,6 +282,7 @@ function RobotConfigManager({ transmissoras = [], empresasMapping = {}, configs 
                                 <option value="TCPE">WebTCPE</option>
                                 <option value="VSB">WebVSB</option>
                                 <option value="VERENE">WebVerene</option>
+                                <option value="GRUPO_ARGO">WebGrupoArgo</option>
                                 <option value="TBE">WebTBE</option>
                                 <option value="HARPIX">WebHarpix</option>
                                 <option value="LNT">WebLNT</option>

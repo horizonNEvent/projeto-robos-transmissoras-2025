@@ -347,6 +347,11 @@ ROBOTS_CONFIG = {
         "download_dir": get_download_path("VERENE"),
         "name": "WebVerene"
     },
+    "grupo_argo": {
+        "script": os.path.join(ROOT_DIR, "Robots", "grupo_argo.py"),
+        "download_dir": get_download_path("GRUPO_ARGO"),
+        "name": "WebGrupoArgo"
+    },
     "tbe": {
         "script": os.path.join(ROOT_DIR, "Robots", "tbe.py"),
         "download_dir": get_download_path("TBE"),
