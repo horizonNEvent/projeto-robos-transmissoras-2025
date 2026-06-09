@@ -7,11 +7,21 @@ $log = "$env:TEMP\cf_tust_tunnel.log"
 Remove-Item $log -ErrorAction SilentlyContinue
 
 Write-Host ""
-Write-Host "[2/3] Iniciando Cloudflare Tunnel..." -ForegroundColor Cyan
+Write-Host "[3/4] Iniciando Cloudflare Tunnel..." -ForegroundColor Cyan
 
-# Inicia cloudflared (URLs saem no stderr)
+# Backend precisa estar no ar antes do tunnel (evita deploy com API morta)
+try {
+    $health = Invoke-WebRequest -Uri "http://127.0.0.1:8000/" -UseBasicParsing -TimeoutSec 3
+    if ($health.StatusCode -ne 200) { throw "status $($health.StatusCode)" }
+} catch {
+    Write-Host "ERRO: Backend nao responde em http://127.0.0.1:8000/" -ForegroundColor Red
+    Write-Host "      Abra a janela 'ROBO RUNNER - Backend' e corrija o erro antes de rodar o tunnel." -ForegroundColor Yellow
+    exit 1
+}
+
+# 127.0.0.1 evita cloudflared usar IPv6 [::1] no Windows (uvicorn pode recusar)
 Start-Process -FilePath ".\cloudflared.exe" `
-    -ArgumentList "tunnel --url http://localhost:8000" `
+    -ArgumentList "tunnel --url http://127.0.0.1:8000" `
     -RedirectStandardError $log `
     -NoNewWindow
 
@@ -40,20 +50,35 @@ Write-Host "      URL: $url" -ForegroundColor Green
 $apiConfig = "// Arquivo de configuracao central da API`n// Tunnel cloudflare - atualizado automaticamente pelo start_dev.bat`nexport const API_URL = `"$url`";"
 Set-Content -Path "app\frontend\src\apiConfig.js" -Value $apiConfig -Encoding UTF8
 
-# Build + Deploy no Vercel
-Write-Host "      Fazendo build e deploy no Vercel..." -ForegroundColor Yellow
+# Build + Deploy no Vercel (nao bloqueia o retorno ao start_dev.bat)
+Write-Host "      Fazendo build do frontend..." -ForegroundColor Yellow
 Push-Location app\frontend
 npm run build --silent
-
-# Usando --token se necessário ou apenas garantindo que o output não quebre o PS
-$deploy = npx vercel --prod --yes
-if ($deploy -match "Aliased: (https://\S+)") {
-    Write-Host "      Deploy concluido: $matches[1]" -ForegroundColor Green
-} else {
-    Write-Host "      Deploy enviado para o Vercel (verifique no painel se houver erro)." -ForegroundColor Cyan
+if ($LASTEXITCODE -ne 0) {
+    Pop-Location
+    Write-Host "ERRO: npm run build falhou" -ForegroundColor Red
+    exit 1
 }
-
 Pop-Location
 
-Write-Host "      Deploy concluido!" -ForegroundColor Green
+Write-Host "      Deploy Vercel em segundo plano (nao trava o backend)..." -ForegroundColor Yellow
+$deployLog = Join-Path $env:TEMP "tust_vercel_deploy.log"
+$frontendDir = Join-Path $PSScriptRoot "app\frontend"
+Start-Process -FilePath "cmd.exe" `
+    -ArgumentList "/c", "cd /d `"$frontendDir`" && npx --yes vercel --prod --yes > `"$deployLog`" 2>&1" `
+    -WindowStyle Minimized
+
+Write-Host "      Log do deploy: $deployLog" -ForegroundColor DarkGray
+
+try {
+    $viaTunnel = Invoke-WebRequest -Uri "$url/" -UseBasicParsing -TimeoutSec 10
+    if ($viaTunnel.StatusCode -eq 200) {
+        Write-Host "      Tunnel OK: $url" -ForegroundColor Green
+    }
+} catch {
+    Write-Host "      AVISO: Tunnel criado mas ainda nao responde. Aguarde e recarregue o front." -ForegroundColor Yellow
+}
+
+Write-Host "      Aguarde o deploy Vercel terminar (log acima) e abra:" -ForegroundColor Green
+Write-Host "      https://frontend-red-eight-34.vercel.app" -ForegroundColor Green
 Write-Host ""

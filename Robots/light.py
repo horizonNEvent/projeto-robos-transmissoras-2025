@@ -15,6 +15,12 @@ from paddleocr import PaddleOCR
 from base_robot import BaseRobot
 
 class LightRobot(BaseRobot):
+    # ONS no portal Light != ONS real (erro de cadastro na transmissora).
+    # Chave: ONS canônico (pasta/filtro); valor: ONS usado em tbxOns no login.
+    ONS_PORTAL_OVERRIDES = {
+        "8011": "9011",  # LIBRA (AE): credenciais Light cadastradas com código Light
+    }
+
     def __init__(self):
         super().__init__("light")
         self.base_url = "https://nfe.light.com.br"
@@ -47,6 +53,28 @@ class LightRobot(BaseRobot):
         except Exception as e:
             self.logger.error(f"Erro ao carregar empresas.light.json: {e}")
             return {}
+
+    def ons_para_login(self, ons, dados=None):
+        """Retorna o código ONS para autenticação no portal Light (tbxOns)."""
+        ons = str(ons).strip()
+        dados = dados or {}
+        portal = dados.get("ons_portal") or dados.get("ons_login")
+        if portal:
+            portal = str(portal).strip()
+            if portal != ons:
+                self.logger.info(
+                    f"ONS portal override (JSON): login com {portal} "
+                    f"(cadastro canônico {ons})"
+                )
+            return portal
+        override = self.ONS_PORTAL_OVERRIDES.get(ons)
+        if override:
+            self.logger.info(
+                f"ONS portal override: login com {override} "
+                f"(cadastro canônico {ons})"
+            )
+            return override
+        return ons
 
     def carregar_atlas_do_banco(self):
         """Carrega agentes ATLAS (cnpj + codigo_ons) diretamente do banco sql_app.db."""
@@ -477,11 +505,15 @@ class LightRobot(BaseRobot):
         if self.args.user and self.args.agente:
             cnpj = self.args.user
             ons = str(self.args.agente)
+            ons_login = self.ons_para_login(ons)
             
             # Tenta pegar o nome da empresa via argumento --empresa, ou usa genérico
             nome_empresa = self.args.empresa or f"ONS_{ons}"
             
-            self.logger.info(f"MODO DIRETO: Processando {nome_empresa} (ONS: {ons}) | CNPJ: {cnpj}")
+            self.logger.info(
+                f"MODO DIRETO: Processando {nome_empresa} (ONS: {ons}"
+                f"{f', login portal: {ons_login}' if ons_login != ons else ''}) | CNPJ: {cnpj}"
+            )
             
             # Define diretório de saída
             # Padrão: downloads/TUST/LIGHT / NOME_EMPRESA / ONS
@@ -490,7 +522,7 @@ class LightRobot(BaseRobot):
             self.session = requests.Session()
             self.session.verify = False
 
-            ok, u, id_ = self.fazer_login(cnpj, ons)
+            ok, u, id_ = self.fazer_login(cnpj, ons_login)
             if ok:
                 notas, html_busca = self.buscar_notas(u, id_, ano_busca, mes_busca)
                 if notas:
@@ -502,7 +534,7 @@ class LightRobot(BaseRobot):
             else:
                 self.logger.error(f"Falha Login para {nome_empresa} (CNPJ: {cnpj}).")
             
-            return # Encerra após processar o alvo direto
+            return  # Encerra após processar o alvo direto
 
         # MODO VARREDURA: Se não foi passado user/agente específicos
         # Monta dicionário de grupos a processar
@@ -547,16 +579,20 @@ class LightRobot(BaseRobot):
                     continue
 
                 cnpj = dados.get('cnpj')
+                ons_login = self.ons_para_login(ons, dados)
                 nome_pasta = dados.get('pasta') or dados.get('nome') or f"ONS_{ons}"
 
-                self.logger.info(f"Processando {grupo} - {nome_pasta} ({ons}) | CNPJ: {cnpj}")
+                login_info = f", login portal: {ons_login}" if ons_login != ons else ""
+                self.logger.info(
+                    f"Processando {grupo} - {nome_pasta} ({ons}{login_info}) | CNPJ: {cnpj}"
+                )
 
                 save_dir = os.path.join(base_output_dir, grupo, str(ons))
 
                 self.session = requests.Session()
                 self.session.verify = False
 
-                ok, u, id_ = self.fazer_login(cnpj, ons)
+                ok, u, id_ = self.fazer_login(cnpj, ons_login)
                 if ok:
                     notas, html_busca = self.buscar_notas(u, id_, ano_busca, mes_busca)
                     if notas:

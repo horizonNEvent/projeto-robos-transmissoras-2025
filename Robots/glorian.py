@@ -2,14 +2,13 @@ import os
 import time
 import glob
 import logging
-from datetime import datetime, date
-from typing import Tuple
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.chrome.options import Options
 
 # Import BaseRobot
@@ -22,7 +21,7 @@ class GlorianRobot(BaseRobot):
     """
     Robô para Portal Glorian.
     Usa Selenium.
-    Fluxo: Login -> Notas Fiscais -> Pesquisa -> (Sem Filtro Contrato) -> Download Tudo
+    Fluxo: Login -> 'Mês corrente' -> Paginação 500 -> Seleciona Todos -> Download Tudo
     """
     
     def __init__(self):
@@ -31,12 +30,6 @@ class GlorianRobot(BaseRobot):
         self.wait = None
         self.url = "https://bp.glorian.com.br/bpglportal/"
         self.timeout_downloads = 700
-
-    def _default_competencia(self) -> Tuple[int, int]:
-        hoje = date.today()
-        if hoje.month == 1:
-            return hoje.year - 1, 12
-        return hoje.year, hoje.month - 1
 
     def _wait_downloads(self, diretorio: str) -> bool:
         """Aguarda downloads terminarem observando .crdownload/.tmp e estabilidade de arquivos"""
@@ -98,30 +91,240 @@ class GlorianRobot(BaseRobot):
         except:
             self.driver.execute_script("arguments[0].click();", btn)
 
-    def run(self):
-        # Args
-        login = self.args.user
-        senha = self.args.password
-        
-        if not login or not senha:
-            self.logger.error("Login (--user) e Senha (--password) são obrigatórios.")
-            return
-
-        # Competencia
-        ano, mes = self._default_competencia()
-        if self.args.competencia: # YYYYMM
+    def _click_retry(self, xpath: str, tentativas: int = 4, espera: float = 2.0) -> bool:
+        """Tenta clicar várias vezes (útil para botões instáveis como o de Login)."""
+        for i in range(1, tentativas + 1):
             try:
-                c = self.args.competencia
-                ano = int(c[:4])
-                mes = int(c[4:6])
-            except:
-                self.logger.warning("Competência inválida, usando padrão.")
+                btn = self.wait.until(EC.presence_of_element_located((By.XPATH, xpath)))
+                # Garante visibilidade na viewport
+                try:
+                    self.driver.execute_script(
+                        "arguments[0].scrollIntoView({block:'center'});", btn
+                    )
+                except:
+                    pass
+                try:
+                    btn.click()
+                except:
+                    self.driver.execute_script("arguments[0].click();", btn)
+                self.logger.info(f"Clique OK (tentativa {i}): {xpath}")
+                return True
+            except Exception as e:
+                self.logger.warning(
+                    f"Falha ao clicar (tentativa {i}/{tentativas}) em {xpath}: {e}"
+                )
+                time.sleep(espera)
+        self.logger.error(f"Não foi possível clicar após {tentativas} tentativas: {xpath}")
+        return False
 
-        output_dir = self.get_output_path()
-        # Se quiser subpasta por data: output_dir = os.path.join(output_dir, f"{ano}{mes:02d}")
-        os.makedirs(output_dir, exist_ok=True)
+    def _senha_visivel(self, timeout: float = 4.0) -> bool:
+        """Verifica se o campo de senha apareceu (indica que 'Próximo' funcionou)."""
+        try:
+            WebDriverWait(self.driver, timeout).until(
+                EC.visibility_of_element_located((By.XPATH, "//input[@placeholder='Senha']"))
+            )
+            return True
+        except:
+            return False
 
-        # Configura Driver
+    def _clicar_proximo(self) -> bool:
+        """
+        Clica no botão 'Próximo' (linha de tabela com <div tabindex=0> interno).
+        Tenta XPaths -> eventos de mouse realistas via JS. Valida pelo campo Senha.
+        """
+        xpaths = [
+            "//td[contains(normalize-space(.),'Próximo')]",
+            "//tr//td[contains(text(),'Próximo')]",
+            "//div[@tabindex='0' and contains(normalize-space(.),'Próximo')]",
+            "//*[normalize-space(text())='Próximo']",
+        ]
+
+        for xp in xpaths:
+            try:
+                btn = self.wait.until(EC.presence_of_element_located((By.XPATH, xp)))
+                try:
+                    self.driver.execute_script(
+                        "arguments[0].scrollIntoView({block:'center'});", btn
+                    )
+                except:
+                    pass
+                time.sleep(0.5)
+                try:
+                    btn.click()
+                except:
+                    self.driver.execute_script("arguments[0].click();", btn)
+                self.logger.info(f"'Próximo' clicado via XPath: {xp}")
+                if self._senha_visivel():
+                    return True
+            except Exception as e:
+                self.logger.debug(f"XPath 'Próximo' falhou ({xp}): {e}")
+                continue
+
+        # Fallback JS: acha o elemento visível com texto exato 'Próximo' e dispara
+        # uma sequência realista de eventos de mouse.
+        self.logger.warning("XPaths de 'Próximo' falharam. Tentando via JavaScript...")
+        try:
+            achou = self.driver.execute_script(
+                """
+                var alvo = null;
+                var els = document.querySelectorAll('td, div, span, a, button, tr');
+                for (var i = 0; i < els.length; i++) {
+                    var el = els[i];
+                    if (el.textContent && el.textContent.trim() === 'Próximo' && el.offsetHeight > 0) {
+                        alvo = el; break;
+                    }
+                }
+                if (!alvo) return false;
+                // Sobe até um elemento com onclick/tabindex (handler real), se houver
+                var clickAlvo = alvo.querySelector("div[tabindex='0']") || alvo;
+                var opts = { bubbles: true, cancelable: true, view: window };
+                ['mouseenter','mouseover','mousedown','mouseup'].forEach(function(t){
+                    clickAlvo.dispatchEvent(new MouseEvent(t, opts));
+                });
+                clickAlvo.click();
+                return true;
+                """
+            )
+            if achou:
+                self.logger.info("'Próximo' clicado via JavaScript (eventos de mouse)")
+                if self._senha_visivel(timeout=5.0):
+                    return True
+                self.logger.warning("Clique JS executado, mas campo de senha não apareceu.")
+            else:
+                self.logger.error("JavaScript não encontrou o botão 'Próximo'.")
+        except Exception as e:
+            self.logger.error(f"Erro no JS de 'Próximo': {e}")
+
+        return False
+
+    def _clicar_proximo_retry(self, tentativas: int = 3) -> bool:
+        """Tenta clicar em 'Próximo' várias vezes com delay progressivo (2s, 4s, 6s)."""
+        for i in range(1, tentativas + 1):
+            self.logger.info(f"Tentativa {i}/{tentativas} para clicar em 'Próximo'...")
+            if self._clicar_proximo():
+                self.logger.info("'Próximo' OK: campo de senha disponível.")
+                return True
+            if i < tentativas:
+                time.sleep(2 * i)
+        self.logger.error("Falha ao avançar com 'Próximo' após todas as tentativas.")
+        return False
+
+    def _login_concluido(self, timeout: float = 10.0) -> bool:
+        """Verifica se o login foi aceito (saiu da tela de credenciais)."""
+        try:
+            WebDriverWait(self.driver, timeout).until(
+                lambda d: (
+                    "/app" in d.current_url
+                    or len(d.find_elements(By.XPATH, "//input[@placeholder='Senha']")) == 0
+                    or len(d.find_elements(By.XPATH, "//p[@class='branch']")) > 0
+                )
+            )
+            return True
+        except:
+            return False
+
+    def _enviar_login_enter(self) -> bool:
+        """Submete o login com ENTER no campo de senha (menos detectável que clique)."""
+        try:
+            senha_input = self.wait.until(
+                EC.presence_of_element_located((By.XPATH, "//input[@placeholder='Senha']"))
+            )
+            senha_input.click()
+            time.sleep(0.3)
+            senha_input.send_keys(Keys.ENTER)
+            self.logger.info("Login enviado via ENTER no campo de senha")
+            return self._login_concluido()
+        except Exception as e:
+            self.logger.warning(f"ENTER no campo de senha falhou: {e}")
+            return False
+
+    def _clicar_login(self) -> bool:
+        """
+        Tenta submeter o login: XPath -> ActionChains -> JS -> ENTER.
+        Valida pelo menu pós-login ou sumiço do campo de senha.
+        """
+        xpaths = [
+            "//td[contains(normalize-space(.),'Login')]",
+            "//tr[contains(.//td,'Login')]",
+            "//div[@tabindex='0' and contains(normalize-space(.),'Login')]",
+            "//*[normalize-space(text())='Login']",
+        ]
+
+        for xp in xpaths:
+            try:
+                btn = self.wait.until(EC.presence_of_element_located((By.XPATH, xp)))
+                self.driver.execute_script(
+                    "arguments[0].scrollIntoView({block:'center'});", btn
+                )
+                time.sleep(0.5)
+                try:
+                    btn.click()
+                except:
+                    self.driver.execute_script("arguments[0].click();", btn)
+                self.logger.info(f"'Login' clicado via XPath: {xp}")
+                if self._login_concluido(timeout=6.0):
+                    return True
+            except Exception as e:
+                self.logger.debug(f"XPath 'Login' falhou ({xp}): {e}")
+                continue
+
+        # ActionChains: movimento real de mouse até o botão
+        for xp in xpaths[:2]:
+            try:
+                btn = self.wait.until(EC.presence_of_element_located((By.XPATH, xp)))
+                ActionChains(self.driver).move_to_element(btn).pause(0.5).click().perform()
+                self.logger.info(f"'Login' clicado via ActionChains: {xp}")
+                if self._login_concluido(timeout=6.0):
+                    return True
+            except Exception as e:
+                self.logger.debug(f"ActionChains 'Login' falhou ({xp}): {e}")
+
+        # Fallback JS com eventos de mouse
+        self.logger.warning("Cliques Selenium falharam. Tentando 'Login' via JavaScript...")
+        try:
+            achou = self.driver.execute_script(
+                """
+                var alvo = null;
+                var els = document.querySelectorAll('td, div, span, a, button, tr');
+                for (var i = 0; i < els.length; i++) {
+                    var el = els[i];
+                    if (el.textContent && el.textContent.trim() === 'Login' && el.offsetHeight > 0) {
+                        alvo = el; break;
+                    }
+                }
+                if (!alvo) return false;
+                var clickAlvo = alvo.querySelector("div[tabindex='0']") || alvo;
+                var opts = { bubbles: true, cancelable: true, view: window };
+                ['mouseenter','mouseover','mousedown','mouseup'].forEach(function(t){
+                    clickAlvo.dispatchEvent(new MouseEvent(t, opts));
+                });
+                clickAlvo.click();
+                return true;
+                """
+            )
+            if achou and self._login_concluido(timeout=6.0):
+                self.logger.info("'Login' aceito após clique JavaScript")
+                return True
+        except Exception as e:
+            self.logger.warning(f"JS de 'Login' falhou: {e}")
+
+        # ENTER costuma contornar bloqueio de clique automatizado
+        return self._enviar_login_enter()
+
+    def _clicar_login_retry(self, tentativas: int = 3) -> bool:
+        """Tenta submeter login com delay progressivo entre tentativas."""
+        for i in range(1, tentativas + 1):
+            self.logger.info(f"Tentativa {i}/{tentativas} para submeter login...")
+            if self._clicar_login():
+                self.logger.info("Login OK: portal autenticado.")
+                return True
+            if i < tentativas:
+                time.sleep(2 * i)
+        self.logger.error("Falha ao autenticar após todas as tentativas.")
+        return False
+
+    def _criar_driver(self, output_dir: str):
+        """Cria Chrome com prefs de download e flags anti-detecção básicas."""
         chrome_options = Options()
         prefs = {
             "download.default_directory": output_dir,
@@ -131,9 +334,73 @@ class GlorianRobot(BaseRobot):
             "profile.default_content_setting_values.automatic_downloads": 1,
         }
         chrome_options.add_experimental_option("prefs", prefs)
-        # chrome_options.add_argument("--headless") # Habilitar futuramente se quiser
+        chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+        chrome_options.add_experimental_option("useAutomationExtension", False)
+        chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+        chrome_options.add_argument(
+            "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+        )
+        # chrome_options.add_argument("--headless")
+
+        driver = webdriver.Chrome(options=chrome_options)
+        try:
+            driver.execute_cdp_cmd(
+                "Page.addScriptToEvaluateOnNewDocument",
+                {
+                    "source": (
+                        "Object.defineProperty(navigator, 'webdriver', "
+                        "{ get: () => undefined });"
+                    )
+                },
+            )
+        except Exception as e:
+            self.logger.warning(f"Não foi possível aplicar script anti-detecção: {e}")
+        return driver
+
+    def _clicar_mes_corrente(self):
+        """Clica no item de menu 'Mês corrente' (p.branch, 1º item do menu)."""
+        seletores = [
+            "//p[@class='branch' and contains(normalize-space(.), 'Mês corrente')]",
+            "//p[contains(text(),'Mês corrente')]",
+            "//ul[contains(@class,'C_37')]//li[1]//p[@class='branch']",
+            "//ul[contains(@class,'C_37')]//li[1]//p",
+            "//p[@class='branch']",
+        ]
+        for xp in seletores:
+            try:
+                self._click(xp)
+                self.logger.info(f"'Mês corrente' clicado via: {xp}")
+                return
+            except:
+                continue
+
+        # Fallback JS: procura pelo texto entre os <p class="branch">
+        self.logger.warning("XPaths falharam para 'Mês corrente'. Tentando via JS...")
+        self.driver.execute_script(
+            """
+            var ps = document.querySelectorAll('p.branch');
+            for (var i = 0; i < ps.length; i++) {
+                if (ps[i].textContent.indexOf('Mês corrente') >= 0) { ps[i].click(); return; }
+            }
+            if (ps.length > 0) { ps[0].click(); }
+            """
+        )
+
+    def run(self):
+        # Args
+        login = self.args.user
+        senha = self.args.password
         
-        self.driver = webdriver.Chrome(options=chrome_options)
+        if not login or not senha:
+            self.logger.error("Login (--user) e Senha (--password) são obrigatórios.")
+            return
+
+        output_dir = self.get_output_path()
+        # Se quiser subpasta por data: output_dir = os.path.join(output_dir, f"{ano}{mes:02d}")
+        os.makedirs(output_dir, exist_ok=True)
+
+        self.driver = self._criar_driver(output_dir)
         self.wait = WebDriverWait(self.driver, 20)
         self.driver.maximize_window()
 
@@ -146,54 +413,28 @@ class GlorianRobot(BaseRobot):
             self.logger.info("Realizando Login...")
             self._fill("//input[@placeholder='Login ou e-mail']", login)
             time.sleep(1)
-            self._click("//td[contains(text(),'Próximo')]")
-            time.sleep(2)
-            self._fill("//input[@placeholder='Senha']", senha)
+            if not self._clicar_proximo_retry(tentativas=3):
+                # Último recurso: ENTER no campo de login
+                self.logger.warning("Tentando avançar com ENTER no campo de login...")
+                self.driver.switch_to.active_element.send_keys(Keys.ENTER)
+                if not self._senha_visivel(timeout=5.0):
+                    self.logger.error("Não foi possível avançar para a senha. Abortando.")
+                    return
             time.sleep(1)
-            self._click("//td[contains(text(),'Login')]")
-            time.sleep(5)
 
-            # Navegação
-            self.logger.info("Acessando Notas Fiscais...")
-            self._click("//p[contains(text(),'Notas Fiscais')]")
-            time.sleep(10)
-            
-            # Pesquisa
-            self.logger.info("Abrindo Pesquisa...")
-            self._click("//div[@title='Pesquisa']")
+            self._fill("//input[@placeholder='Senha']", senha)
+            time.sleep(2)
+            if not self._clicar_login_retry(tentativas=3):
+                self.logger.error("Não foi possível autenticar no portal. Abortando.")
+                return
             time.sleep(3)
 
-            # --- FILTRO CONTRATO (COMENTADO A PEDIDO) ---
-            # codigo_organizacao = "..."
-            # self.logger.info(f"Filtrando contrato: {codigo_organizacao}")
-            # self._fill("//input[@title='Organização de Contrato']", codigo_organizacao)
-            # self.driver.switch_to.active_element.send_keys(Keys.TAB)
-            # time.sleep(2)
-            # --------------------------------------------
-
-            self.logger.info(f"Filtrando Data: {ano}")
-            
-            # Ano
-            self._fill("//input[@title='Ano'][@maxlength='4'][@type='text']", str(ano))
-            self.driver.switch_to.active_element.send_keys(Keys.TAB)
-            time.sleep(2)
-
-            # Mês (COMENTADO A PEDIDO)
-            xpath_mes = "/html/body/div[1]/div/div/div/div[2]/div/div[2]/div/div[2]/div/div[3]/div/div[2]/div/div[3]/div/div/div/div[2]/div/div/div/div/div/div/div/div/div[2]/div/div/div/div/div/div/div[2]/div[3]/div/div/div/div[2]/div/table/tbody/tr[28]/td[2]/div/table/tbody/tr/td[2]/div/table/tbody/tr/td[1]/input"
-            try:
-                self._fill(xpath_mes, str(mes))
-                self.driver.switch_to.active_element.send_keys(Keys.TAB)
-            except:
-                self.logger.warning("Falha ao preencher Mês com XPath absoluto. Tentando genérico...")
-                # Fallback se o xpath absoluto falhar (ele é bem frágil)
-                # Tentar achar inputs visiveis na area de pesquisa
-                self._fill("//input[contains(@title, 'Mês') or contains(@id, 'mes')]", str(mes)) # Tentativa
-            time.sleep(2)
-
-            # Executar
-            self.logger.info("Executando consulta...")
-            self._click("//div[@title='Executar a consulta']")
-            time.sleep(5)
+            # Navegação (site simplificado): clica em 'Mês corrente'
+            # Já traz os registros do mês corrente (notas mais atualizadas),
+            # sem precisar definir mês e ano manualmente.
+            self.logger.info("Acessando 'Mês corrente'...")
+            self._clicar_mes_corrente()
+            time.sleep(10)
 
             # Aumentar Paginação
             self.logger.info("Ajustando paginação para 500...")
