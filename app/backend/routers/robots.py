@@ -402,6 +402,11 @@ ROBOTS_CONFIG = {
         "download_dir": get_download_path("DPII"),
         "name": "WebDPII"
     },
+    "webrelatoriogeral": {
+        "script": os.path.join(ROOT_DIR, "Robots", "WebRelatorioGeral.py"),
+        "download_dir": get_download_path("WebRelatorioGeral"),
+        "name": "WebRelatorioGeral"
+    },
 }
 
 # Estado global: { robot_name: { set_of_active_process_ids } }

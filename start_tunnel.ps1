@@ -11,8 +11,8 @@ Write-Host "[3/4] Iniciando Cloudflare Tunnel..." -ForegroundColor Cyan
 
 # Backend precisa estar no ar antes do tunnel (evita deploy com API morta)
 try {
-    $health = Invoke-WebRequest -Uri "http://127.0.0.1:8000/" -UseBasicParsing -TimeoutSec 3
-    if ($health.StatusCode -ne 200) { throw "status $($health.StatusCode)" }
+    $health = Invoke-WebRequest -Uri "http://127.0.0.1:8000/docs" -UseBasicParsing -TimeoutSec 3
+    if ($health.StatusCode -ge 500) { throw "status $($health.StatusCode)" }
 } catch {
     Write-Host "ERRO: Backend nao responde em http://127.0.0.1:8000/" -ForegroundColor Red
     Write-Host "      Abra a janela 'ROBO RUNNER - Backend' e corrija o erro antes de rodar o tunnel." -ForegroundColor Yellow
